@@ -1,0 +1,190 @@
+rules_version = '2';
+
+// FANVERSE Firestore 安全規則
+// 原則：預設全部拒絕；只開放必要的讀寫；每個欄位都驗證型別與長度；
+// 實名資料（姓名、生日）只有本人讀得到，姓名只能由本人逐一揭露給特定對象。
+// 身分證字號不會出現在任何文件中（只在使用者裝置上檢查格式）。
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- 共用函式 ----------
+    function signedIn() { return request.auth != null; }
+    function verified() { return signedIn() && request.auth.token.email_verified == true; }
+    function me() { return request.auth.uid; }
+    function myProfile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function hasProfile() { return exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function isMinor() { return myProfile().minor == true; }
+    function str(v, lo, hi) { return v is string && v.size() >= lo && v.size() <= hi; }
+    function concertOk(c) { return c in ['c1', 'c2', 'c3', 'c4', 'c5']; }
+    function unchanged(field) { return request.resource.data[field] == resource.data[field]; }
+
+    // 年齡判斷採保守算法：18 年 = 6575 天（含最多 5 個閏日），寧可多算一天未成年
+    function adultBy(birthday) { return request.time >= birthday + duration.value(6575, 'd'); }
+    function atLeast13(birthday) { return request.time >= birthday + duration.value(4752, 'd'); }
+
+    // ---------- 公開檔案：暱稱、性別、年齡區間、實名徽章 ----------
+    function validPublic(d) {
+      return d.keys().hasOnly(['nickname', 'gender', 'ageBand', 'minor', 'verified', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['nickname', 'gender', 'ageBand', 'minor', 'verified', 'createdAt', 'updatedAt'])
+        && str(d.nickname, 1, 20)
+        && d.gender in ['男', '女']
+        && d.minor is bool
+        && d.verified == 'id-format'
+        && ((d.minor == true && d.ageBand == '') || (d.minor == false && d.ageBand in ['18–24', '25–34', '35–44', '45+']))
+        && d.updatedAt == request.time;
+    }
+    // 公開檔案的未成年標記必須和私密生日一致
+    function minorMatches(d, priv) { return d.minor == !adultBy(priv.birthday); }
+
+    match /users/{uid} {
+      allow read: if verified();
+      allow create: if verified() && me() == uid
+        && validPublic(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && existsAfter(/databases/$(database)/documents/private/$(uid))
+        && minorMatches(request.resource.data, getAfter(/databases/$(database)/documents/private/$(uid)).data);
+      allow update: if verified() && me() == uid
+        && validPublic(request.resource.data)
+        && unchanged('createdAt') && unchanged('gender') && unchanged('verified')
+        && minorMatches(request.resource.data, get(/databases/$(database)/documents/private/$(uid)).data);
+      allow delete: if signedIn() && me() == uid;
+    }
+
+    // ---------- 私密實名資料：只有本人能讀寫；姓名與生日建立後不可修改 ----------
+    function validPrivate(d) {
+      return d.keys().hasOnly(['realName', 'birthday', 'guardianConsent', 'consentVersion', 'consentAt', 'idCheckedAt'])
+        && d.keys().hasAll(['realName', 'birthday', 'guardianConsent', 'consentVersion', 'consentAt', 'idCheckedAt'])
+        && str(d.realName, 2, 30)
+        && d.birthday is timestamp
+        && atLeast13(d.birthday)
+        && d.guardianConsent is bool
+        && (adultBy(d.birthday) || d.guardianConsent == true)
+        && d.consentVersion == 'v1'
+        && d.consentAt is timestamp
+        && d.idCheckedAt is timestamp;
+    }
+
+    match /private/{uid} {
+      allow read: if signedIn() && me() == uid;
+      allow create: if verified() && me() == uid && validPrivate(request.resource.data);
+      allow update: if verified() && me() == uid && validPrivate(request.resource.data)
+        && unchanged('realName') && unchanged('birthday');
+      allow delete: if signedIn() && me() == uid;
+    }
+
+    // ---------- 實名揭露：本人把自己的姓名揭露給「單一」對象 ----------
+    match /reveals/{owner}/to/{viewer} {
+      allow read: if signedIn() && (me() == owner || me() == viewer);
+      allow create: if verified() && me() == owner && owner != viewer
+        && !isMinor()
+        && request.resource.data.keys().hasOnly(['realName', 'createdAt'])
+        && request.resource.data.realName == get(/databases/$(database)/documents/private/$(owner)).data.realName
+        && request.resource.data.createdAt == request.time;
+      allow delete: if signedIn() && me() == owner;
+    }
+
+    // ---------- 自己的申請索引（只有本人讀寫） ----------
+    match /myRequests/{uid}/items/{itemId} {
+      allow read, delete: if signedIn() && me() == uid;
+      allow create: if verified() && me() == uid
+        && request.resource.data.keys().hasOnly(['type', 'targetId', 'createdAt'])
+        && request.resource.data.type in ['ride', 'trade']
+        && str(request.resource.data.targetId, 1, 64)
+        && itemId == request.resource.data.type + '_' + request.resource.data.targetId
+        && request.resource.data.createdAt == request.time;
+    }
+
+    // ---------- 同行媒合 ----------
+    function validRide(d) {
+      return d.keys().hasOnly(['kind', 'concertId', 'title', 'from', 'capacity', 'cost', 'note', 'owner', 'createdAt', 'memberCount'])
+        && d.keys().hasAll(['kind', 'concertId', 'title', 'from', 'capacity', 'cost', 'note', 'owner', 'createdAt', 'memberCount'])
+        && d.kind in ['包車', '住宿', '旅伴']
+        && concertOk(d.concertId)
+        && str(d.title, 1, 40)
+        && str(d.from, 1, 30)
+        && d.capacity is int && d.capacity >= 2 && d.capacity <= 50
+        && d.cost is int && d.cost >= 0 && d.cost <= 20000
+        && str(d.note, 0, 120)
+        && d.memberCount is int && d.memberCount >= 0 && d.memberCount < d.capacity;
+    }
+    function ride(rideId) { return get(/databases/$(database)/documents/rides/$(rideId)).data; }
+
+    match /rides/{rideId} {
+      allow read: if verified();
+      allow create: if verified() && hasProfile()
+        && validRide(request.resource.data)
+        && request.resource.data.owner == me()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.memberCount == 0
+        && (request.resource.data.kind != '住宿' || !isMinor());
+      allow update: if verified() && resource.data.owner == me()
+        && validRide(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount', 'title', 'note']);
+      allow delete: if verified() && resource.data.owner == me();
+
+      // 申請：只有申請者本人與發起人看得到，其他人看不到誰申請了哪一團
+      match /requests/{uid} {
+        allow read: if verified() && (me() == uid || ride(rideId).owner == me());
+        allow create: if verified() && hasProfile() && me() == uid
+          && ride(rideId).owner != me()
+          && (ride(rideId).kind != '住宿' || !isMinor())
+          && request.resource.data.keys().hasOnly(['uid', 'status', 'createdAt'])
+          && request.resource.data.uid == me()
+          && request.resource.data.status == 'pending'
+          && request.resource.data.createdAt == request.time;
+        allow update: if verified() && ride(rideId).owner == me()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status in ['accepted', 'declined'];
+        allow delete: if verified() && (me() == uid || ride(rideId).owner == me());
+      }
+    }
+
+    // ---------- 周邊交換 ----------
+    function validTrade(d) {
+      return d.keys().hasOnly(['mode', 'category', 'have', 'want', 'price', 'condition', 'concertId', 'tags', 'note', 'img', 'owner', 'createdAt'])
+        && d.keys().hasAll(['mode', 'category', 'have', 'want', 'price', 'condition', 'concertId', 'tags', 'note', 'img', 'owner', 'createdAt'])
+        && d.mode in ['交換', '出售', '徵求']
+        && d.category in ['小卡', '專輯', '應援物', '其他']
+        && str(d.have, 0, 50) && str(d.want, 0, 50)
+        && (d.mode == '徵求' || d.have.size() > 0)
+        && (d.mode == '出售' || d.want.size() > 0)
+        && d.price is int && d.price >= 0 && d.price <= 100000
+        && d.condition in ['全新', '近全新', '有使用痕跡', '']
+        && (d.concertId == '' || concertOk(d.concertId))
+        && d.tags is list && d.tags.size() <= 5
+        && str(d.note, 0, 100)
+        && d.img is string
+        && (d.img == '' || (d.img.size() <= 150000 && d.img.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
+    }
+    function trade(tradeId) { return get(/databases/$(database)/documents/trades/$(tradeId)).data; }
+
+    match /trades/{tradeId} {
+      allow read: if verified();
+      allow create: if verified() && hasProfile()
+        && validTrade(request.resource.data)
+        && request.resource.data.owner == me()
+        && request.resource.data.createdAt == request.time;
+      allow delete: if verified() && resource.data.owner == me();
+
+      match /interests/{uid} {
+        allow read: if verified() && (me() == uid || trade(tradeId).owner == me());
+        allow create: if verified() && hasProfile() && me() == uid
+          && trade(tradeId).owner != me()
+          && request.resource.data.keys().hasOnly(['uid', 'status', 'createdAt'])
+          && request.resource.data.uid == me()
+          && request.resource.data.status == 'pending'
+          && request.resource.data.createdAt == request.time;
+        allow update: if verified() && trade(tradeId).owner == me()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status in ['accepted', 'declined'];
+        allow delete: if verified() && (me() == uid || trade(tradeId).owner == me());
+      }
+    }
+
+    // 其他所有路徑一律拒絕
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
