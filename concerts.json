@@ -1,6 +1,6 @@
 {
  "updated": "2026-11-17",
- "seq": 37,
+ "seq": 38,
  "status": {
   "arena": {
    "ok": true,
@@ -25,11 +25,11 @@
   "wikiStadium": {
    "ok": true,
    "at": "2026-11-17",
-   "count": 3
+   "count": 5
   }
  },
  "events": [
-  {"id":"e01","artist":"BTS","genre":"韓流","title":"BTS WORLD TOUR 'ARIRANG' IN KAOHSIUNG","venue":"高雄國家體育場","d":[["2026-11-19","19:00"],["2026-11-21","19:00"],["2026-11-22","19:00"]],"platform":"拓元售票","note":"實名制入場","src":["udn","yolo"]},
+  {"id":"e01","artist":"BTS","genre":"韓流","title":"BTS WORLD TOUR 'ARIRANG' IN KAOHSIUNG","venue":"高雄國家體育場","d":[["2026-11-19","19:00"],["2026-11-21","19:00"],["2026-11-22","19:00"]],"platform":"拓元售票","note":"實名制入場","src":["udn","yolo","wikiStadium"]},
   {"id":"e02","artist":"BABYMONSTER","genre":"韓流","title":"BABYMONSTER《CHOOM》","venue":"台北小巨蛋","d":[["2026-11-21",""],["2026-11-22",""]],"src":["yolo","arena"]},
   {"id":"e35","artist":"彭佳慧","genre":"華語","title":"彭佳慧《數著時間的日子》","venue":"高雄巨蛋","d":[["2026-11-21",""]],"src":["wikiKH"],"auto":true},
   {"id":"e30","artist":"5 Seconds of Summer","genre":"歐美","title":"5 SECONDS OF SUMMER: EVERYONES A STAR！ WORLD TOUR","venue":"台北流行音樂中心","d":[["2026-11-25",""]],"src":["tmc"],"auto":true},
@@ -39,7 +39,7 @@
   {"id":"e34","artist":"F✦FOREVER","genre":"華語","title":"F✦FOREVER恆星之城巡迴演唱會","venue":"台北大巨蛋","d":[["2026-11-28",""],["2026-11-29",""]],"src":["wikiDome"],"auto":true},
   {"id":"e36","artist":"2026 K-WONDER IN KAOHSIUNG","genre":"綜合","title":"MISAMO、少女時代-孝利秀、Eunha、SinB、Umji《2026 K-WONDER IN KAOHSIUNG》","venue":"高雄巨蛋","d":[["2026-11-29",""]],"src":["wikiKH"],"auto":true},
   {"id":"e05","artist":"劉若英","genre":"華語","title":"劉若英《飛行日》2026 巡迴演唱會","venue":"台北小巨蛋","d":[["2026-12-05","18:30"]],"src":["yolo","ett","arena"]},
-  {"id":"e06","artist":"Asia Artist Awards","genre":"綜合","title":"2026 Asia Artist Awards IN KAOHSIUNG（AAA 亞洲明星盛典）","venue":"高雄國家體育場","d":[["2026-12-05","17:00"]],"platform":"拓元售票","src":["udn","ett","wikiStadium"]},
+  {"id":"e06","artist":"Asia Artist Awards","genre":"綜合","title":"2026 Asia Artist Awards IN KAOHSIUNG（AAA 亞洲明星盛典）","venue":"高雄國家體育場","d":[["2026-12-05","17:00"],["2026-12-06","17:00"]],"platform":"拓元售票","src":["udn","ett","wikiStadium"]},
   {"id":"e32","artist":"JANNABI","genre":"韓流","title":"JANNABI 2026 ASIA TOUR FINAL ＜SWEAT & STARDUST ＞ IN TAIPEI","venue":"台北流行音樂中心","d":[["2026-12-05",""]],"src":["tmc"],"auto":true},
   {"id":"e07","artist":"Stray Kids","genre":"韓流","title":"Stray Kids World Tour〈RUN IT〉in TAIPEI","venue":"台北大巨蛋","d":[["2026-12-12","18:00"]],"platform":"拓元售票","src":["udn","yahooK","wikiDome"]},
   {"id":"e08","artist":"滅火器 Fire EX.","genre":"華語","title":"ON FIRE DAY 2026 滅火器高雄巨蛋演唱會","venue":"高雄巨蛋","d":[["2026-12-12","19:30"],["2026-12-13",""]],"platform":"KKTIX","sale":"12/12 場報導為完售","src":["udn","bw26","yolo","wikiKH"]},
@@ -59,11 +59,12 @@
   {"id":"e23","artist":"Tizzy Bac","genre":"華語","title":"Tizzy Bac 台北流行音樂中心演唱會","venue":"台北流行音樂中心","d":[["2027-01-23",""]],"price":"NT$1,600–3,800","platform":"拓元售票","src":["bw27","tmc"]},
   {"id":"e21","artist":"Maroon 5 魔力紅","genre":"歐美","title":"Maroon 5 Asia 2027","venue":"高雄國家體育場","d":[["2027-01-24",""]],"price":"NT$2,500–9,700","platform":"拓元售票","src":["bw27","wikiStadium"]},
   {"id":"e22","artist":"Westlife 西城男孩","genre":"歐美","title":"WESTLIFE 25: THE ANNIVERSARY WORLD TOUR","venue":"高雄巨蛋","d":[["2027-01-30","19:30"]],"price":"NT$2,980–8,680","platform":"拓元售票","src":["tvbs","bw27","wikiKH"]},
-  {"id":"e24","artist":"BIGBANG","genre":"韓流","title":"BIGBANG 高雄演唱會","venue":"高雄國家體育場","d":[["2027-02-27",""],["2027-02-28",""]],"price":"NT$2,980–9,430","platform":"寬宏售票","note":"部分報導列為 2/26–28 三場，請以主辦公告為準","src":["bw27"]},
+  {"id":"e24","artist":"BIGBANG","genre":"韓流","title":"BIGBANG 高雄演唱會","venue":"高雄國家體育場","d":[["2027-02-27",""],["2027-02-28",""]],"price":"NT$2,980–9,430","platform":"寬宏售票","note":"部分報導列為 2/26–28 三場，請以主辦公告為準","src":["bw27","wikiStadium"]},
   {"id":"e25","artist":"周蕙","genre":"華語","title":"周蕙 高雄巨蛋演唱會","venue":"高雄巨蛋","d":[["2027-02-27",""]],"price":"NT$800–4,680","platform":"寬宏售票","src":["bw27","wikiKH"]},
   {"id":"e26","artist":"TOMORROW X TOGETHER（TXT）","genre":"韓流","title":"TXT 高雄演唱會","venue":"高雄巨蛋","d":[["2027-03-06",""],["2027-03-07",""]],"src":["bw27","wikiKH"]},
   {"id":"e27","artist":"都敬秀 D.O.","genre":"韓流","title":"都敬秀 D.O. 台北演唱會","venue":"台北流行音樂中心","d":[["2027-03-13",""],["2027-03-14",""]],"src":["bw27"]},
   {"id":"e28","artist":"頑童 MJ116","genre":"華語","title":"頑童 MJ116《OGS》台北大巨蛋演唱會","venue":"台北大巨蛋","d":[["2027-03-20",""],["2027-03-21",""]],"src":["bw27","wikiDome"]},
-  {"id":"e29","artist":"張震嶽","genre":"華語","title":"國泰世華銀行 張震嶽「跟著感覺走」2027 台北演唱會","venue":"台北小巨蛋","d":[["2027-04-17",""],["2027-04-18",""]],"src":["arena"],"auto":true}
+  {"id":"e29","artist":"張震嶽","genre":"華語","title":"國泰世華銀行 張震嶽「跟著感覺走」2027 台北演唱會","venue":"台北小巨蛋","d":[["2027-04-17",""],["2027-04-18",""]],"src":["arena"],"auto":true},
+  {"id":"e38","artist":"Bruno Mars","genre":"歐美","title":"Bruno Mars - The Romantic Tour","venue":"高雄國家體育場","d":[["2027-05-01",""],["2027-05-02",""]],"src":["wikiStadium"],"auto":true}
  ]
 }
