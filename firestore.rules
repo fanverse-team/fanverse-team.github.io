@@ -16,7 +16,7 @@ service cloud.firestore {
     function hasProfile() { return exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
     function isMinor() { return myProfile().minor == true; }
     function str(v, lo, hi) { return v is string && v.size() >= lo && v.size() <= hi; }
-    function concertOk(c) { return c in ['c1', 'c2', 'c3', 'c4', 'c5']; }
+    function concertOk(c) { return c is string && c.matches('^e[0-9]{2,4}$'); }
     function unchanged(field) { return request.resource.data[field] == resource.data[field]; }
 
     // 年齡判斷採保守算法：18 年 = 6575 天（含最多 5 個閏日），寧可多算一天未成年
