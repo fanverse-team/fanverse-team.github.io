@@ -1,0 +1,37 @@
+name: 更新場次資料
+
+on:
+  schedule:
+    - cron: '17 21 * * *'   # 每天台灣時間 05:17
+    - cron: '17 9 * * *'    # 每天台灣時間 17:17
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-concerts
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 抓取並合併場次
+        run: node scripts/update.mjs
+      - name: 有異動才提交
+        run: |
+          if git diff --quiet -- concerts.json && git ls-files --error-unmatch concerts.json >/dev/null 2>&1; then
+            echo "沒有異動"
+          else
+            git config user.name "fanverse-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add concerts.json
+            git commit -m "自動更新場次資料"
+            git push
+          fi
