@@ -37,8 +37,10 @@ function classify(artist, title, hint) {
 }
 function guessArtist(title) {
   const k = knownArtist(title); if (k) return k.name;
+  const br = title.match(/^\s*[《「『【][^》」』】]{1,20}[》」』】]\s*([\s\S]+)$/);
+  if (br && /^[\u4e00-\u9fff]{2}/.test(br[1])) title = br[1];
   let t = title.replace(/^[《「『【\s]+/, '').replace(/^\S*(銀行|人壽|電信|證券|集團)\s+/, '').replace(/^20\d\d\s*/, '');
-  const m = t.match(/^[一-鿿·・]{2,8}/); if (m) return m[0].replace(/(演唱會|巡迴|世界|台北|臺北|高雄).*$/, '') || m[0];
+  const m = t.match(/^[一-鿿·・]{2,8}/); if (m) return m[0].replace(/([\d一二三四五六七八九十]+週年|演唱會|巡迴|世界|台北|臺北|高雄).*$/, '') || m[0];
   const words = t.split(/\s+/), out = [];
   for (const w of words) { if (/^(20\d\d|world|tour|live|concert|asia|in|the\s*$|fan|fanmeeting|演唱會)/i.test(w) || /[一-鿿《「『]/.test(w)) break; out.push(w); if (out.length >= 4) break; }
   return out.join(' ') || t.slice(0, 20);
@@ -86,7 +88,7 @@ function parseWikiTable(wikitext, heading, order) {
   const a = wikitext.search(heading); if (a < 0) return [];
   const rest = wikitext.slice(a), nextH = rest.slice(5).search(/\n==[^=]/);
   const sec = nextH < 0 ? rest : rest.slice(0, nextH + 5);
-  const events = []; let year = null, last = null;
+  const events = []; let year = null, last = null, prevOthers = [];
   for (const row of sec.split(/\n\|-/)) {
     const hy = row.match(/\n!\s*(?:colspan="?\d+"?\s*\|)?\s*(20\d\d)\s*年?/); if (hy) year = +hy[1];
     let cells = [];
@@ -94,8 +96,11 @@ function parseWikiTable(wikitext, heading, order) {
     cells = cells.map(c => { const m = c.match(/^\s*(?:(?:rowspan|colspan|style|align|class|width|bgcolor)\s*=\s*"?[^|"]*"?\s*)+\|(?!\|)([\s\S]*)$/); return (m ? m[1] : c).trim(); });
     if (cells.length && /^(20\d\d)年?$/.test(cleanWiki(cells[0]))) { year = +cleanWiki(cells[0]).slice(0, 4); cells.shift(); }
     if (!cells.length || !year) continue;
-    const dates = parseCnDates(cleanWiki(cells[0]), year); if (!dates.length) continue;
-    const others = cells.slice(1);
+    if (/<del>|<s>/i.test(cells[0])) continue;                          // 已取消的場次
+    const dates = parseCnDates(cleanWiki(cells[0].replace(/<br\s*\/?>/gi, '、')), year); if (!dates.length) continue;
+    let others = cells.slice(1);
+    if (others.length && prevOthers.length > others.length && others.length < order.length + (order[0] === 'both' ? 0 : 1)) others = prevOthers.slice(0, prevOthers.length - others.length).concat(others);   // 上一列 rowspan 合併的欄位
+    prevOthers = others;
     const hint = others.join(' ');
     const txt = others.map(cleanWiki).filter(c => c && !/^[\d.,]+\s*(場|萬|人)?$/.test(c));
     if (!txt.length) { if (last) last.dates.push(...dates); continue; }
@@ -108,7 +113,9 @@ function parseWikiTable(wikitext, heading, order) {
     last = { year, dates, artist, title, hint: hint.replace(/\[\[[^\]|]*\|/g, '[[') };
     events.push(last);
   }
-  return events.map(e => ({ dates: [...new Set(e.dates)].sort(), artist: e.artist, title: e.title, hint: e.hint }));
+  const merged = [];
+  for (const e of events) { const p = merged[merged.length - 1]; if (p && p.title === e.title && p.year === e.year) p.dates.push(...e.dates); else merged.push(e); }   // 同一活動分列多天
+  return merged.map(e => ({ dates: [...new Set(e.dates)].sort(), artist: e.artist, title: e.title, hint: e.hint }));
 }
 
 /* ---------- 台北小巨蛋官網活動列表 ---------- */
