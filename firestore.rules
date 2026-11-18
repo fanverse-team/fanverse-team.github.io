@@ -97,7 +97,7 @@ service cloud.firestore {
 
     // ---------- 同行媒合 ----------
     function validRide(d) {
-      return d.keys().hasOnly(['kind', 'concertId', 'title', 'from', 'capacity', 'cost', 'note', 'owner', 'createdAt', 'memberCount', 'dateIdx'])
+      return d.keys().hasOnly(['kind', 'concertId', 'title', 'from', 'capacity', 'cost', 'note', 'owner', 'createdAt', 'memberCount', 'day'])
         && d.keys().hasAll(['kind', 'concertId', 'title', 'from', 'capacity', 'cost', 'note', 'owner', 'createdAt', 'memberCount'])
         && d.kind in ['包車', '住宿', '旅伴']
         && concertOk(d.concertId)
@@ -107,7 +107,7 @@ service cloud.firestore {
         && d.cost is int && d.cost >= 0 && d.cost <= 20000
         && str(d.note, 0, 120)
         && d.memberCount is int && d.memberCount >= 0 && d.memberCount < d.capacity
-        && (!('dateIdx' in d) || (d.dateIdx is int && d.dateIdx >= 0 && d.dateIdx < 40));
+        && (!('day' in d) || (d.day is string && d.day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$')));
     }
     function ride(rideId) { return get(/databases/$(database)/documents/rides/$(rideId)).data; }
 
@@ -190,7 +190,7 @@ service cloud.firestore {
 
     // ---------- 同場次佔位：同一場演出的同一天，包車和住宿各只能確認一團 ----------
     // 由發起人在「發起」或「接受」時一起寫入；已經有紀錄就不能再建立，所以無法同時確認兩團
-    function seatKeyOf(r) { return r.concertId + '_' + (('dateIdx' in r) ? string(r.dateIdx) : 'x') + '_' + (r.kind == '包車' ? 'bus' : 'stay'); }
+    function seatKeyOf(r) { return r.concertId + '_' + (('day' in r) ? r.day : 'x') + '_' + (r.kind == '包車' ? 'bus' : 'stay'); }
     function seatOk(uid, key, r, rideId) {
       return r.kind in ['包車', '住宿'] && key == seatKeyOf(r) && r.owner == me()
         && (uid == me() || getAfter(/databases/$(database)/documents/rides/$(rideId)/requests/$(uid)).data.status == 'accepted');
@@ -204,6 +204,30 @@ service cloud.firestore {
         && request.resource.data.at == request.time
         && seatOk(uid, key, getAfter(/databases/$(database)/documents/rides/$(request.resource.data.rideId)).data, request.resource.data.rideId);
       allow delete: if signedIn() && (me() == uid || resource == null || ride(resource.data.rideId).owner == me());
+    }
+
+    // ---------- 會員回報：每人每場每個項目一筆，內容只能是固定格式 ----------
+    // 文件編號 = 回報者 uid + '_' + 項目（+ '_' + 場次日期），所以一個人無法灌票
+    function fixOk(cid, rid, d) {
+      return concertOk(cid)
+        && d.keys().hasOnly(['f', 'day', 'v', 'at']) && d.keys().hasAll(['f', 'day', 'v', 'at'])
+        && d.at == request.time && d.v is string && d.day is string
+        && rid == me() + '_' + d.f + (d.day == '' ? '' : '_' + d.day)
+        && ((d.f == 'time' && d.day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$') && d.v.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'))
+          || (d.f == 'status' && d.day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$') && d.v in ['延期', '取消', '照常'])
+          || (d.f == 'price' && d.day == '' && d.v.matches('^[0-9]{2,6}-[0-9]{2,6}$'))
+          || (d.f == 'platform' && d.day == '' && d.v in ['拓元售票', 'KKTIX', '遠大售票 Ticket Plus', 'ibon 售票', '寬宏售票', '年代售票']));
+    }
+    match /fixes/{cid}/r/{rid} {
+      allow read: if true;
+      allow create, update: if verified() && hasProfile() && fixOk(cid, rid, request.resource.data);
+      allow delete: if signedIn() && rid.split('_')[0] == me();
+    }
+    match /myFixes/{uid}/k/{key} {
+      allow read, delete: if signedIn() && me() == uid;
+      allow create, update: if verified() && me() == uid
+        && request.resource.data.keys().hasOnly(['at'])
+        && request.resource.data.at == request.time;
     }
 
     // ---------- 自己參與過的聊天室索引（刪除帳號時用來清掉自己的發言） ----------
