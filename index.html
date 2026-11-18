@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-RRWvkfOT/RILfPXNSC+g+hwSwq55kx2+0AxyDyivCDE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-wnDaVogCVwMQUnPvNKvMC7Azn2SAoASrJO5RqaDtyIw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -287,7 +287,7 @@ const S = {
   rides: [], trades: [], ridesReady: false, tradesReady: false,
   pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {},
   unsubs: [], itemUnsubs: {}, revealUnsubs: {}, manage: null, manageUnsub: null, group: null, busy: {},
-  ownRides: [], rideCache: {}, seats: {}, lastAt: {}, lastUnsubs: {}, seen: loadLS('fv_seen2', {}), fixes: {}, openCid: '', fixOpen: null,
+  ownRides: [], rideCache: {}, seats: {}, lastAt: {}, lastUnsubs: {}, seen: loadLS('fv_seen2', {}), fixes: {}, openCid: '', fixOpen: null, sugOpen: false, sugIdx: -1, sugItems: [], recentQ: loadLS('fv_recentq', []),
   follows: loadLS('fv_follows2', []), reminders: loadLS('fv_rem', []),
   ai: { concert: '', dateIdx: 0, from: '台中彰化', mode: '高鐵', stay: '自動判斷', budget: '適中', out: null },
   fraud: { text: '', out: null }, lastVerifySend: 0
@@ -350,16 +350,174 @@ function concertCard(c) {
     '<div class="pills">' + (multi ? '<span class="pill hot">共 ' + c.d.length + ' 場</span>' : '') + (c.price ? '<span class="pill">' + esc(c.price) + '</span>' : '') + (left >= 0 ? '<span class="pill">倒數 ' + left + ' 天</span>' : '') + '</div></div>' +
     '<button class="star' + (fol ? ' on' : '') + '" data-act="follow" data-artist="' + esc(c.artist) + '" aria-label="追蹤 ' + esc(c.artist) + '">' + (fol ? '★' : '☆') + '</button></div>';
 }
+/* ---------- 智慧搜尋：容錯、別名、日期，邊打邊建議（全部在瀏覽器裡算，不讀資料庫） ---------- */
+// 新場次的藝人名、標題、場館、類型會自動進索引；下面的別名表只是加分，不維護也能搜得到
+const ALIAS = {
+  'BTS': ['防彈少年團', '防彈', '방탄소년단', 'bangtan'], 'Stray Kids': ['skz', '斯特雷', '스트레이키즈'], 'SEVENTEEN': ['svt', '十七', '세븐틴'],
+  'TOMORROW X TOGETHER': ['txt', '明日合', '투바투'], 'BIGBANG': ['big bang', '빅뱅'], 'BABYMONSTER': ['baemon', '베이비몬스터'],
+  '米津玄師': ['yonezu kenshi', 'kenshi yonezu', 'よねづけんし'], 'YOASOBI': ['ヨアソビ'], 'Mr.Children': ['ミスチル', 'mrchildren', 'mr children'],
+  '田馥甄': ['hebe', 'she'], '劉若英': ['奶茶', 'rene liu'], '告五人': ['accusefive'], '滅火器': ['fire ex', 'fireex'],
+  '頑童 MJ116': ['頑童', 'mj116'], '張震嶽': ['ayal'], 'Maroon 5': ['魔力紅', 'maroon5'], 'Westlife': ['西城男孩'],
+  'T.O.P': ['top', '崔勝鉉', '탑'], 'NCT': ['엔시티'], 'MAMAMOO': ['마마무', '媽媽木'], '都敬秀': ['do', 'd.o.', '디오'], 'Asia Artist Awards': ['aaa']
+};
+const VENUE_ALIAS = {
+  '台北大巨蛋': ['大巨蛋', '北蛋', 'taipei dome'], '台北小巨蛋': ['小巨蛋', 'taipei arena'], '台北流行音樂中心': ['北流', '流行音樂中心', 'tmc'],
+  '高雄巨蛋': ['高巨', '巨蛋', 'kaohsiung arena'], '高雄國家體育場': ['世運', '世運主場館', '國家體育場', '龍騰體育場']
+};
+const GENRE_ALIAS = { 韓流: ['kpop', 'k-pop', '韓團', '韓國'], 日本: ['jpop', 'j-pop', '日團', '日系'], 華語: ['華語', '中文', 'cpop', '台灣'], 歐美: ['西洋', '歐美', '英文'], 綜合: ['頒獎', '音樂節', '聯合'] };
+const norm = s => String(s || '').normalize('NFKC').toLowerCase().replace(/臺/g, '台').replace(/[\s·・.,'’"“”!！?？\-–—_()（）《》「」【】\[\]\/:：、✦&+]+/g, '');
+const isLatin = s => /^[a-z0-9]+$/.test(s);
+function editDist(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i), pp = prev;
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]; let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cur[j] = Math.min(cur[j], pp[j - 2] + 1); // 前後字母打反也算一個錯
+      best = Math.min(best, cur[j]);
+    }
+    if (best > max) return max + 1; pp = prev; prev = cur;
+  }
+  return prev[b.length];
+}
+let SIDX = null, SIDX_FOR = null;
+function searchIndex() {
+  if (SIDX && SIDX_FOR === CONCERTS) return SIDX;
+  SIDX_FOR = CONCERTS;
+  SIDX = CONCERTS.map(c => {
+    const keys = [], add = (t, w, label) => { const n = norm(t); if (n && !keys.some(k => k.t === n)) keys.push({ t: n, w, label: label || t }); };
+    add(c.artist, 10);
+    String(c.artist).split(/[\s（）()／/]+|\sX\s/i).filter(x => x.length > 1).forEach(x => add(x, 9, c.artist));
+    Object.keys(ALIAS).forEach(k => { if (norm(c.artist + c.title).includes(norm(k))) { add(k, 9, c.artist); ALIAS[k].forEach(a => add(a, 8, c.artist)); } });
+    add(c.title, 5, c.artist);
+    (String(c.title).match(/[A-Za-z][A-Za-z0-9 .'&]{2,}|[一-鿿]{2,}/g) || []).forEach(x => add(x, 4, c.artist));
+    add(c.venue, 4); (VENUE_ALIAS[c.venue] || []).forEach(a => add(a, 3, c.venue));
+    add(VENUES[c.venue].city, 3); add(c.genre, 3); (GENRE_ALIAS[c.genre] || []).forEach(a => add(a, 2, c.genre));
+    if (c.platform) add(c.platform, 1);
+    return { c, keys, words: keys.filter(k => isLatin(k.t) && k.t.length >= 3) };
+  });
+  return SIDX;
+}
+// 日期關鍵字：12月、12/26、本週、週末、這個月、下個月、今天、明天
+function dateTok(tok) {
+  const now = new Date(Date.now() + 8 * 3600e3), y = now.getUTCFullYear(), m = now.getUTCMonth() + 1, d = now.getUTCDate();
+  const iso = (Y, M, D) => Y + '-' + String(M).padStart(2, '0') + '-' + String(D).padStart(2, '0');
+  const today = iso(y, m, d), add = n => new Date(Date.parse(today + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+  let r;
+  if ((r = tok.match(/^(\d{1,2})月$/))) { const M = +r[1]; if (M < 1 || M > 12) return null; const Y = M < m ? y + 1 : y; return { label: M + ' 月', test: s => s.startsWith(iso(Y, M, 1).slice(0, 7)) }; }
+  if ((r = tok.match(/^(\d{1,2})[\/.月-](\d{1,2})日?$/))) { const M = +r[1], D = +r[2]; if (M < 1 || M > 12 || D < 1 || D > 31) return null; const Y = M < m ? y + 1 : y; const t = iso(Y, M, D); return { label: M + '/' + D, test: s => s === t }; }
+  const dow = now.getUTCDay(), toSun = (7 - dow) % 7;
+  const range = (a, b, label) => ({ label, test: s => s >= a && s <= b });
+  if (tok === '今天') return range(today, today, '今天');
+  if (tok === '明天') return range(add(1), add(1), '明天');
+  if (['本週', '這週', '這周', '本周'].includes(tok)) return range(today, add(toSun), '這週');
+  if (['週末', '周末', '這週末', '這周末'].includes(tok)) return range(add(Math.max(0, toSun - 1)), add(toSun), '這週末');
+  if (['這個月', '本月'].includes(tok)) return range(today, iso(y, m, 31), '這個月');
+  if (tok === '下個月') { const M = m === 12 ? 1 : m + 1, Y = m === 12 ? y + 1 : y; return range(iso(Y, M, 1), iso(Y, M, 31), '下個月'); }
+  return null;
+}
+// 回傳 [{c, score, hit}]，hit 是命中的欄位文字（給建議清單用）；tokens 之間是「且」
+function searchConcerts(q, pool) {
+  const toks = String(q || '').trim().split(/\s+/).filter(Boolean);
+  if (!toks.length) return null;
+  const idx = searchIndex(), set = new Set(pool.map(c => c.id)), out = [];
+  for (const e of idx) {
+    if (!set.has(e.c.id)) continue;
+    let score = 0, hit = '', fuzzy = false, ok = true;
+    for (const raw of toks) {
+      const dt = dateTok(raw);
+      if (dt) { if (e.c.d.some(x => dt.test(x[0]))) { score += 3; continue; } ok = false; break; }
+      const t = norm(raw); if (!t) continue;
+      let best = 0, bh = '', bf = false;
+      for (const k of e.keys) {
+        let s = 0;
+        if (k.t === t) s = k.w * 1.3; else if (k.t.startsWith(t)) s = k.w * 1.1; else if (k.t.includes(t)) s = k.w * (t.length >= 2 ? 0.8 : 0.3);
+        if (s > best) { best = s; bh = k.label; bf = false; }
+      }
+      if (!best && isLatin(t) && t.length >= 4) {
+        const max = t.length >= 7 ? 2 : 1;
+        for (const k of e.words) {
+          const cand = [k.t, k.t.slice(0, t.length)];
+          if (cand.some(x => editDist(t, x, max) <= max)) { const s = k.w * 0.5; if (s > best) { best = s; bh = k.label; bf = true; } }
+        }
+      }
+      if (!best) { ok = false; break; }
+      score += best; if (!hit) hit = bh; fuzzy = fuzzy || bf;
+    }
+    if (ok) out.push({ c: e.c, score, hit, fuzzy });
+  }
+  if (!out.length && toks.length > 1 && !toks.some(dateTok)) return searchConcerts(toks.join(''), pool); // 例：「stary kids」整串當一個字再找一次
+  const exact = out.filter(r => !r.fuzzy);
+  return (exact.length ? exact : out).sort((a, b) => b.score - a.score || (a.c.date < b.c.date ? -1 : 1));
+}
+const RECENT_KEY = 'fv_recentq';
+function addRecent(q) { q = String(q || '').trim().slice(0, 30); if (!q) return; S.recentQ = [q].concat((S.recentQ || []).filter(x => x !== q)).slice(0, 6); saveLS(RECENT_KEY, S.recentQ); }
+function hl(text, q) {
+  const t = String(text), toks = String(q).trim().split(/\s+/).filter(x => x && !dateTok(x));
+  let i = -1, len = 0;
+  for (const k of toks) { const j = t.toLowerCase().indexOf(k.toLowerCase()); if (j >= 0) { i = j; len = k.length; break; } }
+  return i < 0 ? esc(t) : esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + len)) + '</mark>' + esc(t.slice(i + len));
+}
+// 建議清單：場次＋可以直接套用的關鍵字（場館、類型、月份）＋最近搜尋
+function suggestions() {
+  const q = S.q.trim(), items = [];
+  if (!q) {
+    (S.recentQ || []).slice(0, 4).forEach(x => items.push({ kind: 'recent', q: x, html: '<span class="sg-ic">🕘</span>' + esc(x) }));
+    UPCOMING().slice().sort((a, b) => a.date < b.date ? -1 : 1).slice(0, 3).forEach(c => items.push({ kind: 'concert', id: c.id, html: '<span class="sg-ic">🔥</span><b>' + esc(c.artist) + '</b><span class="sg-sub">' + dinfo(c.date).md + '・' + esc(c.venue) + '</span>' }));
+    return items;
+  }
+  const res = searchConcerts(q, UPCOMING()) || [], t = norm(q);
+  const kw = [];
+  Object.keys(VENUES).forEach(v => { if ([v].concat(VENUE_ALIAS[v] || []).some(a => norm(a).startsWith(t) || (t.length >= 2 && norm(a).includes(t)))) kw.push({ kind: 'kw', q: v, html: '<span class="sg-ic">📍</span>' + esc(v) + ' 的所有場次' }); });
+  Object.keys(GENRE_ALIAS).forEach(g => { if ([g].concat(GENRE_ALIAS[g]).some(a => norm(a).startsWith(t))) kw.push({ kind: 'genre', v: g, html: '<span class="sg-ic">🏷️</span>只看「' + g + '」' }); });
+  const dt = dateTok(q.split(/\s+/).pop()); if (dt) kw.push({ kind: 'kw', q, html: '<span class="sg-ic">📅</span>' + esc(dt.label) + ' 的場次' });
+  res.slice(0, 5).forEach(r => items.push({ kind: 'concert', id: r.c.id, html: '<span class="sg-ic">🎤</span><span><b>' + hl(r.c.artist, q) + '</b>' + (r.fuzzy ? '<span class="sg-tag">你是不是要找</span>' : '') + '<span class="sg-sub">' + dinfo(r.c.date).md + (r.c.d.length > 1 ? ' 等 ' + r.c.d.length + ' 場' : '') + '・' + esc(r.c.venue) + (r.hit && ![r.c.artist, r.c.venue].some(x => norm(x) === norm(r.hit)) ? '・' + hl(r.hit, q) : '') + '</span></span>' }));
+  return kw.slice(0, 2).concat(items).slice(0, 7);
+}
+function renderSug() {
+  const box = $('#sugBox'); if (!box) return;
+  const items = S.sugOpen ? suggestions() : [];
+  S.sugItems = items;
+  if (S.sugIdx >= items.length) S.sugIdx = items.length - 1;
+  const inp = $('#q'); if (inp) { inp.setAttribute('aria-expanded', items.length ? 'true' : 'false'); if (S.sugIdx >= 0) inp.setAttribute('aria-activedescendant', 'sg' + S.sugIdx); else inp.removeAttribute('aria-activedescendant'); }
+  box.innerHTML = items.length ? (S.q.trim() ? '' : '<div class="sg-h">' + ((S.recentQ || []).length ? '最近搜尋與即將開演' : '即將開演') + '</div>') + items.map((x, i) => '<div class="sg' + (i === S.sugIdx ? ' on' : '') + '" id="sg' + i + '" role="option" data-sg="' + i + '">' + x.html + '</div>').join('') : '';
+  box.hidden = !items.length;
+}
+function pickSug(i) {
+  const x = S.sugItems && S.sugItems[i]; if (!x) return;
+  S.sugOpen = false; S.sugIdx = -1;
+  if (x.kind === 'concert') { addRecent(S.q.trim() || C(x.id).artist); renderSug(); openConcert(x.id); return; }
+  if (x.kind === 'genre') { S.genre = x.v; S.q = ''; }
+  else { S.q = x.q; addRecent(x.q); }
+  render();
+}
+function homeList() {
+  const pool = UPCOMING(), base = c => (S.city === '全部' || VENUES[c.venue].city === S.city) && (S.genre === '全部' || c.genre === S.genre) && (!S.onlyFollow || S.follows.includes(c.artist));
+  const byDate = (a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+  const res = searchConcerts(S.q, pool);
+  if (!res) { const list = pool.filter(base).sort(byDate); return list.length ? list.map(concertCard).join('') : '<div class="empty">沒有符合的場次</div>'; }
+  const shown = res.filter(r => base(r.c)), hidden = res.length - shown.length;
+  const exact = shown.filter(r => !r.fuzzy), fz = shown.filter(r => r.fuzzy);
+  let h = '';
+  if (shown.length) h += '<div class="small muted" style="margin:0 0 8px">找到 ' + shown.length + ' 場' + (exact.length ? '' : '，以下是拼法相近的結果') + '</div>' + exact.concat(fz).map(r => concertCard(r.c)).join('');
+  if (hidden) h += '<div class="empty">還有 ' + hidden + ' 場符合「' + esc(S.q.trim()) + '」，但被上方的篩選條件隱藏了 <button class="btn line" data-act="clearFilters">清除篩選</button></div>';
+  if (!res.length) {
+    const past = CONCERTS.filter(c => c.last < todayTW()), pr = searchConcerts(S.q, past) || [];
+    h += '<div class="empty">找不到「' + esc(S.q.trim()) + '」的近期場次。' + (pr.length ? '<br>它可能已經演完了（' + esc(pr[0].c.artist) + '・' + dinfo(pr[0].c.last).md + '）。' : '<br>可以試試藝人英文名、場館（例如「大巨蛋」）或月份（例如「12月」）。') + '<br><span class="small">場次每天自動更新兩次，新公布的演出通常一兩天內會出現。</span></div>';
+  }
+  return h;
+}
+function updateHome() { const l = $('#homeList'); if (l) l.innerHTML = homeList(); renderSug(); }
+
 function vHome() {
-  const q = S.q.trim().toLowerCase();
-  const list = UPCOMING().filter(c => (S.city === '全部' || VENUES[c.venue].city === S.city) && (S.genre === '全部' || c.genre === S.genre) && (!S.onlyFollow || S.follows.includes(c.artist)) && (!q || (c.artist + c.title + c.venue).toLowerCase().includes(q)))
-    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
   return '<h2 class="vt">演唱會情報站</h2><p class="vsub">台北、高雄五大場館近期場次，點卡片看售票、交通與住宿</p>' +
-    '<input class="search" id="q" placeholder="搜尋藝人、場館…" value="' + esc(S.q) + '" autocomplete="off">' +
+    '<div class="sbox"><input class="search" id="q" type="search" enterkeyhint="search" placeholder="搜尋藝人、場館、月份（例：防彈、大巨蛋、12月）" value="' + esc(S.q) + '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="sugBox" aria-expanded="false">' +
+    (S.q ? '<button class="sclear" data-act="clearQ" aria-label="清除搜尋">✕</button>' : '') + '<div id="sugBox" class="sug" role="listbox" hidden></div></div>' +
     '<div class="chips">' + ['全部', '台北', '高雄'].map(x => '<button class="chip' + (S.city === x ? ' on' : '') + '" data-act="city" data-v="' + x + '">' + x + '</button>').join('') +
     '<button class="chip' + (S.onlyFollow ? ' on' : '') + '" data-act="onlyFollow">★ 只看追蹤</button></div>' +
     '<div class="chips">' + ['全部', '韓流', '日本', '華語', '歐美', '綜合'].concat(UPCOMING().some(c => c.genre === '其他') ? ['其他'] : []).map(x => '<button class="chip' + (S.genre === x ? ' on' : '') + '" data-act="genre" data-v="' + x + '">' + x + '</button>').join('') + '</div>' +
-    (list.length ? list.map(concertCard).join('') : '<div class="empty">沒有符合的場次</div>') +
+    '<div id="homeList">' + homeList() + '</div>' +
     '<p class="src">' + (DATA_LIVE ? '場次每天自動比對臺北小巨蛋、北流官網與維基百科的演唱會列表，再加上人工整理的票價與售票資訊；資料日期 ' : '場次資料整理自公開報導，資料日期 ') + DATA_ASOF + '。日期、票價與售票狀況可能異動，購票前請以主辦單位與售票平台公告為準。</p>';
 }
 
@@ -1698,6 +1856,8 @@ document.addEventListener('click', e => {
   switch (act) {
     case 'tab': closeSheet(); go(v); break;
     case 'city': S.city = v; render(); break;
+    case 'clearQ': S.q = ''; S.sugOpen = false; render(); { const q = $('#q'); if (q) q.focus(); } break;
+    case 'clearFilters': S.city = '全部'; S.genre = '全部'; S.onlyFollow = false; render(); break;
     case 'genre': S.genre = v; render(); break;
     case 'onlyFollow': S.onlyFollow = !S.onlyFollow; render(); break;
     case 'concert': openConcert(id); break;
@@ -1746,7 +1906,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   const t = e.target;
-  if (t.id === 'q') { S.q = t.value; const pos = t.selectionStart; render(); const q = $('#q'); q.focus(); try { q.setSelectionRange(pos, pos); } catch (_) { } }
+  if (t.id === 'q') { S.q = t.value.slice(0, 60); S.sugOpen = true; S.sugIdx = -1; updateHome(); const x = $('.sclear'); if (!!S.q !== !!x) { const pos = t.selectionStart; render(); const q = $('#q'); q.focus(); try { q.setSelectionRange(pos, pos); } catch (_) { } S.sugOpen = true; renderSug(); } }
   else if (t.id === 'frText') S.fraud.text = t.value.slice(0, 1200);
   else if (t.id === 'pfBirth') { const bd = parseBirthday(t.value); const g = $('#guardianBox'); if (g) g.hidden = !(bd && !isAdult(bd)); }
 });
@@ -1786,6 +1946,18 @@ document.addEventListener('submit', e => {
   else if (f.id === 'fixF') submitFix(f);
   else if (f.id === 'gPlanF') savePlan(f);
 });
+document.addEventListener('focusin', e => { if (e.target.id === 'q') { S.sugOpen = true; S.sugIdx = -1; renderSug(); } });
+document.addEventListener('focusout', e => { if (e.target.id === 'q') setTimeout(() => { if (document.activeElement && document.activeElement.id === 'q') return; S.sugOpen = false; renderSug(); }, 120); });
+document.addEventListener('keydown', e => {
+  if (e.target.id !== 'q') return;
+  const n = (S.sugItems || []).length;
+  if (e.key === 'ArrowDown' && n) { e.preventDefault(); S.sugOpen = true; S.sugIdx = (S.sugIdx + 1) % n; renderSug(); }
+  else if (e.key === 'ArrowUp' && n) { e.preventDefault(); S.sugIdx = S.sugIdx <= 0 ? n - 1 : S.sugIdx - 1; renderSug(); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (S.sugIdx >= 0) pickSug(S.sugIdx); else { addRecent(S.q); S.sugOpen = false; renderSug(); e.target.blur(); } }
+  else if (e.key === 'Escape') { S.sugOpen = false; S.sugIdx = -1; renderSug(); }
+});
+// 用 pointerdown 而不是 click，才不會因為輸入框先失去焦點、清單先關掉而點不到
+document.addEventListener('pointerdown', e => { const el = e.target.closest('[data-sg]'); if (!el) return; e.preventDefault(); pickSug(Number(el.dataset.sg)); });
 $('#veil').addEventListener('click', e => { if (e.target.id === 'veil') closeSheet(); });
 
 /* ---------- boot ---------- */
