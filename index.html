@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-mRL/5ysRQ5AWcVn7hX5aWjgY+SL7ahzfHLyIChnqlGg='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-/5YYPlwGy5zWBskXauvUtB6MMCVEpGEyiRoKLzwb6uc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -11,16 +11,18 @@
 </head>
 <body>
 <div class="app">
-  <header class="top">
+  <header class="top"><div class="topin">
     <div class="brand">
       <div class="logo">FAN<span>VERSE</span></div>
       <span class="acct" id="acct"></span>
     </div>
     <div class="slogan">追星人的第二個家・讓每一次喜歡，都有地方安放</div>
-  </header>
+  </div></header>
+  <div class="shell">
   <div id="noteBar"></div>
   <main id="view"><div class="empty">載入中…</div></main>
-  <nav class="tabs" id="tabs"></nav>
+  <nav class="tabs" id="tabs" aria-label="主要功能"></nav>
+  </div>
   <div id="fabWrap"></div>
   <div class="veil hidden" id="veil"><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
   <div class="toast" id="toast" role="status"></div>
@@ -63,6 +65,8 @@ let toastT;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3000); }
 function num(v, d) { const n = Number(v); return Number.isFinite(n) ? n : (d || 0); }
 function arr(v) { return Array.isArray(v) ? v : []; }
+// 外部網址一律重新解析成標準格式，只接受 https，避免網址裡夾帶引號等字元破壞網頁
+function safeUrl(u) { try { const x = new URL(String(u)); return x.protocol === 'https:' && !x.username && !x.password ? x.href : ''; } catch (e) { return ''; } }
 function str(v, max) { return String(v == null ? '' : v).slice(0, max || 300); }
 let rq = false;
 function renderData() { if (rq) return; rq = true; requestAnimationFrame(() => { rq = false; if (['match', 'market'].includes(S.view) || (S.view === 'me' && S.mode === 'ready')) render(); }); }
@@ -186,9 +190,9 @@ function cleanEvent(e) {
   if (typeof e.platform === 'string' && PLATFORMS[e.platform]) o.platform = e.platform;
   if (Array.isArray(e.prices)) { const p = e.prices.filter(x => Array.isArray(x) && txt(x[0], 30) && txt(x[1], 60)).slice(0, 12).map(x => [txt(x[0], 30), txt(x[1], 60)]); if (p.length) o.prices = p; }
   if (e.auto === true) o.auto = true;
-  if (typeof e.ticketUrl === 'string' && TICKET_OK.test(e.ticketUrl) && e.ticketUrl.length < 300) o.ticketUrl = e.ticketUrl;
+  if (typeof e.ticketUrl === 'string' && TICKET_OK.test(e.ticketUrl) && e.ticketUrl.length < 300 && safeUrl(e.ticketUrl)) o.ticketUrl = safeUrl(e.ticketUrl);
   if (e.autoPrice === true && o.price) o.autoPrice = true;
-  if (Array.isArray(e.priceSrc) && typeof e.priceSrc[1] === 'string' && /^https:\/\//.test(e.priceSrc[1])) o.priceSrc = [txt(e.priceSrc[0], 80) || '新聞報導', e.priceSrc[1].slice(0, 300)];
+  if (Array.isArray(e.priceSrc) && typeof e.priceSrc[1] === 'string' && e.priceSrc[1].length < 300 && safeUrl(e.priceSrc[1])) o.priceSrc = [txt(e.priceSrc[0], 80) || '新聞報導', safeUrl(e.priceSrc[1])];
   return o;
 }
 function cleanHotels(j) {
@@ -196,7 +200,7 @@ function cleanHotels(j) {
   if (!j || typeof j.venues !== 'object') return null;
   for (const v of Object.keys(VENUES)) {
     const x = j.venues[v]; if (!x || !Array.isArray(x.list)) continue;
-    out[v] = x.list.slice(0, 20).filter(h => h && typeof h.n === 'string' && Number.isFinite(h.d) && Array.isArray(h.p)).map(h => ({ n: h.n.slice(0, 60), en: typeof h.en === 'string' ? h.en.slice(0, 60) : '', t: typeof h.t === 'string' ? h.t.slice(0, 8) : '住宿', s: h.s >= 1 && h.s <= 5 ? h.s : 0, d: Math.max(0, Math.round(h.d)), p: [+h.p[0], +h.p[1]] }));
+    out[v] = x.list.slice(0, 20).filter(h => h && typeof h.n === 'string' && Number.isFinite(h.d) && Array.isArray(h.p)).map(h => ({ n: h.n.slice(0, 60), en: typeof h.en === 'string' ? h.en.slice(0, 60) : '', t: typeof h.t === 'string' ? h.t.slice(0, 8) : '住宿', s: Number.isInteger(+h.s) && +h.s >= 1 && +h.s <= 5 ? +h.s : 0, d: Math.max(0, Math.round(h.d)), p: [num(h.p[0]), num(h.p[1])] }));
   }
   return out;
 }
@@ -323,7 +327,7 @@ function render() {
   renderTabs();
   $('#noteBar').innerHTML = S.note ? '<div class="note-bar">' + esc(S.note) + '</div>' : '';
   $('#acct').textContent = S.mode === 'ready' && S.profile ? '👤 ' + S.profile.nickname : S.mode === 'out' ? '未登入' : '';
-  const v = $('#view');
+  const v = $('#view'); v.dataset.view = S.view;
   if (S.view === 'me' && ['out', 'verify', 'profile'].includes(S.mode)) {
     // 表單畫面只在狀態改變時重畫，避免打字到一半被清掉
     const key = S.mode + '|' + S.authTab;
@@ -496,11 +500,11 @@ function homeList() {
   const pool = UPCOMING(), base = c => (S.city === '全部' || VENUES[c.venue].city === S.city) && (S.genre === '全部' || c.genre === S.genre) && (!S.onlyFollow || S.follows.includes(c.artist));
   const byDate = (a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
   const res = searchConcerts(S.q, pool);
-  if (!res) { const list = pool.filter(base).sort(byDate); return list.length ? list.map(concertCard).join('') : '<div class="empty">沒有符合的場次</div>'; }
+  if (!res) { const list = pool.filter(base).sort(byDate); return list.length ? '<div class="cgrid">' + list.map(concertCard).join('') + '</div>' : '<div class="empty">沒有符合的場次</div>'; }
   const shown = res.filter(r => base(r.c)), hidden = res.length - shown.length;
   const exact = shown.filter(r => !r.fuzzy), fz = shown.filter(r => r.fuzzy);
   let h = '';
-  if (shown.length) h += '<div class="small muted" style="margin:0 0 8px">找到 ' + shown.length + ' 場' + (exact.length ? '' : '，以下是拼法相近的結果') + '</div>' + exact.concat(fz).map(r => concertCard(r.c)).join('');
+  if (shown.length) h += '<div class="small muted" style="margin:0 0 8px">找到 ' + shown.length + ' 場' + (exact.length ? '' : '，以下是拼法相近的結果') + '</div>' + '<div class="cgrid">' + exact.concat(fz).map(r => concertCard(r.c)).join('') + '</div>';
   if (hidden) h += '<div class="empty">還有 ' + hidden + ' 場符合「' + esc(S.q.trim()) + '」，但被上方的篩選條件隱藏了 <button class="btn line" data-act="clearFilters">清除篩選</button></div>';
   if (!res.length) {
     const past = CONCERTS.filter(c => c.last < todayTW()), pr = searchConcerts(S.q, past) || [];
@@ -680,7 +684,7 @@ function vMatch() {
     pickerHtml('mConcert', mc, PK_OPT.mConcert) + head +
     (guest ? guestBanner('同行媒合') : '') +
     '<div class="safe">🛡️ 對方的真實姓名只會在雙方都確認後才顯示。見面前請在平台確認，<b>不要私下先匯款或付訂金</b>；誰申請了哪一團，只有發起人看得到。</div>' +
-    (!ready ? '<div class="empty">載入中…</div>' : list.length ? list.map(rideCard).join('') : empty);
+    (!ready ? '<div class="empty">載入中…</div>' : list.length ? '<div class="cgrid">' + list.map(rideCard).join('') + '</div>' : empty);
 }
 function rideCard(r) {
   const c = C(r.concertId) || { artist: '', venue: '', date: '2026-12-31' };
@@ -713,7 +717,7 @@ function vMarket() {
     '<div class="chips">' + ['全部', '小卡', '專輯', '應援物', '其他'].map(k => '<button class="chip' + (S.marketCat === k ? ' on' : '') + '" data-act="mcat" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
     (guest ? guestBanner('周邊交換') : '') +
     '<div class="safe">🎫 票券只開放<b>原價讓票</b>，不得加價轉售。交易請保留紀錄，優先選擇演唱會現場面交。</div>' +
-    (!guest && !S.tradesReady ? '<div class="empty">載入中…</div>' : list.length ? list.map(tradeCard).join('') : '<div class="empty">這個分類還沒有東西，來上架第一個吧！</div>');
+    (!guest && !S.tradesReady ? '<div class="empty">載入中…</div>' : list.length ? '<div class="cgrid">' + list.map(tradeCard).join('') + '</div>' : '<div class="empty">這個分類還沒有東西，來上架第一個吧！</div>');
 }
 function tradeCard(t) {
   const c = C(t.concertId);
@@ -1097,7 +1101,7 @@ function hotelList(name, date, n) {
   const md = dinfo(date).md;
   return '<ul class="list">' + list.slice(0, n || 8).map(h => '<li><b>' + esc(h.n) + '</b>' + (h.en && h.en !== h.n ? ' <span class="small muted">' + esc(h.en) + '</span>' : '') +
     '<br><span class="small">' + esc(h.t) + (h.s ? '・' + h.s + ' 星' : '') + '・直線約 ' + h.d.toLocaleString() + ' 公尺（步行約 ' + Math.max(1, Math.round(h.d * 1.3 / 80)) + ' 分鐘）</span>' +
-    '<br><span class="small"><a href="' + bookLink(h, date) + '" target="_blank" rel="noopener">查 ' + md + ' 入住的即時房價</a>・<a href="' + hotelMap(h) + '" target="_blank" rel="noopener">地圖</a></span></li>').join('') + '</ul>' +
+    '<br><span class="small"><a href="' + esc(bookLink(h, date)) + '" target="_blank" rel="noopener">查 ' + md + ' 入住的即時房價</a>・<a href="' + esc(hotelMap(h)) + '" target="_blank" rel="noopener">地圖</a></span></li>').join('') + '</ul>' +
     '<p class="small muted" style="margin:6px 0 0">住宿名單每週自動從 OpenStreetMap 更新' + (HOTELS_ASOF ? '（' + HOTELS_ASOF + '）' : '') + '，依離場館距離排序；房價隨日期與空房變動很大，演唱會當晚常比平日貴很多，點連結看訂房網當天的價格。名單不代表推薦或品質保證。</p>';
 }
 function venueBlock(v, name, date) {
@@ -1121,9 +1125,9 @@ function openConcert(id, keep) {
   }).join('');
   const stWarn = c.d.map(x => { const s = crowd(id, 'status', x[0]); return s && s.v !== '照常' ? '<div class="err" style="margin-bottom:10px">⚠️ 有 ' + s.n + ' 位會員回報 ' + dinfo(x[0]).full + ' 這場已<b>' + esc(s.v) + '</b>，尚未經官方確認，請到主辦或售票網站查證。</div>' : ''; }).join('');
   const cp = !c.price && crowd(id, 'price'), cf = !c.platform && !c.ticketUrl && crowd(id, 'platform');
-  const pf = c.platform && PLATFORMS[c.platform] ? '<a href="' + (c.ticketUrl || PLATFORMS[c.platform]) + '" target="_blank" rel="noopener">' + esc(c.platform) + (c.ticketUrl ? '（這場的售票頁）' : '') + '</a>' : (c.ticketUrl ? '<a href="' + c.ticketUrl + '" target="_blank" rel="noopener">這場的售票頁</a>' : '');
+  const pf = c.platform && PLATFORMS[c.platform] ? '<a href="' + esc(c.ticketUrl || PLATFORMS[c.platform]) + '" target="_blank" rel="noopener">' + esc(c.platform) + (c.ticketUrl ? '（這場的售票頁）' : '') + '</a>' : (c.ticketUrl ? '<a href="' + esc(c.ticketUrl) + '" target="_blank" rel="noopener">這場的售票頁</a>' : '');
   const extra = (c.prices || []).map(p => '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>').join('');
-  const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).map(s => '<li><a href="' + s[1] + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a></li>').join('');
+  const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).map(s => '<li><a href="' + esc(s[1]) + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a></li>').join('');
   openSheet(c.artist,
     '<div class="hero"><div class="artist">' + esc(c.artist) + '・' + esc(c.genre) + '</div><div class="ctitle">' + esc(c.title) + '</div>' +
     '<div style="display:flex;align-items:baseline;gap:8px;margin-top:8px"><span class="count">' + Math.max(0, left) + '</span><span>天後' + (c.d.length > 1 ? '（下一場）' : '開演') + '</span></div></div>' +
@@ -1802,6 +1806,11 @@ function rideForm() {
     '<div class="hint">請勿在貼文中留下電話、LINE ID、地址等個資。</div>' +
     '<div id="sheetErr"></div><button class="btn pink full" style="margin-top:14px" type="submit">發布</button></form>');
 }
+// 發文冷卻：同一個帳號每 30 秒只能發一篇媒合或交換（資料庫規則也會擋，這裡先查好給清楚的提示）
+const POST_GAP = 30;
+async function postTooSoon() {
+  try { const s = await F.getDoc(F.doc(db, 'cool', uid())); const t = s.exists() && s.data().at && s.data().at.toDate ? s.data().at.toDate().getTime() : 0; return Date.now() - t < POST_GAP * 1000 + 1500; } catch (e) { return false; }
+}
 function rideDateSel(cid) {
   const c = C(cid); if (!c || c.d.length < 2) return '';
   return '<label class="f" for="rD">哪一天</label><select class="in" id="rD">' + c.d.map(x => '<option value="' + x[0] + '"' + (x[0] === c.date ? ' selected' : '') + '>' + dinfo(x[0]).full + (x[1] ? ' ' + esc(tm(x[1])) : '') + '</option>').join('') + '</select>';
@@ -1858,10 +1867,11 @@ async function submitRide(form) {
     if (chk.block) return sheetErr(chk.block.replace('不能同時報名', '不能再發起').replace('要換團請先退出那一團', '不能再發起同類型的團'));
     if (chk.warn) { form.dataset.force = '1'; return sheetErr(chk.warn.join(' ') + ' 確定的話請再按一次「發布」。'); }
   }
+  if (await postTooSoon()) return sheetErr('發文太快了：每 ' + POST_GAP + ' 秒只能發一篇，請稍等一下再按');
   busyBtn(form, true, '發布中…');
   try {
     const b = F.writeBatch(db);
-    b.set(ref, data);
+    b.set(ref, data); b.set(F.doc(db, 'cool', uid()), { at: F.serverTimestamp() });
     if (seatKey(probe)) b.set(seatRef(uid(), probe), { rideId: ref.id, at: F.serverTimestamp() });
     await b.commit();
     closeSheet(); S.matchKind = '全部'; S.matchConcert = ''; render(); toast('已發布！');
@@ -1876,7 +1886,10 @@ async function submitTrade(form) {
   const tags = cleanText($('#tTags').value, 80).split(/\s+/).filter(Boolean).slice(0, 5).map(x => x.slice(0, 16));
   busyBtn(form, true, '上架中…');
   try {
-    await F.addDoc(F.collection(db, 'trades'), { mode, category: $('#tCat').value, have: mode === '徵求' ? '' : have, want: mode === '出售' ? '' : want, price, condition: mode === '徵求' ? '' : $('#tCond').value, concertId: $('#tC').value, tags, note: cleanText($('#tNote').value, 100), img: tradeImg, owner: uid(), createdAt: F.serverTimestamp() });
+    if (await postTooSoon()) { busyBtn(form, false, '上架'); return sheetErr('發文太快了：每 ' + POST_GAP + ' 秒只能發一篇，請稍等一下再按'); }
+    const tb = F.writeBatch(db); tb.set(F.doc(db, 'cool', uid()), { at: F.serverTimestamp() });
+    tb.set(F.doc(F.collection(db, 'trades')), { mode, category: $('#tCat').value, have: mode === '徵求' ? '' : have, want: mode === '出售' ? '' : want, price, condition: mode === '徵求' ? '' : $('#tCond').value, concertId: $('#tC').value, tags, note: cleanText($('#tNote').value, 100), img: tradeImg, owner: uid(), createdAt: F.serverTimestamp() });
+    await tb.commit();
     closeSheet(); S.marketMode = '全部'; S.marketCat = '全部'; render(); toast('已上架！');
   } catch (e) { sheetErr(errMsg(e)); busyBtn(form, false, '上架'); }
 }
@@ -1932,6 +1945,7 @@ async function deleteAccount(form) {
     await del(refs);
     const fx = await F.getDocs(F.collection(db, 'myFixes', u, 'k'));
     await del(fx.docs.map(d => { const i = d.id.indexOf('_'); return F.doc(db, 'fixes', d.id.slice(0, i), 'r', u + '_' + d.id.slice(i + 1)); }).concat(fx.docs.map(d => d.ref)));
+    await del([F.doc(db, 'cool', u)]);
     const st = await F.getDocs(F.collection(db, 'seats', u, 'k'));
     await del(st.docs.map(d => d.ref));
     const rv = await F.getDocs(F.collection(db, 'reveals', u, 'to'));
@@ -2057,6 +2071,8 @@ $('#veil').addEventListener('click', e => { if (e.target.id === 'veil') closeShe
 
 /* ---------- boot ---------- */
 async function boot() {
+  // 防止別的網站把 FANVERSE 嵌進框架裡誘騙點擊（GitHub Pages 無法設定 frame-ancestors，所以用程式擋）
+  if (window.top !== window.self) { document.body.innerHTML = '<p style="padding:24px;font:16px sans-serif">為了安全，請直接開啟 <a href="https://fanverse-team.github.io/" target="_top">fanverse-team.github.io</a></p>'; return; }
   route();
   loadConcerts(); loadHotels();
   if (!firebaseConfig || !firebaseConfig.apiKey || /^YOUR_/.test(firebaseConfig.apiKey)) { S.mode = 'off'; S.note = '尚未設定 Firebase，帳號功能暫停'; render(); return; }
