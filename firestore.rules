@@ -97,7 +97,7 @@ service cloud.firestore {
 
     // ---------- 同行媒合 ----------
     function validRide(d) {
-      return d.keys().hasOnly(['kind', 'concertId', 'title', 'from', 'capacity', 'cost', 'note', 'owner', 'createdAt', 'memberCount'])
+      return d.keys().hasOnly(['kind', 'concertId', 'title', 'from', 'capacity', 'cost', 'note', 'owner', 'createdAt', 'memberCount', 'dateIdx'])
         && d.keys().hasAll(['kind', 'concertId', 'title', 'from', 'capacity', 'cost', 'note', 'owner', 'createdAt', 'memberCount'])
         && d.kind in ['包車', '住宿', '旅伴']
         && concertOk(d.concertId)
@@ -106,7 +106,8 @@ service cloud.firestore {
         && d.capacity is int && d.capacity >= 2 && d.capacity <= 50
         && d.cost is int && d.cost >= 0 && d.cost <= 20000
         && str(d.note, 0, 120)
-        && d.memberCount is int && d.memberCount >= 0 && d.memberCount < d.capacity;
+        && d.memberCount is int && d.memberCount >= 0 && d.memberCount < d.capacity
+        && (!('dateIdx' in d) || (d.dateIdx is int && d.dateIdx >= 0 && d.dateIdx < 40));
     }
     function ride(rideId) { return get(/databases/$(database)/documents/rides/$(rideId)).data; }
 
@@ -167,9 +168,13 @@ service cloud.firestore {
         allow delete: if signedIn() && (me() == uid || ride(rideId).owner == me());
       }
 
-      // 共用行程：發起人設定，成員只能看
+      // meta/plan：共用行程，發起人設定、成員只能看
+      // meta/last：最新訊息時間（給未讀提醒用），成員發訊息時一起更新
       match /meta/{docId} {
         allow read: if verified() && isMember();
+        allow create, update: if verified() && docId == 'last' && isMember()
+          && request.resource.data.keys().hasOnly(['at'])
+          && request.resource.data.at == request.time;
         allow create, update: if verified() && ride(rideId).owner == me() && docId == 'plan'
           && request.resource.data.keys().hasOnly(['from', 'mode', 'stay', 'budget', 'dateIdx', 'updatedAt'])
           && request.resource.data.keys().hasAll(['from', 'mode', 'stay', 'budget', 'dateIdx', 'updatedAt'])
@@ -181,6 +186,24 @@ service cloud.firestore {
           && request.resource.data.updatedAt == request.time;
         allow delete: if verified() && ride(rideId).owner == me();
       }
+    }
+
+    // ---------- 同場次佔位：同一場演出的同一天，包車和住宿各只能確認一團 ----------
+    // 由發起人在「發起」或「接受」時一起寫入；已經有紀錄就不能再建立，所以無法同時確認兩團
+    function seatKeyOf(r) { return r.concertId + '_' + (('dateIdx' in r) ? string(r.dateIdx) : 'x') + '_' + (r.kind == '包車' ? 'bus' : 'stay'); }
+    function seatOk(uid, key, r, rideId) {
+      return r.kind in ['包車', '住宿'] && key == seatKeyOf(r) && r.owner == me()
+        && (uid == me() || getAfter(/databases/$(database)/documents/rides/$(rideId)/requests/$(uid)).data.status == 'accepted');
+    }
+    match /seats/{uid}/k/{key} {
+      allow read: if signedIn() && me() == uid;
+      allow create: if verified()
+        && request.resource.data.keys().hasOnly(['rideId', 'at'])
+        && request.resource.data.keys().hasAll(['rideId', 'at'])
+        && str(request.resource.data.rideId, 1, 64)
+        && request.resource.data.at == request.time
+        && seatOk(uid, key, getAfter(/databases/$(database)/documents/rides/$(request.resource.data.rideId)).data, request.resource.data.rideId);
+      allow delete: if signedIn() && (me() == uid || resource == null || ride(resource.data.rideId).owner == me());
     }
 
     // ---------- 自己參與過的聊天室索引（刪除帳號時用來清掉自己的發言） ----------
