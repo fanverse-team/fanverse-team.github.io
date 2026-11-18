@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com 'sha256-L5s6gjt7WvmoYWhUE7TRJFSh6m+ai8of4lwKAN63JaA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-HvTYCCwI/1UktPg+mH95noGXwzZZW/IhD5qFXSjytHc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -46,6 +46,9 @@ const firebaseConfig = {
 };
 
 const FB = 'https://www.gstatic.com/firebasejs/13.3.0/';
+// App Check（reCAPTCHA / Fraud Defense）網站金鑰：公開值，不是密碼。用來確認資料庫請求來自本網站，擋掉機器人與盜用
+const RECAPTCHA_SITE_KEY = '6Ldw-CUuAAAAAD57zTmLIzMBQcZ-4Gllnb6NsY-J';
+const RC_NOTE = '<p class="small muted" style="margin:12px 2px 0;line-height:1.6">本站受 reCAPTCHA 保護，適用 Google <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隱私權政策</a>與<a href="https://policies.google.com/terms" target="_blank" rel="noopener">服務條款</a>。</p>';
 let A = null, F = null, auth = null, db = null;
 
 /* ---------- helpers ---------- */
@@ -720,7 +723,7 @@ function vAuth() {
   if (t === 'reset') return '<h2 class="vt">忘記密碼</h2><p class="vsub">輸入註冊的信箱，我們會寄出重設密碼的連結</p>' +
     '<form id="resetF" class="formcard" novalidate><label class="f" for="rsEmail">電子郵件</label><input class="in" id="rsEmail" type="email" autocomplete="email" required maxlength="120">' +
     '<div id="authErr"></div><button class="btn pink full" style="margin-top:14px" type="submit">寄出重設連結</button>' +
-    '<button type="button" class="linkbtn" data-act="authTab" data-v="login">← 回到登入</button></form>';
+    '<button type="button" class="linkbtn" data-act="authTab" data-v="login">← 回到登入</button></form>' + RC_NOTE;
   if (t === 'register') return '<h2 class="vt">建立實名帳號</h2><p class="vsub">先用信箱建立帳號，驗證後再填實名資料</p>' + seg +
     '<form id="regF" class="formcard" novalidate>' +
     '<label class="f" for="rgEmail">電子郵件</label><input class="in" id="rgEmail" type="email" autocomplete="email" required maxlength="120">' +
@@ -728,13 +731,13 @@ function vAuth() {
     '<div class="hint">至少 10 個字元，需包含大寫英文、小寫英文和數字。請不要使用其他網站用過的密碼。</div>' +
     '<label class="f" for="rgPw2">再輸入一次密碼</label><input class="in" id="rgPw2" type="password" autocomplete="new-password" required maxlength="128">' +
     '<label class="check"><input type="checkbox" id="rgAgree"><span>我已閱讀並同意 <a href="privacy.html" target="_blank" rel="noopener">個人資料蒐集告知暨隱私權政策</a>，了解 FANVERSE 會如何使用我的資料。</span></label>' +
-    '<div id="authErr"></div><button class="btn pink full" style="margin-top:14px" type="submit">建立帳號並寄出驗證信</button></form>';
+    '<div id="authErr"></div><button class="btn pink full" style="margin-top:14px" type="submit">建立帳號並寄出驗證信</button></form>' + RC_NOTE;
   return '<h2 class="vt">登入 FANVERSE</h2><p class="vsub">同行媒合與周邊交換只開放給實名會員</p>' + seg +
     '<form id="loginF" class="formcard" novalidate>' +
     '<label class="f" for="lgEmail">電子郵件</label><input class="in" id="lgEmail" type="email" autocomplete="email" required maxlength="120">' +
     '<label class="f" for="lgPw">密碼</label><input class="in" id="lgPw" type="password" autocomplete="current-password" required maxlength="128">' +
     '<div id="authErr"></div><button class="btn pink full" style="margin-top:14px" type="submit">登入</button>' +
-    '<button type="button" class="linkbtn" data-act="authTab" data-v="reset">忘記密碼？</button></form>';
+    '<button type="button" class="linkbtn" data-act="authTab" data-v="reset">忘記密碼？</button></form>' + RC_NOTE;
 }
 function vVerify() {
   return '<h2 class="vt">驗證你的信箱</h2><p class="vsub">完成驗證才能繼續填寫實名資料</p>' +
@@ -1343,9 +1346,11 @@ async function boot() {
   loadConcerts(); loadHotels();
   if (!firebaseConfig || !firebaseConfig.apiKey || /^YOUR_/.test(firebaseConfig.apiKey)) { S.mode = 'off'; S.note = '尚未設定 Firebase，帳號功能暫停'; render(); return; }
   try {
-    const [appM, authM, fsM] = await Promise.all([import(FB + 'firebase-app.js'), import(FB + 'firebase-auth.js'), import(FB + 'firebase-firestore.js')]);
+    const [appM, authM, fsM, acM] = await Promise.all([import(FB + 'firebase-app.js'), import(FB + 'firebase-auth.js'), import(FB + 'firebase-firestore.js'), import(FB + 'firebase-app-check.js').catch(() => null)]);
     A = authM; F = fsM;
     const app = appM.initializeApp(firebaseConfig);
+    // 只在真的要讀寫資料庫或登入時才向 reCAPTCHA 取得驗證（不自動更新），省下每月免費驗證次數
+    if (acM) { try { acM.initializeAppCheck(app, { provider: new acM.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: false }); } catch (e) { } }
     auth = A.getAuth(app); auth.languageCode = 'zh-TW';
     db = F.getFirestore(app);
     A.onAuthStateChanged(auth, onUser);
