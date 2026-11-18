@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com 'sha256-JBjHvF0tYWUdMvXrbGCu+gH5Wq1jCAzIY12olfIyWVw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com 'sha256-O4tzq/U5KtxRD9LsUrCShfOtl+rxiv3kh+ykC9DrVGg='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -85,7 +85,16 @@ const SOURCES = {
   tmc: ['臺北流行音樂中心官網｜節目列表（每日自動比對）', 'https://www.tmc.taipei/tw/blog/show'],
   wikiDome: ['維基百科｜臺北大巨蛋 演唱會列表（每日自動比對）', 'https://zh.wikipedia.org/wiki/%E8%87%BA%E5%8C%97%E5%A4%A7%E5%B7%A8%E8%9B%8B'],
   wikiKH: ['維基百科｜高雄巨蛋 演唱會列表（每日自動比對）', 'https://zh.wikipedia.org/wiki/%E9%AB%98%E9%9B%84%E5%B7%A8%E8%9B%8B'],
-  wikiStadium: ['維基百科｜高雄國家體育場 演唱會列表（每日自動比對）', 'https://zh.wikipedia.org/wiki/%E5%9C%8B%E5%AE%B6%E9%AB%94%E8%82%B2%E5%A0%B4_(%E9%AB%98%E9%9B%84%E5%B8%82)']
+  wikiStadium: ['維基百科｜高雄國家體育場 演唱會列表（每日自動比對）', 'https://zh.wikipedia.org/wiki/%E5%9C%8B%E5%AE%B6%E9%AB%94%E8%82%B2%E5%A0%B4_(%E9%AB%98%E9%9B%84%E5%B8%82)'],
+  btPrice: ['今周刊｜BTS 高雄演唱會票價', 'https://www.businesstoday.com.tw/article/category/183030/post/202605220027/'],
+  gvmBaby: ['遠見｜BABYMONSTER 小巨蛋票價與售票時程', 'https://www.gvm.com.tw/article/133093'],
+  hk01Baby: ['香港01｜BABYMONSTER 台北場門票價錢', 'https://global.hk01.com/%E4%BC%97%E4%B9%90%E8%BF%B7/60391021'],
+  mcJoji: ['美麗佳人｜JOJI 高雄站票價', 'https://www.marieclaire.com.tw/entertainment/music/93046'],
+  hk01Mmm: ['香港01｜MAMAMOO 台北場門票價錢', 'https://global.hk01.com/%E4%BC%97%E4%B9%90%E8%BF%B7/60390177'],
+  mcAAA: ['美麗佳人｜2026 AAA 高雄票價與售票時間', 'https://www.marieclaire.com.tw/entertainment/news/95805'],
+  mcSkz: ['美麗佳人｜Stray Kids 台北大巨蛋票價', 'https://www.marieclaire.com.tw/entertainment/music/95821'],
+  aaHebe: ['蘋果仁｜田馥甄小巨蛋票價與抽選時程', 'https://applealmond.com/posts/327701'],
+  tvbsWest: ['TVBS｜WESTLIFE 高雄演唱會票價', 'https://news.tvbs.com.tw/entertainment/music/3260934']
 };
 const PLATFORMS = {
   '拓元售票': 'https://tixcraft.com/', 'KKTIX': 'https://kktix.com/', '遠大售票 Ticket Plus': 'https://ticketplus.com.tw/',
@@ -120,15 +129,15 @@ const VENUES = {
 };
 // d：演出日期與開演時間（未公布為空字串）；未列的欄位代表主辦尚未公布或報導未提及
 let CONCERTS = [
-  { id: 'e01', artist: 'BTS', genre: '韓流', title: "BTS WORLD TOUR 'ARIRANG' IN KAOHSIUNG", venue: '高雄國家體育場', d: [['2026-11-19', '19:00'], ['2026-11-21', '19:00'], ['2026-11-22', '19:00']], platform: '拓元售票', note: '實名制入場', src: ['udn', 'yolo'] },
-  { id: 'e02', artist: 'BABYMONSTER', genre: '韓流', title: 'BABYMONSTER《CHOOM》', venue: '台北小巨蛋', d: [['2026-11-21', ''], ['2026-11-22', '']], src: ['yolo'] },
-  { id: 'e03', artist: 'JOJI', genre: '歐美', title: 'JOJI 高雄演唱會', venue: '高雄巨蛋', d: [['2026-11-27', '']], src: ['yolo'] },
-  { id: 'e04', artist: 'MAMAMOO', genre: '韓流', title: 'MAMAMOO《4WARD》', venue: '台北小巨蛋', d: [['2026-11-28', ''], ['2026-11-29', '']], src: ['yolo'] },
+  { id: 'e01', artist: 'BTS', genre: '韓流', title: "BTS WORLD TOUR 'ARIRANG' IN KAOHSIUNG", venue: '高雄國家體育場', d: [['2026-11-19', '19:00'], ['2026-11-21', '19:00'], ['2026-11-22', '19:00']], price: 'NT$2,980–7,980', prices: [['VIP 套票（含 Soundcheck）', 'NT$9,380'], ['身障優惠票', 'NT$2,990／3,490']], platform: '拓元售票', note: '實名制入場；每張另收 NT$200 系統服務費', src: ['udn', 'yolo', 'btPrice'] },
+  { id: 'e02', artist: 'BABYMONSTER', genre: '韓流', title: 'BABYMONSTER《CHOOM》', venue: '台北小巨蛋', d: [['2026-11-21', ''], ['2026-11-22', '']], price: 'NT$800–6,780', platform: '遠大售票 Ticket Plus', note: '全場座位席', src: ['yolo', 'gvmBaby', 'hk01Baby'] },
+  { id: 'e03', artist: 'JOJI', genre: '歐美', title: 'JOJI 高雄演唱會', venue: '高雄巨蛋', d: [['2026-11-27', '']], price: 'NT$2,900–7,400', prices: [['非輪椅區身障優惠票（陪同票）', 'NT$1,450'], ['輪椅區身障優惠票（陪同票）', 'NT$1,950']], src: ['yolo', 'mcJoji'] },
+  { id: 'e04', artist: 'MAMAMOO', genre: '韓流', title: 'MAMAMOO《4WARD》', venue: '台北小巨蛋', d: [['2026-11-28', ''], ['2026-11-29', '']], price: 'NT$800–6,980', platform: 'ibon 售票', note: '各票價含 NT$5–80 粉絲福利券', src: ['yolo', 'hk01Mmm'] },
   { id: 'e05', artist: '劉若英', genre: '華語', title: '劉若英《飛行日》2026 巡迴演唱會', venue: '台北小巨蛋', d: [['2026-12-05', '18:30']], src: ['yolo', 'ett'] },
-  { id: 'e06', artist: 'Asia Artist Awards', genre: '綜合', title: '2026 Asia Artist Awards IN KAOHSIUNG（AAA 亞洲明星盛典）', venue: '高雄國家體育場', d: [['2026-12-05', '17:00'], ['2026-12-06', '17:00']], platform: '拓元售票', src: ['udn', 'ett'] },
-  { id: 'e07', artist: 'Stray Kids', genre: '韓流', title: 'Stray Kids World Tour〈RUN IT〉in TAIPEI', venue: '台北大巨蛋', d: [['2026-12-12', '18:00']], platform: '拓元售票', src: ['udn', 'yahooK'] },
-  { id: 'e08', artist: '滅火器 Fire EX.', genre: '華語', title: 'ON FIRE DAY 2026 滅火器高雄巨蛋演唱會', venue: '高雄巨蛋', d: [['2026-12-12', '19:30'], ['2026-12-13', '']], platform: 'KKTIX', sale: '12/12 場報導為完售', src: ['udn', 'bw26', 'yolo'] },
-  { id: 'e09', artist: '田馥甄', genre: '華語', title: '田馥甄《要去什麼地方》2026 台北小巨蛋演唱會', venue: '台北小巨蛋', d: [['2026-12-12', ''], ['2026-12-13', ''], ['2026-12-15', ''], ['2026-12-18', ''], ['2026-12-19', ''], ['2026-12-20', '']], note: '實名制票務', src: ['yolo', 'line'] },
+  { id: 'e06', artist: 'Asia Artist Awards', genre: '綜合', title: '2026 Asia Artist Awards IN KAOHSIUNG（AAA 亞洲明星盛典）', venue: '高雄國家體育場', d: [['2026-12-05', '17:00'], ['2026-12-06', '17:00']], price: 'NT$1,980–6,980', prices: [['身心障礙席', 'NT$3,490']], platform: '拓元售票', note: '每張另收 NT$200 系統服務費', src: ['udn', 'ett', 'mcAAA'] },
+  { id: 'e07', artist: 'Stray Kids', genre: '韓流', title: 'Stray Kids World Tour〈RUN IT〉in TAIPEI', venue: '台北大巨蛋', d: [['2026-12-12', '18:00']], price: 'NT$2,880–6,880', prices: [['VIP 限量套票', 'NT$7,880']], platform: '拓元售票', src: ['udn', 'yahooK', 'mcSkz'] },
+  { id: 'e08', artist: '滅火器 Fire EX.', genre: '華語', title: 'ON FIRE DAY 2026 滅火器高雄巨蛋演唱會', venue: '高雄巨蛋', d: [['2026-12-12', '19:30'], ['2026-12-13', '']], platform: 'KKTIX', src: ['udn', 'bw26', 'yolo'] },
+  { id: 'e09', artist: '田馥甄', genre: '華語', title: '田馥甄《要去什麼地方》2026 台北小巨蛋演唱會', venue: '台北小巨蛋', d: [['2026-12-12', ''], ['2026-12-13', ''], ['2026-12-15', ''], ['2026-12-18', ''], ['2026-12-19', ''], ['2026-12-20', '']], price: 'NT$800–5,200', platform: '遠大售票 Ticket Plus', note: '實名登記抽選制', src: ['yolo', 'line', 'aaHebe'] },
   { id: 'e10', artist: 'T.O.P', genre: '韓流', title: 'T.O.P PRE-STUDIO 2026 IN KAOHSIUNG', venue: '高雄巨蛋', d: [['2026-12-19', '18:00']], src: ['udn', 'yahooK'] },
   { id: 'e11', artist: 'Atarayo', genre: '日本', title: "Atarayo ASIA TOUR 2026『夕立が去ったその後で』in TAIPEI", venue: '台北流行音樂中心', d: [['2026-12-19', '19:00']], src: ['yahooJ'] },
   { id: 'e12', artist: '鼓鼓 呂思緯', genre: '華語', title: '鼓鼓 呂思緯《我現在又在想你了》巡迴演唱會', venue: '台北流行音樂中心', d: [['2026-12-26', '19:00']], platform: '拓元售票', src: ['udn', 'bw26'] },
@@ -137,11 +146,11 @@ let CONCERTS = [
   { id: 'e15', artist: 'NCT 127', genre: '韓流', title: "NCT 127 5TH TOUR 'NEO CITY – THE REDLINE'", venue: '台北小巨蛋', d: [['2027-01-02', '']], src: ['bw27'] },
   { id: 'e16', artist: 'YOASOBI', genre: '日本', title: 'YOASOBI ASIA 10-CITY DOME & STADIUM TOUR 2026-2027《超惑星 SUPER PLANET》', venue: '台北大巨蛋', d: [['2027-01-09', '18:00'], ['2027-01-10', '18:00']], price: 'NT$1,800–6,880', platform: '遠大售票 Ticket Plus', note: '實名登記抽選制；15:00 開放入場', src: ['storm', 'bw27'] },
   { id: 'e17', artist: 'JEONGHAN X JOSHUA（SEVENTEEN）', genre: '韓流', title: 'JEONGHAN X JOSHUA JOURNEY INTO DREAMING IN TAIPEI', venue: '台北小巨蛋', d: [['2027-01-09', ''], ['2027-01-10', '']], price: 'NT$800–6,880', platform: '遠大售票 Ticket Plus', sale: '11/17 18:00 官方會員預購；11/20（五）18:00 全面開賣', src: ['bw27', 'tvbs'] },
-  { id: 'e18', artist: '告五人', genre: '華語', title: '告五人 2027 高雄巨蛋演唱會', venue: '高雄巨蛋', d: [['2027-01-09', '18:30'], ['2027-01-10', '18:30']], price: 'NT$800–3,850', platform: '拓元售票', sale: '11/14 12:00 已全面開賣', src: ['bh', 'ttw'] },
+  { id: 'e18', artist: '告五人', genre: '華語', title: '告五人 2027 高雄巨蛋演唱會', venue: '高雄巨蛋', d: [['2027-01-09', '18:30'], ['2027-01-10', '18:30']], price: 'NT$800–3,850', platform: '拓元售票', sale: '11/14 12:00 全面開賣', src: ['bh', 'ttw'] },
   { id: 'e19', artist: '草蜢', genre: '華語', title: '草蜢 THREE IN LOVE 演唱會 2027 台北站', venue: '台北小巨蛋', d: [['2027-01-16', ''], ['2027-01-17', '']], price: 'NT$800–4,880', platform: 'KKTIX', src: ['bw27'] },
   { id: 'e20', artist: 'NCT WISH', genre: '韓流', title: 'NCT WISH 高雄演唱會', venue: '高雄巨蛋', d: [['2027-01-23', '']], price: 'NT$4,980–6,980', platform: 'ibon 售票', src: ['bw27'] },
   { id: 'e21', artist: 'Maroon 5 魔力紅', genre: '歐美', title: 'Maroon 5 Asia 2027', venue: '高雄國家體育場', d: [['2027-01-24', '']], price: 'NT$2,500–9,700', platform: '拓元售票', src: ['bw27'] },
-  { id: 'e22', artist: 'Westlife 西城男孩', genre: '歐美', title: 'WESTLIFE 25: THE ANNIVERSARY WORLD TOUR', venue: '高雄巨蛋', d: [['2027-01-30', '19:30']], price: 'NT$2,980–8,680', platform: '拓元售票', src: ['tvbs', 'bw27'] },
+  { id: 'e22', artist: 'Westlife 西城男孩', genre: '歐美', title: 'WESTLIFE 25: THE ANNIVERSARY WORLD TOUR', venue: '高雄巨蛋', d: [['2027-01-30', '19:30']], price: 'NT$2,980–8,680', prices: [['VIP 限量套票', 'NT$9,180'], ['非輪椅區身障優惠票（陪同票）', 'NT$1,990'], ['輪椅區身障優惠票（陪同票）', 'NT$1,490']], platform: '拓元售票', src: ['tvbs', 'bw27', 'tvbsWest'] },
   { id: 'e23', artist: 'Tizzy Bac', genre: '華語', title: 'Tizzy Bac 台北流行音樂中心演唱會', venue: '台北流行音樂中心', d: [['2027-01-30', '']], price: 'NT$1,600–3,800', platform: '拓元售票', src: ['bw27'] },
   { id: 'e24', artist: 'BIGBANG', genre: '韓流', title: 'BIGBANG 高雄演唱會', venue: '高雄國家體育場', d: [['2027-02-27', ''], ['2027-02-28', '']], price: 'NT$2,980–9,430', platform: '寬宏售票', note: '部分報導列為 2/26–28 三場，請以主辦公告為準', src: ['bw27'] },
   { id: 'e25', artist: '周蕙', genre: '華語', title: '周蕙 高雄巨蛋演唱會', venue: '高雄巨蛋', d: [['2027-02-27', '']], price: 'NT$800–4,680', platform: '寬宏售票', src: ['bw27'] },
@@ -170,6 +179,7 @@ function cleanEvent(e) {
   const o = { id: e.id, artist, title, venue: e.venue, d, genre: GENRES.includes(e.genre) ? e.genre : '其他', src: Array.isArray(e.src) ? e.src.filter(k => typeof k === 'string' && SOURCES[k]).slice(0, 8) : [] };
   ['price', 'sale', 'note'].forEach(k => { if (txt(e[k], 200)) o[k] = txt(e[k], 200); });
   if (typeof e.platform === 'string' && PLATFORMS[e.platform]) o.platform = e.platform;
+  if (Array.isArray(e.prices)) { const p = e.prices.filter(x => Array.isArray(x) && txt(x[0], 30) && txt(x[1], 60)).slice(0, 12).map(x => [txt(x[0], 30), txt(x[1], 60)]); if (p.length) o.prices = p; }
   if (e.auto === true) o.auto = true;
   return o;
 }
@@ -646,17 +656,19 @@ function openConcert(id) {
   const c = C(id); if (!c) return;
   const v = VENUES[c.venue], left = daysLeft(c.date), rem = S.reminders.includes(c.id);
   const dates = c.d.map(x => '<li>' + dinfo(x[0]).full + '　' + esc(tm(x[1])) + '</li>').join('');
-  const pf = c.platform ? (PLATFORMS[c.platform] ? '<a href="' + PLATFORMS[c.platform] + '" target="_blank" rel="noopener">' + esc(c.platform) + '</a>' : esc(c.platform)) : '未公布';
+  const pf = c.platform && PLATFORMS[c.platform] ? '<a href="' + PLATFORMS[c.platform] + '" target="_blank" rel="noopener">' + esc(c.platform) + '</a>' : '';
+  const extra = (c.prices || []).map(p => '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>').join('');
   const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).map(s => '<li><a href="' + s[1] + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a></li>').join('');
   openSheet(c.artist,
     '<div class="hero"><div class="artist">' + esc(c.artist) + '・' + esc(c.genre) + '</div><div class="ctitle">' + esc(c.title) + '</div>' +
     '<div style="display:flex;align-items:baseline;gap:8px;margin-top:8px"><span class="count">' + Math.max(0, left) + '</span><span>天後' + (c.d.length > 1 ? '（下一場）' : '開演') + '</span></div></div>' +
     '<div class="sec" style="margin-top:0">演出日期</div><ul class="list">' + dates + '</ul>' +
     '<dl class="kv" style="margin-top:10px"><dt>場館</dt><dd>' + esc(c.venue) + '<br><span class="small muted">' + esc(v.addr) + '</span></dd>' +
-    '<dt>票價</dt><dd>' + esc(c.price || '未公布') + '</dd><dt>售票平台</dt><dd>' + pf + '</dd>' +
-    (c.sale ? '<dt>售票進度</dt><dd>' + esc(c.sale) + '</dd>' : '') + (c.note ? '<dt>注意事項</dt><dd>' + esc(c.note) + '</dd>' : '') + '</dl>' +
-    '<div class="safe" style="margin-top:12px">票價、開賣時間與剩餘票況會變動，這裡不是即時資料。購票請只走官方售票平台，不要向來路不明的賣家買票。</div>' +
-    (c.auto ? '<p class="src">這一場是系統從場館公開列表自動帶入的，票價與售票平台還沒有人工整理，請到主辦單位公告查詢。</p>' : '') +
+    (c.price ? '<dt>票價區間</dt><dd>' + esc(c.price) + '<br><span class="small muted">依座位區不同，以售票頁為準</span></dd>' : '') + extra +
+    (pf ? '<dt>售票平台</dt><dd>' + pf + '</dd>' : '') +
+    (c.sale ? '<dt>開賣資訊</dt><dd>' + esc(c.sale) + '</dd>' : '') + (c.note ? '<dt>注意事項</dt><dd>' + esc(c.note) + '</dd>' : '') + '</dl>' +
+    '<div class="safe" style="margin-top:12px">本站不顯示剩餘票數或是否完售：熱門場次常在開賣幾分鐘內售完，之後也可能釋出退票或加開座位，只有售票頁上的狀態是準的。' + (pf ? '請點上方售票平台查看。' : '') + '購票只走官方售票平台，不要向來路不明的賣家買票。</div>' +
+    (c.auto ? '<p class="src">這一場是系統從場館公開列表自動帶入的，目前沒有票價與售票平台資料。</p>' : '') +
     venueBlock(v, c.venue) +
     '<div class="actions" style="margin-top:14px"><button class="btn ' + (rem ? 'ghost' : 'line') + '" data-act="remind" data-id="' + c.id + '">' + (rem ? '★ 已收藏' : '☆ 收藏這場') + '</button>' +
     '<button class="btn pink" style="flex:1" data-act="findRide" data-id="' + c.id + '">找同行</button></div>' +
