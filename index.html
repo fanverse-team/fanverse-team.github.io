@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com 'sha256-O4tzq/U5KtxRD9LsUrCShfOtl+rxiv3kh+ykC9DrVGg='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com 'sha256-aHag0fbshLFxmpGSj1SX6EcxibHToEei4+UQAcVEOPc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -98,8 +98,10 @@ const SOURCES = {
 };
 const PLATFORMS = {
   '拓元售票': 'https://tixcraft.com/', 'KKTIX': 'https://kktix.com/', '遠大售票 Ticket Plus': 'https://ticketplus.com.tw/',
-  'ibon 售票': 'https://ticket.ibon.com.tw/', '寬宏售票': 'https://www.kham.com.tw/'
+  'ibon 售票': 'https://ticket.ibon.com.tw/', '寬宏售票': 'https://www.kham.com.tw/', '年代售票': 'https://www.ticket.com.tw/'
 };
+const TICKET_OK = /^https:\/\/(tixcraft\.com|[\w-]+\.kktix\.cc|kktix\.com|ticketplus\.com\.tw|ticket\.ibon\.com\.tw|www\.kham\.com\.tw|www\.ticket\.com\.tw)\//;
+let HOTELS = null, HOTELS_ASOF = '';
 const VENUES = {
   '台北大巨蛋': { city: '台北', addr: '台北市信義區忠孝東路四段 515 號',
     transit: ['捷運板南線「國父紀念館站」5 號出口，出站即達', '從台北車站（高鐵／台鐵）搭板南線往南港方向，約 10 分鐘', '公車：忠孝東路「國父紀念館」站，多線可達'],
@@ -181,7 +183,26 @@ function cleanEvent(e) {
   if (typeof e.platform === 'string' && PLATFORMS[e.platform]) o.platform = e.platform;
   if (Array.isArray(e.prices)) { const p = e.prices.filter(x => Array.isArray(x) && txt(x[0], 30) && txt(x[1], 60)).slice(0, 12).map(x => [txt(x[0], 30), txt(x[1], 60)]); if (p.length) o.prices = p; }
   if (e.auto === true) o.auto = true;
+  if (typeof e.ticketUrl === 'string' && TICKET_OK.test(e.ticketUrl) && e.ticketUrl.length < 300) o.ticketUrl = e.ticketUrl;
+  if (e.autoPrice === true && o.price) o.autoPrice = true;
+  if (Array.isArray(e.priceSrc) && typeof e.priceSrc[1] === 'string' && /^https:\/\//.test(e.priceSrc[1])) o.priceSrc = [txt(e.priceSrc[0], 80) || '新聞報導', e.priceSrc[1].slice(0, 300)];
   return o;
+}
+function cleanHotels(j) {
+  const out = {};
+  if (!j || typeof j.venues !== 'object') return null;
+  for (const v of Object.keys(VENUES)) {
+    const x = j.venues[v]; if (!x || !Array.isArray(x.list)) continue;
+    out[v] = x.list.slice(0, 20).filter(h => h && typeof h.n === 'string' && Number.isFinite(h.d) && Array.isArray(h.p)).map(h => ({ n: h.n.slice(0, 60), en: typeof h.en === 'string' ? h.en.slice(0, 60) : '', t: typeof h.t === 'string' ? h.t.slice(0, 8) : '住宿', s: h.s >= 1 && h.s <= 5 ? h.s : 0, d: Math.max(0, Math.round(h.d)), p: [+h.p[0], +h.p[1]] }));
+  }
+  return out;
+}
+async function loadHotels() {
+  try {
+    const r = await fetch('hotels.json?d=' + todayTW(), { cache: 'no-cache', credentials: 'omit' }); if (!r.ok) return;
+    const j = await r.json(), h = cleanHotels(j); if (!h) return;
+    HOTELS = h; if (/^20\d\d-\d\d-\d\d$/.test(j.updated)) HOTELS_ASOF = j.updated.replace(/-/g, '/'); render();
+  } catch (e) { /* 沒有住宿資料時只顯示區域建議 */ }
 }
 async function loadConcerts() {
   try {
@@ -501,7 +522,7 @@ function makePlan(a) {
   const check = ['票券（電子票先截圖）和身分證件', '行動電源、充電線', '手燈和備用電池', '悠遊卡或一卡通，先儲值好', '輕便雨衣（多數場館不能帶長傘）', '耳塞、口罩、小包衛生紙'];
   if (stay) check.push('訂房確認信、換洗衣物');
   if (!local) check.push('回程車票先訂好');
-  return { c, v, pick, opts, opt, local, stay, stayTxt, tl, b, total: Math.round(total), check, warn, timeKnown };
+  return { c, v, pick, date: pick[0], opts, opt, local, stay, stayTxt, tl, b, total: Math.round(total), check, warn, timeKnown };
 }
 function vAI() {
   const a = S.ai, f = S.fraud, list = UPCOMING(); if (!C(a.concert) || C(a.concert).last < todayTW()) a.concert = firstId();
@@ -537,7 +558,7 @@ function renderPlan(o) {
     o.warn.map(w => '<div class="err" style="margin-top:8px">⚠️ ' + esc(w) + '</div>').join('') +
     (o.opts.length ? '<div class="sec">交通方案比較（單程，估算）</div>' + optRows : '') +
     '<div class="sec">當天時間軸</div><ul class="tl">' + tl + '</ul>' +
-    (o.stay ? '<div class="sec">住宿建議</div><ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul><p class="small muted" style="margin:6px 0 0">以「' + esc(o.stayTxt) + '」估算，並已算進演唱會當晚約 1.5 倍的漲幅。可以到「同行媒合」找同場粉絲分攤房費。 <a href="' + mapLink(o.c.venue + ' 附近 住宿') + '" target="_blank" rel="noopener">查附近住宿</a></p>' : '') +
+    (o.stay ? '<div class="sec">住宿建議</div>' + (hotelList(o.c.venue, o.date, 5) ? '<p class="small" style="margin:0 0 6px">離場館最近的 5 間（點連結看 ' + dinfo(o.date).md + ' 當晚房價）：</p>' + hotelList(o.c.venue, o.date, 5) : '') + '<ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul><p class="small muted" style="margin:6px 0 0">住宿花費以「' + esc(o.stayTxt) + '」的區域行情估算，並已算進演唱會當晚約 1.5 倍的漲幅，實際以訂房網為準。可以到「同行媒合」找同場粉絲分攤房費。</p>' : '') +
     '<div class="sec">預估花費（不含門票）：' + money(o.total) + '</div>' + o.b.map(x => '<div class="rowline"><span>' + esc(x[0]) + '</span><span>' + money(x[1]) + '</span></div>').join('') +
     (o.c.price ? '<div class="small muted" style="margin-top:6px">門票另計：' + esc(o.c.price) + '</div>' : '') +
     '<div class="sec">行前清單</div><ul class="list">' + o.check.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
@@ -644,11 +665,23 @@ function vAccount() {
 
 /* ---------- concert detail ---------- */
 function mapLink(q) { return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q); }
-function venueBlock(v, name) {
+function nextDay(d) { return new Date(Date.parse(d + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10); }
+function bookLink(h, date) { return 'https://www.booking.com/searchresults.zh-tw.html?ss=' + encodeURIComponent(h.n) + '&checkin=' + date + '&checkout=' + nextDay(date) + '&group_adults=2&no_rooms=1'; }
+function hotelMap(h) { return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(h.n) + '&query_place_id=&center=' + h.p[0] + ',' + h.p[1]; }
+function hotelList(name, date, n) {
+  const list = HOTELS && HOTELS[name]; if (!list || !list.length) return '';
+  const md = dinfo(date).md;
+  return '<ul class="list">' + list.slice(0, n || 8).map(h => '<li><b>' + esc(h.n) + '</b>' + (h.en && h.en !== h.n ? ' <span class="small muted">' + esc(h.en) + '</span>' : '') +
+    '<br><span class="small">' + esc(h.t) + (h.s ? '・' + h.s + ' 星' : '') + '・直線約 ' + h.d.toLocaleString() + ' 公尺（步行約 ' + Math.max(1, Math.round(h.d * 1.3 / 80)) + ' 分鐘）</span>' +
+    '<br><span class="small"><a href="' + bookLink(h, date) + '" target="_blank" rel="noopener">查 ' + md + ' 入住的即時房價</a>・<a href="' + hotelMap(h) + '" target="_blank" rel="noopener">地圖</a></span></li>').join('') + '</ul>' +
+    '<p class="small muted" style="margin:6px 0 0">住宿名單每週自動從 OpenStreetMap 更新' + (HOTELS_ASOF ? '（' + HOTELS_ASOF + '）' : '') + '，依離場館距離排序；房價隨日期與空房變動很大，演唱會當晚常比平日貴很多，點連結看訂房網當天的價格。名單不代表推薦或品質保證。</p>';
+}
+function venueBlock(v, name, date) {
   return '<div class="sec">怎麼去</div><ul class="list">' + v.transit.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>' +
     '<p class="small" style="margin:6px 0 0"><a href="' + mapLink(name + ' ' + v.addr) + '" target="_blank" rel="noopener">在 Google 地圖開啟場館位置</a></p>' +
     '<div class="sec">散場怎麼走</div><ul class="list">' + v.exit.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>' +
-    '<div class="sec">住哪裡</div><ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul>' +
+    (date && hotelList(name, date) ? '<div class="sec">場館附近的住宿</div>' + hotelList(name, date) : '') +
+    '<div class="sec">住哪個區域</div><ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul>' +
     '<p class="small muted" style="margin:6px 0 0">平日雙人房約 NT$' + v.price.hotel[0].toLocaleString() + '–' + v.price.hotel[1].toLocaleString() + '、青年旅館床位約 NT$' + v.price.hostel[0].toLocaleString() + '–' + v.price.hostel[1].toLocaleString() + '（估算）。演唱會當晚常漲到 1.5–2 倍以上，越早訂越好。 <a href="' + mapLink(name + ' 附近 住宿') + '" target="_blank" rel="noopener">查附近住宿</a></p>' +
     '<div class="sec">吃什麼</div><p style="margin:0;font-size:14px;line-height:1.7">' + esc(v.food) + '</p>';
 }
@@ -656,20 +689,20 @@ function openConcert(id) {
   const c = C(id); if (!c) return;
   const v = VENUES[c.venue], left = daysLeft(c.date), rem = S.reminders.includes(c.id);
   const dates = c.d.map(x => '<li>' + dinfo(x[0]).full + '　' + esc(tm(x[1])) + '</li>').join('');
-  const pf = c.platform && PLATFORMS[c.platform] ? '<a href="' + PLATFORMS[c.platform] + '" target="_blank" rel="noopener">' + esc(c.platform) + '</a>' : '';
+  const pf = c.platform && PLATFORMS[c.platform] ? '<a href="' + (c.ticketUrl || PLATFORMS[c.platform]) + '" target="_blank" rel="noopener">' + esc(c.platform) + (c.ticketUrl ? '（這場的售票頁）' : '') + '</a>' : (c.ticketUrl ? '<a href="' + c.ticketUrl + '" target="_blank" rel="noopener">這場的售票頁</a>' : '');
   const extra = (c.prices || []).map(p => '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>').join('');
-  const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).map(s => '<li><a href="' + s[1] + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a></li>').join('');
+  const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).map(s => '<li><a href="' + s[1] + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a></li>').join('');
   openSheet(c.artist,
     '<div class="hero"><div class="artist">' + esc(c.artist) + '・' + esc(c.genre) + '</div><div class="ctitle">' + esc(c.title) + '</div>' +
     '<div style="display:flex;align-items:baseline;gap:8px;margin-top:8px"><span class="count">' + Math.max(0, left) + '</span><span>天後' + (c.d.length > 1 ? '（下一場）' : '開演') + '</span></div></div>' +
     '<div class="sec" style="margin-top:0">演出日期</div><ul class="list">' + dates + '</ul>' +
     '<dl class="kv" style="margin-top:10px"><dt>場館</dt><dd>' + esc(c.venue) + '<br><span class="small muted">' + esc(v.addr) + '</span></dd>' +
-    (c.price ? '<dt>票價區間</dt><dd>' + esc(c.price) + '<br><span class="small muted">依座位區不同，以售票頁為準</span></dd>' : '') + extra +
+    (c.price ? '<dt>' + (/–/.test(c.price) ? '票價區間' : '票價') + '</dt><dd>' + esc(c.price) + '<br><span class="small muted">' + (c.autoPrice ? '系統從新聞自動擷取，可能有誤，' : '') + (/–/.test(c.price) ? '依座位區不同，' : '') + '以售票頁為準</span></dd>' : '') + extra +
     (pf ? '<dt>售票平台</dt><dd>' + pf + '</dd>' : '') +
     (c.sale ? '<dt>開賣資訊</dt><dd>' + esc(c.sale) + '</dd>' : '') + (c.note ? '<dt>注意事項</dt><dd>' + esc(c.note) + '</dd>' : '') + '</dl>' +
     '<div class="safe" style="margin-top:12px">本站不顯示剩餘票數或是否完售：熱門場次常在開賣幾分鐘內售完，之後也可能釋出退票或加開座位，只有售票頁上的狀態是準的。' + (pf ? '請點上方售票平台查看。' : '') + '購票只走官方售票平台，不要向來路不明的賣家買票。</div>' +
     (c.auto ? '<p class="src">這一場是系統從場館公開列表自動帶入的，目前沒有票價與售票平台資料。</p>' : '') +
-    venueBlock(v, c.venue) +
+    venueBlock(v, c.venue, c.date) +
     '<div class="actions" style="margin-top:14px"><button class="btn ' + (rem ? 'ghost' : 'line') + '" data-act="remind" data-id="' + c.id + '">' + (rem ? '★ 已收藏' : '☆ 收藏這場') + '</button>' +
     '<button class="btn pink" style="flex:1" data-act="findRide" data-id="' + c.id + '">找同行</button></div>' +
     '<button class="btn full" style="margin-top:8px" data-act="planFor" data-id="' + c.id + '">排這場的行程</button>' +
@@ -1174,7 +1207,7 @@ $('#veil').addEventListener('click', e => { if (e.target.id === 'veil') closeShe
 /* ---------- boot ---------- */
 async function boot() {
   route();
-  loadConcerts();
+  loadConcerts(); loadHotels();
   if (!firebaseConfig || !firebaseConfig.apiKey || /^YOUR_/.test(firebaseConfig.apiKey)) { S.mode = 'off'; S.note = '尚未設定 Firebase，帳號功能暫停'; render(); return; }
   try {
     const [appM, authM, fsM] = await Promise.all([import(FB + 'firebase-app.js'), import(FB + 'firebase-auth.js'), import(FB + 'firebase-firestore.js')]);
