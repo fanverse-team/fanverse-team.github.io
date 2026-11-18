@@ -180,3 +180,6 @@
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff3b5c;margin-left:6px;vertical-align:middle;box-shadow:0 0 0 2px var(--card)}
   .tab{position:relative}
   .tab .dot{position:absolute;top:4px;left:calc(50% + 8px);margin:0}
+  .crowd{display:inline-block;font-size:11px;color:#9a5b00;background:#fff4dc;border-radius:999px;padding:1px 8px;margin-left:4px;font-weight:500}
+  .fixbox{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;font-size:13px;color:var(--muted)}
+  #fxSeg button{flex:1 1 45%}
