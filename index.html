@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com 'sha256-aHag0fbshLFxmpGSj1SX6EcxibHToEei4+UQAcVEOPc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com 'sha256-L5s6gjt7WvmoYWhUE7TRJFSh6m+ai8of4lwKAN63JaA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -304,6 +304,7 @@ function route() {
   S.view = TABS.some(t => t[0] === h) ? h : 'home';
   S.meKey = '';
   render();
+  ensureFeeds();
   window.scrollTo(0, 0);
 }
 function go(v) { if (location.hash === '#' + v) route(); else location.hash = v; }
@@ -548,6 +549,122 @@ function vAI() {
     '<div class="actions"><button class="btn line" data-act="frSample">放一則範例</button><button class="btn pink" style="flex:1" data-act="fraud">檢查風險</button></div>' +
     (f.out ? renderRisk(f.out) : '') + '</div>';
 }
+/* ---------- 行程規劃圖（所有圖都用同一套版型：寬 1080、固定字級、顏色與區塊順序） ---------- */
+const IMG = {
+  W: 1080, P: 64,
+  font: '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif',
+  ink: '#16132B', body: '#4A4560', muted: '#6E6889', line: '#E2DAEE', pink: '#FF4F9A', pinkd: '#C21F66',
+  paper: '#F7F4FB', card: '#FFFFFF', warn: '#9A5B00', warnbg: '#FFF0D6', sub: '#C9C2E0'
+};
+function imgWrap(ctx, text, maxW) {
+  const out = []; let line = '';
+  for (const ch of String(text)) {
+    if (ch === '\n') { out.push(line); line = ''; continue; }
+    if (ctx.measureText(line + ch).width > maxW && line && !/[，。、」』）)：；！？,.]/.test(ch)) { out.push(line); line = ch.trim() ? ch : ''; } else line += ch;
+  }
+  if (line) out.push(line);
+  return out.length ? out : [''];
+}
+function drawPlan(ctx, o) {
+  const { W, P } = IMG, money = n => 'NT$' + Math.round(n).toLocaleString('en-US');
+  const f = (w, s) => { ctx.font = w + ' ' + s + 'px ' + IMG.font; };
+  const text = (t, x, y, color, w, s, align) => { f(w, s); ctx.fillStyle = color; ctx.textAlign = align || 'left'; ctx.textBaseline = 'top'; ctx.fillText(t, x, y); ctx.textAlign = 'left'; };
+  const para = (t, x, y, maxW, color, w, s, lh) => { f(w, s); const ls = imgWrap(ctx, t, maxW); ls.forEach((l, i) => text(l, x, y + i * lh, color, w, s)); return ls.length * lh; };
+  const rect = (x, y, w, h, c, r) => { ctx.fillStyle = c; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r || 0) : ctx.rect(x, y, w, h); ctx.fill(); };
+  const section = (y, title) => { rect(P, y + 4, 8, 34, IMG.pink, 4); text(title, P + 22, y, IMG.ink, 900, 34); return y + 58; };
+  let y = 0;
+  // 1. 標題區（深色）：先量高度畫底色，再畫文字
+  const head = draw => {
+    let hy = 56; const t2 = draw ? text : () => { }, p2 = (t, x, yy, w, c, fw, s, lh) => { f(fw, s); const n = imgWrap(ctx, t, w).length; if (draw) para(t, x, yy, w, c, fw, s, lh); return n * lh; };
+    t2('FANVERSE', P, hy, IMG.pink, 700, 26); t2('追星行程規劃', W - P, hy, IMG.sub, 500, 24, 'right'); hy += 52;
+    hy += p2(o.c.artist, P, hy, W - 2 * P, '#FFFFFF', 900, 52, 66) + 8;
+    hy += p2(o.c.title, P, hy, W - 2 * P, IMG.sub, 500, 28, 40) + 24;
+    let cx = P;
+    [dinfo(o.pick[0]).full, '開演 ' + tm(o.pick[1]), o.c.venue].forEach(c => { f(700, 26); const w = ctx.measureText(c).width + 40; if (cx + w > W - P) { cx = P; hy += 60; } if (draw) { rect(cx, hy, w, 48, 'rgba(255,79,154,0.25)', 24); text(c, cx + 20, hy + 9, '#FFD3E6', 700, 26); } cx += w + 14; });
+    return hy + 48 + 48;
+  };
+  const hh = head(false); rect(0, 0, W, hh, IMG.ink); head(true); y = hh;
+  y += 40;
+  // 2. 重點摘要（四格）
+  const cells = [['出發地', o.local ? o.c.venue.slice(0, 2) + '在地' : S.ai.from], ['交通方式', o.local ? '市區大眾運輸' : o.opt.mode], ['過夜', o.local ? '當天來回' : (o.stay ? '住一晚' : '當天來回')], ['預估花費（不含門票）', money(o.total)]];
+  const cw = (W - 2 * P - 24) / 2;
+  cells.forEach((c, i) => { const x = P + (i % 2) * (cw + 24), yy = y + Math.floor(i / 2) * 136; rect(x, yy, cw, 116, IMG.card, 20); text(c[0], x + 28, yy + 22, IMG.muted, 500, 24); text(c[1], x + 28, yy + 56, IMG.ink, 900, 34); });
+  y += 272 + 28;
+  // 3. 注意事項
+  o.warn.forEach(w => { f(500, 26); const ls = imgWrap(ctx, '⚠ ' + w, W - 2 * P - 56), h = ls.length * 38 + 40; rect(P, y, W - 2 * P, h, IMG.warnbg, 18); ls.forEach((l, i) => text(l, P + 28, y + 20 + i * 38, IMG.warn, 500, 26)); y += h + 16; });
+  y += 16;
+  // 4. 當天時間軸
+  y = section(y, '當天時間軸');
+  const tx = P + 170, tw = W - P - tx;
+  o.tl.forEach((s, i) => {
+    const top = y;
+    text(s.t, P, y + 2, IMG.pinkd, 700, 30);
+    text(s.h, tx, y, IMG.ink, 700, 30); y += 44;
+    y += para(s.d, tx, y, tw, IMG.body, 400, 25, 37);
+    rect(P + 140, top + 10, 4, Math.max(20, y - top - 4), i === o.tl.length - 1 ? 'rgba(0,0,0,0)' : IMG.line);
+    ctx.fillStyle = IMG.pink; ctx.beginPath(); ctx.arc(P + 142, top + 18, 9, 0, Math.PI * 2); ctx.fill();
+    y += 26;
+  });
+  y += 20;
+  // 5. 交通方案比較
+  if (o.opts.length) {
+    y = section(y, '交通方案比較（單程）');
+    o.opts.forEach(x => {
+      const sel = o.opt && x.mode === o.opt.mode;
+      text(x.mode + (sel ? '（選擇）' : ''), P, y, sel ? IMG.pinkd : IMG.ink, 700, 28);
+      text('約' + dur(x.min) + '　' + money(x.cost), W - P, y, IMG.ink, 700, 28, 'right'); y += 42;
+      y += para(x.note, P, y, W - 2 * P, IMG.muted, 400, 24, 34) + 14;
+      rect(P, y, W - 2 * P, 2, IMG.line); y += 18;
+    });
+    y += 20;
+  }
+  // 6. 預估花費
+  y = section(y, '預估花費（不含門票）');
+  o.b.forEach(b => { text(b[0], P, y, IMG.body, 500, 28); text(money(b[1]), W - P, y, IMG.ink, 700, 28, 'right'); y += 46; rect(P, y - 8, W - 2 * P, 2, IMG.line); });
+  y += 6; text('合計', P, y, IMG.ink, 900, 32); text(money(o.total), W - P, y, IMG.pinkd, 900, 32, 'right'); y += 52;
+  if (o.c.price) { y += para('門票另計：' + o.c.price, P, y, W - 2 * P, IMG.muted, 400, 24, 34); }
+  y += 34;
+  // 7. 住宿
+  if (o.stay) {
+    y = section(y, '住宿參考');
+    const hs = (HOTELS && HOTELS[o.c.venue] || []).slice(0, 5);
+    if (hs.length) hs.forEach(h => { text(h.n, P, y, IMG.ink, 700, 28); text('約 ' + h.d.toLocaleString('en-US') + ' 公尺', W - P, y, IMG.muted, 500, 24, 'right'); y += 46; });
+    o.v.stay.slice(0, 3).forEach(s => { y += para('・' + s[0] + '：' + s[1], P, y, W - 2 * P, IMG.body, 400, 25, 37) + 6; });
+    y += para('房價依日期變動，請到訂房網查 ' + dinfo(o.date).md + ' 當晚價格。', P, y + 4, W - 2 * P, IMG.muted, 400, 24, 34) + 34;
+  }
+  // 8. 行前清單建議
+  y = section(y, '行前清單建議');
+  o.check.forEach(c => { ctx.strokeStyle = IMG.pink; ctx.lineWidth = 3; ctx.strokeRect(P + 2, y + 4, 26, 26); y += para(c, P + 46, y, W - 2 * P - 46, IMG.body, 500, 27, 38) + 10; });
+  y += 30;
+  // 9. 頁尾
+  rect(P, y, W - 2 * P, 2, IMG.line); y += 24;
+  y += para('規則式估算：演出長度以 3 小時計，車程與費用為概略值。班次、票價與末班車請以官方公告為準。場次資料日期 ' + DATA_ASOF + '。', P, y, W - 2 * P, IMG.muted, 400, 22, 32) + 10;
+  text('fanverse-team.github.io', P, y, IMG.pinkd, 700, 24); y += 64;
+  return y;
+}
+async function planImage(o) {
+  try { await Promise.all([document.fonts.load('900 52px "Noto Sans TC"', o.c.artist + o.c.title), document.fonts.load('400 26px "Noto Sans TC"', '當天時間軸行前清單建議預估花費')]); } catch (e) { }
+  const m = document.createElement('canvas'); m.width = IMG.W; m.height = 10;
+  const h = Math.ceil(drawPlan(m.getContext('2d'), o));
+  const cv = document.createElement('canvas'); cv.width = IMG.W; cv.height = h;
+  const ctx = cv.getContext('2d'); ctx.fillStyle = IMG.paper; ctx.fillRect(0, 0, IMG.W, h);
+  drawPlan(ctx, o);
+  return new Promise(res => cv.toBlob(res, 'image/png'));
+}
+async function downloadPlan() {
+  const o = S.ai.out; if (!o) return;
+  toast('正在產生行程圖…');
+  const blob = await planImage(o); if (!blob) return toast('產生失敗，請再試一次');
+  const name = 'FANVERSE行程_' + o.c.artist.replace(/[\\/:*?"<>|\s]+/g, '') + '_' + o.pick[0].slice(5).replace('-', '') + '.png';
+  const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
+  if (file && navigator.canShare && navigator.canShare({ files: [file] }) && /iPhone|iPad|Android/i.test(navigator.userAgent)) {
+    try { await navigator.share({ files: [file], title: 'FANVERSE 行程規劃' }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast('已下載行程圖');
+}
 function renderPlan(o) {
   const money = n => 'NT$' + Math.round(n).toLocaleString();
   const optRows = o.opts.map(x => '<div class="rowline" style="align-items:flex-start"><span><b style="color:var(--ink)">' + esc(x.mode) + (o.opt && x.mode === o.opt.mode ? '（你選的）' : '') + '</b><br><span class="small muted">' + esc(x.note) + '</span></span><span style="text-align:right;white-space:nowrap">約' + esc(dur(x.min)) + '<br>' + money(x.cost) + '</span></div>').join('');
@@ -561,7 +678,8 @@ function renderPlan(o) {
     (o.stay ? '<div class="sec">住宿建議</div>' + (hotelList(o.c.venue, o.date, 5) ? '<p class="small" style="margin:0 0 6px">離場館最近的 5 間（點連結看 ' + dinfo(o.date).md + ' 當晚房價）：</p>' + hotelList(o.c.venue, o.date, 5) : '') + '<ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul><p class="small muted" style="margin:6px 0 0">住宿花費以「' + esc(o.stayTxt) + '」的區域行情估算，並已算進演唱會當晚約 1.5 倍的漲幅，實際以訂房網為準。可以到「同行媒合」找同場粉絲分攤房費。</p>' : '') +
     '<div class="sec">預估花費（不含門票）：' + money(o.total) + '</div>' + o.b.map(x => '<div class="rowline"><span>' + esc(x[0]) + '</span><span>' + money(x[1]) + '</span></div>').join('') +
     (o.c.price ? '<div class="small muted" style="margin-top:6px">門票另計：' + esc(o.c.price) + '</div>' : '') +
-    '<div class="sec">行前清單</div><ul class="list">' + o.check.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
+    '<div class="sec">行前清單建議</div><ul class="list">' + o.check.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
+    '<button class="btn pink full" style="margin-top:14px" data-act="planImg">下載行程規劃圖（PNG）</button>' +
     '<div class="src">以上為規則式估算：演出長度以 3 小時計，車程與票價為概略值。實際班次、票價與末班車請查台灣高鐵、台鐵、客運與捷運官方資訊。</div></div>';
 }
 function renderRisk(o) {
@@ -795,7 +913,7 @@ async function doProfile(form) {
 
 /* ---------- session ---------- */
 function stopListeners() {
-  S.unsubs.forEach(f => { try { f(); } catch (e) { } }); S.unsubs = [];
+  S.unsubs.forEach(f => { try { f(); } catch (e) { } }); S.unsubs = []; S.live = false; S.feedOn = {};
   Object.values(S.itemUnsubs).forEach(f => { try { f(); } catch (e) { } }); S.itemUnsubs = {};
   Object.values(S.revealUnsubs).forEach(f => { try { f(); } catch (e) { } }); S.revealUnsubs = {};
   if (S.manageUnsub) { S.manageUnsub(); S.manageUnsub = null; }
@@ -828,14 +946,28 @@ async function refreshAgeBand() {
   if (minor === S.profile.minor && band === S.profile.ageBand) return;
   try { await F.updateDoc(F.doc(db, 'users', uid()), { minor, ageBand: band, updatedAt: F.serverTimestamp() }); Object.assign(S.profile, { minor, ageBand: band }); } catch (e) { }
 }
+// 為了省資料庫讀取量：同行與周邊資料只在使用者打開該頁（或「我的」）時才開始讀，每次最多讀最新 40 筆
+const FEED_LIMIT = 40;
+function ensureFeeds() {
+  if (!S.live || !db) return;
+  S.feedOn = S.feedOn || {};
+  const want = { rides: S.view === 'match' || S.view === 'me', trades: S.view === 'market' || S.view === 'me' };
+  if (want.rides && !S.feedOn.rides) {
+    S.feedOn.rides = true;
+    S.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'rides'), F.orderBy('createdAt', 'desc'), F.limit(FEED_LIMIT)), snap => {
+      S.rides = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id })); S.ridesReady = true; loadPubs(S.rides.map(r => r.owner)); renderData();
+    }, e => { S.ridesReady = true; S.note = '媒合資料讀取失敗：' + errMsg(e); renderData(); }));
+  }
+  if (want.trades && !S.feedOn.trades) {
+    S.feedOn.trades = true;
+    S.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'trades'), F.orderBy('createdAt', 'desc'), F.limit(FEED_LIMIT)), snap => {
+      S.trades = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id })); S.tradesReady = true; loadPubs(S.trades.map(t => t.owner)); renderData();
+    }, e => { S.tradesReady = true; S.note = '交換資料讀取失敗：' + errMsg(e); renderData(); }));
+  }
+}
 function startListeners() {
   const u = uid();
-  S.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'rides'), F.orderBy('createdAt', 'desc'), F.limit(100)), snap => {
-    S.rides = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id })); S.ridesReady = true; loadPubs(S.rides.map(r => r.owner)); renderData();
-  }, e => { S.ridesReady = true; S.note = '媒合資料讀取失敗：' + errMsg(e); renderData(); }));
-  S.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'trades'), F.orderBy('createdAt', 'desc'), F.limit(100)), snap => {
-    S.trades = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id })); S.tradesReady = true; loadPubs(S.trades.map(t => t.owner)); renderData();
-  }, e => { S.tradesReady = true; S.note = '交換資料讀取失敗：' + errMsg(e); renderData(); }));
+  S.live = true; S.feedOn = {}; ensureFeeds();
   S.unsubs.push(F.onSnapshot(F.collection(db, 'myRequests', u, 'items'), snap => {
     const items = {}; snap.docs.forEach(d => { const x = d.data(); if (x && (x.type === 'ride' || x.type === 'trade')) items[d.id] = { type: x.type, targetId: String(x.targetId) }; });
     syncItems(items); renderData();
@@ -1153,6 +1285,7 @@ document.addEventListener('click', e => {
     case 'delPost': openSheet('確定刪除？', '<p style="font-size:14px">刪除後，這則貼文和所有申請紀錄都會一起刪除。</p><div class="actions"><button class="btn line" data-act="close" style="flex:1">取消</button><button class="btn danger" style="flex:1" data-act="doDelPost" data-type="' + esc(el.dataset.type) + '" data-id="' + esc(id) + '">刪除</button></div>'); break;
     case 'doDelPost': deletePost(el.dataset.type, id); break;
     case 'plan': S.ai.out = makePlan(S.ai); render(); break;
+    case 'planImg': downloadPlan(); break;
     case 'frSample': S.fraud.text = '大巨蛋 2 張連號搖滾區，急售！比原價便宜 2000，今天先付訂金 1000 保留，加 LINE 私聊，用賣貨便連結下單，客服會幫你做金流驗證'; S.fraud.out = null; render(); break;
     case 'fraud': if (!S.fraud.text.trim()) toast('先貼上一則訊息'); else { S.fraud.out = ruleFraud(S.fraud.text); render(); } break;
     case 'authTab': S.authTab = v; render(); break;
