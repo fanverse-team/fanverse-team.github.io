@@ -38,7 +38,9 @@ service cloud.firestore {
     function minorMatches(d, priv) { return d.minor == !adultBy(priv.birthday); }
 
     match /users/{uid} {
-      allow read: if verified();
+      // 只能「一筆一筆」看（get），不能整批列出（list），避免有人一次撈出所有會員或篩出未成年帳號
+      allow get: if verified();
+      allow list: if false;
       allow create: if verified() && me() == uid
         && validPublic(request.resource.data)
         && request.resource.data.createdAt == request.time
@@ -111,6 +113,20 @@ service cloud.firestore {
     }
     function ride(rideId) { return get(/databases/$(database)/documents/rides/$(rideId)).data; }
 
+    // 發文冷卻：每個帳號每 30 秒只能新增一篇媒合或交換貼文，防止洗版
+    function coolRef() { return /databases/$(database)/documents/cool/$(request.auth.uid); }
+    function coolOk() {
+      return getAfter(coolRef()).data.at == request.time
+        && (!exists(coolRef()) || get(coolRef()).data.at < request.time - duration.value(30, 's'));
+    }
+    match /cool/{uid} {
+      allow get: if signedIn() && me() == uid;
+      allow create, update: if verified() && me() == uid
+        && request.resource.data.keys().hasOnly(['at'])
+        && request.resource.data.at == request.time;
+      allow delete: if signedIn() && me() == uid;
+    }
+
     match /rides/{rideId} {
       allow read: if verified();
       allow create: if verified() && hasProfile()
@@ -118,7 +134,8 @@ service cloud.firestore {
         && request.resource.data.owner == me()
         && request.resource.data.createdAt == request.time
         && request.resource.data.memberCount == 0
-        && (request.resource.data.kind != '住宿' || !isMinor());
+        && (request.resource.data.kind != '住宿' || !isMinor())
+        && coolOk();
       allow update: if verified() && resource.data.owner == me()
         && validRide(request.resource.data)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount', 'title', 'note']);
@@ -275,7 +292,8 @@ service cloud.firestore {
       allow create: if verified() && hasProfile()
         && validTrade(request.resource.data)
         && request.resource.data.owner == me()
-        && request.resource.data.createdAt == request.time;
+        && request.resource.data.createdAt == request.time
+        && coolOk();
       allow delete: if verified() && resource.data.owner == me();
 
       match /interests/{uid} {
