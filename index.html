@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-wnDaVogCVwMQUnPvNKvMC7Azn2SAoASrJO5RqaDtyIw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-mRL/5ysRQ5AWcVn7hX5aWjgY+SL7ahzfHLyIChnqlGg='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -287,7 +287,7 @@ const S = {
   rides: [], trades: [], ridesReady: false, tradesReady: false,
   pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {},
   unsubs: [], itemUnsubs: {}, revealUnsubs: {}, manage: null, manageUnsub: null, group: null, busy: {},
-  ownRides: [], rideCache: {}, seats: {}, lastAt: {}, lastUnsubs: {}, seen: loadLS('fv_seen2', {}), fixes: {}, openCid: '', fixOpen: null, sugOpen: false, sugIdx: -1, sugItems: [], recentQ: loadLS('fv_recentq', []),
+  ownRides: [], rideCache: {}, seats: {}, lastAt: {}, lastUnsubs: {}, seen: loadLS('fv_seen2', {}), fixes: {}, openCid: '', fixOpen: null, sugOpen: false, sugIdx: -1, sugItems: [], pk: null, cRides: { cid: '', list: [], ready: true, unsub: null }, rideCount: {}, recentQ: loadLS('fv_recentq', []),
   follows: loadLS('fv_follows2', []), reminders: loadLS('fv_rem', []),
   ai: { concert: '', dateIdx: 0, from: '台中彰化', mode: '高鐵', stay: '自動判斷', budget: '適中', out: null },
   fraud: { text: '', out: null }, lastVerifySend: 0
@@ -576,17 +576,111 @@ function acceptedBlock(type, item) {
   return h;
 }
 
+/* ---------- 場次選擇器：同行媒合的篩選與發起表單共用，邊打邊找（用同一套智慧搜尋） ---------- */
+const cLabel = c => c ? c.artist + '・' + dinfo(c.date).md + (c.d.length > 1 ? ' 等 ' + c.d.length + ' 場' : '') + ' ' + c.venue : '';
+function pickerHtml(id, value, opt) {
+  const c = C(value), label = c ? cLabel(c) : (opt.allLabel || '');
+  return '<div class="sbox picker" data-pk="' + id + '"' + (opt.style ? ' style="' + opt.style + '"' : '') + '>' +
+    '<input class="search pk-in" id="' + id + 'In" type="search" enterkeyhint="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + id + 'Sug" placeholder="' + esc(opt.ph || '打藝人、場館或月份找場次') + '" value="' + esc(label) + '" data-label="' + esc(label) + '"' + (opt.aria ? ' aria-label="' + esc(opt.aria) + '"' : '') + '>' +
+    '<input type="hidden" id="' + id + '" value="' + esc(c ? c.id : '') + '">' +
+    (opt.allLabel && c ? '<button type="button" class="sclear" data-act="pkClear" data-v="' + id + '" aria-label="改看所有場次">✕</button>' : '') +
+    '<div class="sug" id="' + id + 'Sug" role="listbox" hidden></div></div>';
+}
+const PK_OPT = { mConcert: { allLabel: '所有場次', ph: '找場次：打藝人、場館或月份', aria: '篩選場次' }, rC: { ph: '打藝人、場館或月份找場次', aria: '場次' } };
+function pkItems(id, q) {
+  const opt = PK_OPT[id] || {}, items = [];
+  if (!q) {
+    if (opt.allLabel) items.push({ v: '', html: '<span class="sg-ic">📋</span>' + esc(opt.allLabel) });
+    UPCOMING().slice().sort((a, b) => a.date < b.date ? -1 : 1).slice(0, 8).forEach(c => items.push({ v: c.id, html: '<span class="sg-ic">🎤</span><span><b>' + esc(c.artist) + '</b><span class="sg-sub">' + dinfo(c.date).md + '・' + esc(c.venue) + '</span></span>' }));
+    return items;
+  }
+  (searchConcerts(q, UPCOMING()) || []).slice(0, 8).forEach(r => items.push({ v: r.c.id, html: '<span class="sg-ic">🎤</span><span><b>' + hl(r.c.artist, q) + '</b>' + (r.fuzzy ? '<span class="sg-tag">你是不是要找</span>' : '') + '<span class="sg-sub">' + dinfo(r.c.date).md + (r.c.d.length > 1 ? ' 等 ' + r.c.d.length + ' 場' : '') + '・' + esc(r.c.venue) + '</span></span>' }));
+  if (!items.length) items.push({ v: null, html: '<span class="sg-ic">🤔</span><span class="muted">找不到「' + esc(q) + '」，試試藝人英文名、場館或月份</span>' });
+  return items;
+}
+function pkRender(id) {
+  const inp = $('#' + id + 'In'), box = $('#' + id + 'Sug'); if (!inp || !box) return;
+  const open = S.pk && S.pk.id === id;
+  const q = open && inp.value !== inp.dataset.label ? inp.value.trim() : '';
+  const items = open ? pkItems(id, q) : [];
+  if (open) { S.pk.items = items; if (S.pk.idx >= items.length) S.pk.idx = items.length - 1; }
+  inp.setAttribute('aria-expanded', items.length ? 'true' : 'false');
+  box.innerHTML = items.map((x, i) => '<div class="sg' + (open && i === S.pk.idx ? ' on' : '') + '" role="option" data-pkv="' + i + '" data-pkid="' + id + '">' + x.html + '</div>').join('');
+  box.hidden = !items.length;
+}
+function pkPick(id, i) {
+  const x = S.pk && S.pk.items && S.pk.items[i]; if (!x || x.v === null) return;
+  S.pk = null;
+  const hid = $('#' + id), inp = $('#' + id + 'In'), c = C(x.v);
+  if (hid) hid.value = x.v; if (inp) { inp.value = c ? cLabel(c) : (PK_OPT[id].allLabel || ''); inp.dataset.label = inp.value; inp.blur(); }
+  pkRender(id); pkChanged(id, x.v);
+}
+function pkChanged(id, v) {
+  if (id === 'mConcert') setMatchConcert(v);
+  else if (id === 'rC') { const box = $('#rDBox'); if (box) box.innerHTML = rideDateSel(v); const f = $('#rideF'); if (f) delete f.dataset.force; }
+}
+document.addEventListener('focusin', e => { const p = e.target.closest && e.target.closest('.picker'); if (!p || !e.target.classList.contains('pk-in')) return; S.pk = { id: p.dataset.pk, idx: -1, items: [] }; e.target.select(); pkRender(p.dataset.pk); });
+document.addEventListener('focusout', e => {
+  if (!e.target.classList || !e.target.classList.contains('pk-in')) return;
+  const id = e.target.closest('.picker').dataset.pk;
+  setTimeout(() => { if (document.activeElement === e.target) return; if (S.pk && S.pk.id === id) S.pk = null; e.target.value = e.target.dataset.label; pkRender(id); }, 150);
+});
+document.addEventListener('input', e => { if (e.target.classList && e.target.classList.contains('pk-in')) { const id = e.target.closest('.picker').dataset.pk; S.pk = { id, idx: -1, items: [] }; pkRender(id); } });
+document.addEventListener('keydown', e => {
+  if (!e.target.classList || !e.target.classList.contains('pk-in') || !S.pk) return;
+  const id = S.pk.id, n = S.pk.items.length;
+  if (e.key === 'ArrowDown' && n) { e.preventDefault(); S.pk.idx = (S.pk.idx + 1) % n; pkRender(id); }
+  else if (e.key === 'ArrowUp' && n) { e.preventDefault(); S.pk.idx = S.pk.idx <= 0 ? n - 1 : S.pk.idx - 1; pkRender(id); }
+  else if (e.key === 'Enter') { e.preventDefault(); const i = S.pk.idx >= 0 ? S.pk.idx : S.pk.items.findIndex(x => x.v); if (i >= 0) pkPick(id, i); }
+  else if (e.key === 'Escape') { e.preventDefault(); S.pk = null; e.target.value = e.target.dataset.label; pkRender(id); }
+});
+document.addEventListener('pointerdown', e => { const el = e.target.closest('[data-pkv]'); if (!el) return; e.preventDefault(); S.pk = S.pk || { id: el.dataset.pkid, idx: -1, items: pkItems(el.dataset.pkid, '') }; pkPick(el.dataset.pkid, Number(el.dataset.pkv)); });
+
+/* ---------- 指定場次時，直接查「這一場」的所有同行團（不受最新 40 筆限制） ---------- */
+function setMatchConcert(cid) {
+  S.matchConcert = cid && C(cid) ? cid : '';
+  watchConcertRides(); render();
+}
+function watchConcertRides() {
+  const want = S.live && db && S.matchConcert ? S.matchConcert : '';
+  if (S.cRides.cid === want) return;
+  if (S.cRides.unsub) S.cRides.unsub();
+  S.cRides = { cid: want, list: [], ready: !want, unsub: null };
+  if (!want) return;
+  const cr = S.cRides;
+  cr.unsub = F.onSnapshot(F.query(F.collection(db, 'rides'), F.where('concertId', '==', want), F.limit(60)), snap => {
+    if (S.cRides !== cr) return;
+    cr.list = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id })).sort((a, b) => (b.createdAt && b.createdAt.seconds || 9e9) - (a.createdAt && a.createdAt.seconds || 9e9));
+    cr.ready = true; cacheRides(cr.list); loadPubs(cr.list.map(r => r.owner)); S.rideCount[want] = cr.list.length; renderData();
+  }, e => { if (S.cRides === cr) { cr.ready = true; cr.err = errMsg(e); renderData(); } });
+}
+// 場次頁的「找同行」按鈕顯示這場目前有幾團
+async function countRides(cid) {
+  if (!S.live || !db) return;
+  if (S.rideCount[cid] === undefined) {
+    try { const s = await F.getDocs(F.query(F.collection(db, 'rides'), F.where('concertId', '==', cid), F.limit(60))); S.rideCount[cid] = s.size; } catch (e) { return; }
+  }
+  const b = $('#frBtn'); if (b && S.openCid === cid) b.innerHTML = rideBtnLabel(cid);
+}
+function rideBtnLabel(cid) { const n = S.rideCount[cid]; return n === undefined ? '找同行' : n ? '找同行・' + n + ' 團' + (n >= 60 ? '以上' : '') : '找同行・發起第一團'; }
+
 function vMatch() {
   const guest = S.mode !== 'ready';
   if (guest && (S.mode === 'off' || S.mode === 'loading')) return '<h2 class="vt">同行媒合</h2><p class="vsub">包車共乘、住宿分攤、找旅伴</p>' + gate('同行媒合');
-  const list = (guest ? demoRides() : S.rides).filter(r => (S.matchKind === '全部' || r.kind === S.matchKind) && (!S.matchConcert || r.concertId === S.matchConcert));
-  const opts = '<option value="">所有場次</option>' + UPCOMING().map(c => '<option value="' + c.id + '"' + (S.matchConcert === c.id ? ' selected' : '') + '>' + esc(c.artist) + '・' + dinfo(c.date).md + ' ' + esc(c.venue) + '</option>').join('');
+  if (S.matchConcert && !C(S.matchConcert)) S.matchConcert = '';
+  const mc = S.matchConcert, byC = !guest && mc;
+  if (byC) watchConcertRides();
+  const src = guest ? demoRides() : byC ? S.cRides.list : S.rides, ready = guest || (byC ? S.cRides.ready : S.ridesReady);
+  const all = src.filter(r => guest || !mc || r.concertId === mc), list = all.filter(r => S.matchKind === '全部' || r.kind === S.matchKind); // 訪客只看示範貼文，不分場次
+  const c = C(mc);
+  const head = c ? '<div class="mhead"><div><b>' + esc(c.artist) + '</b> 的同行團' + (guest ? '<div class="small muted">登入實名會員後，才看得到這場真實的同行團</div>' : ready ? '・' + all.length + ' 團' : '') + '<div class="small muted">' + c.d.map(x => dinfo(x[0]).md).join('、') + '・' + esc(c.venue) + '</div></div><button class="btn line" data-act="concert" data-id="' + c.id + '">場次資訊</button></div>' : '';
+  const empty = c ? '<div class="empty">' + (all.length ? '這場目前沒有「' + esc(S.matchKind) + '」的團，換個類型看看，或' : '這場還沒有人發起同行，') + '<br><button class="btn pink" style="margin-top:10px" data-act="newRide">發起 ' + esc(c.artist) + ' 的同行</button></div>' : '<div class="empty">還沒有人發起，按右下角「發起媒合」當第一個！</div>';
   return '<h2 class="vt">同行媒合</h2><p class="vsub">包車共乘、住宿分攤、找旅伴，一起出發更省</p>' +
     '<div class="chips">' + ['全部', '包車', '住宿', '旅伴'].map(k => '<button class="chip' + (S.matchKind === k ? ' on' : '') + '" data-act="mkind" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
-    '<select class="in" id="mConcert" style="margin-bottom:12px">' + opts + '</select>' +
+    pickerHtml('mConcert', mc, PK_OPT.mConcert) + head +
     (guest ? guestBanner('同行媒合') : '') +
     '<div class="safe">🛡️ 對方的真實姓名只會在雙方都確認後才顯示。見面前請在平台確認，<b>不要私下先匯款或付訂金</b>；誰申請了哪一團，只有發起人看得到。</div>' +
-    (!guest && !S.ridesReady ? '<div class="empty">載入中…</div>' : list.length ? list.map(rideCard).join('') : '<div class="empty">還沒有人發起，按右下角「發起媒合」當第一個！</div>');
+    (!ready ? '<div class="empty">載入中…</div>' : list.length ? list.map(rideCard).join('') : empty);
 }
 function rideCard(r) {
   const c = C(r.concertId) || { artist: '', venue: '', date: '2026-12-31' };
@@ -971,7 +1065,7 @@ function vAccount() {
   const p = S.profile, q = S.priv;
   const bd = q && q.birthday && q.birthday.toDate ? q.birthday.toDate() : null;
   const items = Object.keys(S.myItems).map(k => {
-    const it = S.myItems[k], list = it.type === 'ride' ? S.rides : S.trades, target = list.find(x => x.id === it.targetId);
+    const it = S.myItems[k], target = it.type === 'ride' ? rideById(it.targetId) : S.trades.find(x => x.id === it.targetId);
     const st = S.myStatus[k];
     const label = st === 'accepted' ? '已確認' : st === 'pending' ? '等待確認' : st === 'declined' ? '被婉拒' : '已結束';
     return '<div class="rowline"><span>' + (it.type === 'ride' ? '🚐 ' : '🃏 ') + esc(target ? str(target.title || target.have || target.want, 30) : '（貼文已刪除）') + '</span><span class="pill">' + label + '</span></div>';
@@ -1043,12 +1137,12 @@ function openConcert(id, keep) {
     (c.auto ? '<p class="src">這一場是系統從場館公開列表自動帶入的，目前沒有票價與售票平台資料。</p>' : '') +
     venueBlock(v, c.venue, c.date) +
     '<div class="actions" style="margin-top:14px"><button class="btn ' + (rem ? 'ghost' : 'line') + '" data-act="remind" data-id="' + c.id + '">' + (rem ? '★ 已收藏' : '☆ 收藏這場') + '</button>' +
-    '<button class="btn pink" style="flex:1" data-act="findRide" data-id="' + c.id + '">找同行</button></div>' +
+    '<button class="btn pink" style="flex:1" id="frBtn" data-act="findRide" data-id="' + c.id + '">' + rideBtnLabel(c.id) + '</button></div>' +
     '<button class="btn full" style="margin-top:8px" data-act="planFor" data-id="' + c.id + '">排這場的行程</button>' +
     '<div class="sec">資料來源（更新至 ' + DATA_ASOF + '）</div><ul class="list small">' + srcs + '</ul>' +
     '<div class="fixbox"><span>開演時間、票價或售票平台有誤或缺漏？</span><button class="btn line" data-act="fixForm" data-id="' + c.id + '">協助回報</button></div>');
   S.openCid = id; if (keepY) $('#sheet').scrollTop = keepY;
-  if (!keep) loadFixes(id);
+  if (!keep) { loadFixes(id); countRides(id); }
 }
 
 /* ---------- 會員回報：讓使用者協助補正開演時間、票價、售票平台與延期／取消 ---------- */
@@ -1226,10 +1320,11 @@ function stopListeners() {
   if (S.manageUnsub) { S.manageUnsub(); S.manageUnsub = null; }
   closeGroup();
   Object.values(S.lastUnsubs).forEach(f => { try { f(); } catch (e) { } }); S.lastUnsubs = {}; S.lastAt = {};
+  if (S.cRides.unsub) S.cRides.unsub(); S.cRides = { cid: '', list: [], ready: true, unsub: null };
 }
 async function onUser(u) {
   stopListeners();
-  Object.assign(S, { ownRides: [], rideCache: {}, seats: {}, fixes: {}, user: u, profile: null, priv: null, rides: [], trades: [], ridesReady: false, tradesReady: false, pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {}, note: '' });
+  Object.assign(S, { ownRides: [], rideCache: {}, seats: {}, fixes: {}, rideCount: {}, user: u, profile: null, priv: null, rides: [], trades: [], ridesReady: false, tradesReady: false, pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {}, note: '' });
   if (!u) { S.mode = 'out'; render(); return; }
   if (!u.emailVerified) {
     // 使用者可能剛在另一個分頁點了驗證連結，先安靜地重新整理一次狀態
@@ -1307,7 +1402,7 @@ function syncItems(items) {
   });
 }
 async function ownerOf(type, id) {
-  const list = type === 'ride' ? S.rides : S.trades, hit = list.find(x => x.id === id);
+  const hit = type === 'ride' ? rideById(id) : S.trades.find(x => x.id === id);
   if (hit) return hit.owner;
   try { const s = await F.getDoc(F.doc(db, type === 'ride' ? 'rides' : 'trades', id)); return s.exists() ? s.data().owner : ''; } catch (e) { return ''; }
 }
@@ -1351,7 +1446,7 @@ function apply(type, id, force) {
   });
 }
 function stillLinkedTo(owner, exceptKey) {
-  return Object.keys(S.myItems).some(k => k !== exceptKey && S.myStatus[k] === 'accepted' && ((S.myItems[k].type === 'ride' ? S.rides : S.trades).find(x => x.id === S.myItems[k].targetId) || {}).owner === owner);
+  return Object.keys(S.myItems).some(k => k !== exceptKey && S.myStatus[k] === 'accepted' && ((S.myItems[k].type === 'ride' ? rideById(S.myItems[k].targetId) : S.trades.find(x => x.id === S.myItems[k].targetId)) || {}).owner === owner);
 }
 function cancelReq(type, id) {
   return withLock(type + id, async () => {
@@ -1382,7 +1477,7 @@ function openManage(type, id) {
     loadPubs(S.manage.list.map(x => x.uid));
     S.manage.list.filter(x => x.status === 'accepted').forEach(x => watchRevealOwner(x.uid));
     if (type === 'ride') {
-      const r = S.rides.find(x => x.id === id), acc = S.manage.list.filter(x => x.status === 'accepted').length;
+      const r = rideById(id), acc = S.manage.list.filter(x => x.status === 'accepted').length;
       if (r && num(r.memberCount) !== acc && acc < num(r.capacity)) F.updateDoc(F.doc(db, 'rides', id), { memberCount: acc }).catch(() => { });
     }
     renderManage();
@@ -1394,7 +1489,7 @@ function watchRevealOwner(other) {
 }
 function renderManage() {
   const m = S.manage; if (!m) return;
-  const isRide = m.type === 'ride', post = (isRide ? S.rides : S.trades).find(x => x.id === m.id);
+  const isRide = m.type === 'ride', post = isRide ? rideById(m.id) : S.trades.find(x => x.id === m.id);
   const rows = m.list.map(x => {
     const p = S.pub[x.uid], name = S.revealedToMe[x.uid];
     let act = '';
@@ -1414,7 +1509,7 @@ function accept(who) {
   return withLock('acc' + who, async () => {
     const isRide = m.type === 'ride', b = F.writeBatch(db);
     if (isRide) {
-      const r = S.rides.find(x => x.id === m.id);
+      const r = rideById(m.id);
       if (r && 1 + num(r.memberCount) >= num(r.capacity)) return toast('已額滿，無法再接受');
       b.update(F.doc(db, 'rides', m.id), { memberCount: F.increment(1) });
       if (r && seatKey(r)) b.set(seatRef(who, r), { rideId: m.id, at: F.serverTimestamp() });
@@ -1422,7 +1517,7 @@ function accept(who) {
     b.update(targetRef(m.type, m.id, who), { status: 'accepted' });
     if (!S.profile.minor && !S.myReveals[who]) b.set(F.doc(db, 'reveals', uid(), 'to', who), { realName: S.priv.realName, createdAt: F.serverTimestamp() });
     try { await b.commit(); toast(S.profile.minor ? '已接受' : '已接受，並向對方公開你的實名'); }
-    catch (e) { const r = isRide && S.rides.find(x => x.id === m.id); toast(e && e.code === 'permission-denied' && r && seatKey(r) ? '無法接受：對方已確認參加同一場、同一天的另一個' + r.kind + '團' : errMsg(e)); }
+    catch (e) { const r = isRide && rideById(m.id); toast(e && e.code === 'permission-denied' && r && seatKey(r) ? '無法接受：對方已確認參加同一場、同一天的另一個' + r.kind + '團' : errMsg(e)); }
   });
 }
 function decline(who) {
@@ -1434,7 +1529,7 @@ function removeMember(who) {
   return withLock('rm' + who, async () => {
     const x = m.list.find(y => y.uid === who), b = F.writeBatch(db);
     b.delete(targetRef(m.type, m.id, who));
-    if (m.type === 'ride' && x && x.status === 'accepted') { const r = S.rides.find(y => y.id === m.id); if (r && num(r.memberCount) > 0) b.update(F.doc(db, 'rides', m.id), { memberCount: F.increment(-1) }); if (r && seatKey(r)) b.delete(seatRef(who, r)); }
+    if (m.type === 'ride' && x && x.status === 'accepted') { const r = rideById(m.id); if (r && num(r.memberCount) > 0) b.update(F.doc(db, 'rides', m.id), { memberCount: F.increment(-1) }); if (r && seatKey(r)) b.delete(seatRef(who, r)); }
     if (S.myReveals[who]) b.delete(F.doc(db, 'reveals', uid(), 'to', who));
     await commit(b, '已移除');
   });
@@ -1471,7 +1566,7 @@ function rideDay(r) { const s = rideSlot(r); return s && s.date ? s.date : (C(r.
 function seatKey(r) { return SEAT_KIND[r.kind] ? r.concertId + '_' + (typeof r.day === 'string' && r.day ? r.day : 'x') + '_' + SEAT_KIND[r.kind] : ''; }
 function seatRef(who, r) { return F.doc(db, 'seats', who, 'k', seatKey(r)); }
 function cacheRides(list) { list.forEach(r => { S.rideCache[r.id] = r; }); }
-function rideById(id) { return S.rides.find(x => x.id === id) || S.rideCache[id] || null; }
+function rideById(id) { return S.rides.find(x => x.id === id) || S.cRides.list.find(x => x.id === id) || S.rideCache[id] || null; }
 async function getRide(id) {
   const hit = rideById(id); if (hit) return hit;
   try { const s = await F.getDoc(F.doc(db, 'rides', id)); if (s.exists()) { const r = Object.assign({}, s.data(), { id }); S.rideCache[id] = r; return r; } } catch (e) { }
@@ -1694,11 +1789,10 @@ async function delRefs(refs) { for (let i = 0; i < refs.length; i += 400) { cons
 /* ---------- 發文 ---------- */
 function rideForm() {
   const minor = S.profile.minor;
-  const copts = UPCOMING().map(c => '<option value="' + c.id + '"' + ((S.matchConcert || firstId()) === c.id ? ' selected' : '') + '>' + esc(c.artist) + '・' + dinfo(c.date).md + ' ' + esc(c.venue) + '</option>').join('');
   openSheet('發起同行媒合',
     '<form id="rideF" novalidate><label class="f">類型</label><div class="seg" id="rkSeg">' + ['包車', '住宿', '旅伴'].filter(k => !(minor && k === '住宿')).map((k, i) => '<button type="button" class="' + (i === 0 ? 'on' : '') + '" data-act="seg" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
     (minor ? '<div class="hint">未成年帳號不能發起住宿分攤。</div>' : '') +
-    '<label class="f" for="rC">場次</label><select class="in" id="rC">' + copts + '</select>' +
+    '<label class="f" for="rCIn">場次</label>' + pickerHtml('rC', S.matchConcert || firstId(), PK_OPT.rC) +
     '<div id="rDBox">' + rideDateSel(S.matchConcert || firstId()) + '</div>' +
     '<label class="f" for="rT">標題</label><input class="in" id="rT" maxlength="40" required placeholder="例：台中出發・高雄巨蛋包車">' +
     '<label class="f" for="rF">出發地／區域</label><input class="in" id="rF" maxlength="30" required placeholder="例：台中（高鐵台中站集合）">' +
@@ -1863,7 +1957,8 @@ document.addEventListener('click', e => {
     case 'concert': openConcert(id); break;
     case 'close': closeSheet(); break;
     case 'remind': S.reminders = S.reminders.includes(id) ? S.reminders.filter(x => x !== id) : S.reminders.concat(id); saveLS('fv_rem', S.reminders); toast(S.reminders.includes(id) ? '已收藏這場' : '已取消收藏'); openConcert(id); break;
-    case 'findRide': closeSheet(); S.matchConcert = id; S.matchKind = '全部'; go('match'); break;
+    case 'findRide': closeSheet(); S.matchKind = '全部'; S.matchConcert = id; go('match'); break;
+    case 'pkClear': if (v === 'mConcert') setMatchConcert(''); break;
     case 'planFor': closeSheet(); S.ai.concert = id; S.ai.dateIdx = Math.max(0, C(id).d.findIndex(x => x[0] === C(id).date)); S.ai.out = null; go('ai'); break;
     case 'mkind': S.matchKind = v; render(); break;
     case 'mmode': S.marketMode = v; render(); break;
