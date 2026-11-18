@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-eJP9lm5VGs4UfrQ4x/rybhuCx1IsrIPREefAB853tW8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-o0i85uUmqCLBG0HoxKX0yAGn3alpl4sUj20igl4kez8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -286,7 +286,7 @@ const S = {
   user: null, profile: null, priv: null,
   rides: [], trades: [], ridesReady: false, tradesReady: false,
   pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {},
-  unsubs: [], itemUnsubs: {}, revealUnsubs: {}, manage: null, manageUnsub: null, busy: {},
+  unsubs: [], itemUnsubs: {}, revealUnsubs: {}, manage: null, manageUnsub: null, group: null, busy: {},
   follows: loadLS('fv_follows2', []), reminders: loadLS('fv_rem', []),
   ai: { concert: '', dateIdx: 0, from: '台中彰化', mode: '高鐵', stay: '自動判斷', budget: '適中', out: null },
   fraud: { text: '', out: null }, lastVerifySend: 0
@@ -438,6 +438,7 @@ function rideCard(r) {
   else if (st === 'pending') actions = '<span class="pill">等待發起人確認</span><button class="btn line" data-act="cancelReq" data-type="ride" data-id="' + esc(r.id) + '">取消申請</button>';
   else if (st === 'declined') actions = '<span class="pill">發起人婉拒了</span><button class="btn line" data-act="cancelReq" data-type="ride" data-id="' + esc(r.id) + '">移除</button>';
   else actions = acceptedBlock('ride', r);
+  if (canGroup(r)) actions = '<button class="btn pink" data-act="group" data-id="' + esc(r.id) + '">💬 團體空間（聊天・共用行程）</button>' + actions;
   return '<div class="card"><div class="ptop"><span class="pill hot">' + esc(r.kind) + '</span><span class="small muted">' + esc(c.artist) + '・' + dinfo(c.date).md + '</span></div>' +
     '<div class="ptitle">' + esc(str(r.title, 40)) + '</div>' +
     '<div class="psub">' + (r.kind === '包車' ? '🚐 ' + esc(str(r.from, 30)) + ' → ' + esc(c.venue) : r.kind === '住宿' ? '🏨 ' + esc(str(r.from, 30)) + '・' + esc(c.venue) + ' 附近' : '🙌 ' + esc(str(r.from, 30)) + '・' + esc(c.venue)) + '</div>' +
@@ -691,8 +692,8 @@ async function planImage(o) {
   drawPlan(ctx, o);
   return new Promise(res => cv.toBlob(res, 'image/png'));
 }
-async function downloadPlan() {
-  const o = S.ai.out; if (!o) return;
+async function downloadPlan(o) {
+  o = o || S.ai.out; if (!o) return;
   toast('正在產生行程圖…');
   const blob = await planImage(o); if (!blob) return toast('產生失敗，請再試一次');
   const name = 'FANVERSE行程_' + o.c.artist.replace(/[\\/:*?"<>|\s]+/g, '') + '_' + o.pick[0].slice(5).replace('-', '') + '.png';
@@ -705,7 +706,7 @@ async function downloadPlan() {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   toast('已下載行程圖');
 }
-function renderPlan(o) {
+function renderPlan(o, act) {
   const money = n => 'NT$' + Math.round(n).toLocaleString();
   const optRows = o.opts.map(x => '<div class="rowline" style="align-items:flex-start"><span><b style="color:var(--ink)">' + esc(x.mode) + (o.opt && x.mode === o.opt.mode ? '（你選的）' : '') + '</b><br><span class="small muted">' + esc(x.note) + '</span></span><span style="text-align:right;white-space:nowrap">約' + esc(dur(x.min)) + '<br>' + money(x.cost) + '</span></div>').join('');
   const tl = o.tl.map(x => '<li><span class="t">' + esc(x.t) + '</span><b>' + esc(x.h) + '</b><br>' + esc(x.d) + '</li>').join('');
@@ -719,7 +720,7 @@ function renderPlan(o) {
     '<div class="sec">預估花費（不含門票）：' + money(o.total) + '</div>' + o.b.map(x => '<div class="rowline"><span>' + esc(x[0]) + '</span><span>' + money(x[1]) + '</span></div>').join('') +
     (o.c.price ? '<div class="small muted" style="margin-top:6px">門票另計：' + esc(o.c.price) + '</div>' : '') +
     '<div class="sec">行前清單建議</div><ul class="list">' + o.check.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-    '<button class="btn pink full" style="margin-top:14px" data-act="planImg">下載行程規劃圖（PNG）</button>' +
+    '<button class="btn pink full" style="margin-top:14px" data-act="' + (act || 'planImg') + '">下載行程規劃圖（PNG）</button>' +
     '<div class="src">以上為規則式估算：演出長度以 3 小時計，車程與票價為概略值。實際班次、票價與末班車請查台灣高鐵、台鐵、客運與捷運官方資訊。</div></div>';
 }
 function renderRisk(o) {
@@ -876,7 +877,7 @@ function openSheet(title, html) {
 function closeSheet() {
   $('#veil').classList.add('hidden'); document.body.style.overflow = '';
   if (S.manageUnsub) { S.manageUnsub(); S.manageUnsub = null; }
-  S.manage = null;
+  S.manage = null; closeGroup();
 }
 function setErr(msg) { const b = $('#authErr') || $('#sheetErr'); if (b) b.innerHTML = msg ? '<div class="err">' + esc(msg) + '</div>' : ''; }
 function busyBtn(form, on, label) { const b = form && form.querySelector('button[type=submit]'); if (b) { b.disabled = on; if (label) b.textContent = label; } }
@@ -957,6 +958,7 @@ function stopListeners() {
   Object.values(S.itemUnsubs).forEach(f => { try { f(); } catch (e) { } }); S.itemUnsubs = {};
   Object.values(S.revealUnsubs).forEach(f => { try { f(); } catch (e) { } }); S.revealUnsubs = {};
   if (S.manageUnsub) { S.manageUnsub(); S.manageUnsub = null; }
+  closeGroup();
 }
 async function onUser(u) {
   stopListeners();
@@ -1048,7 +1050,7 @@ function loadPubs(ids) {
       S.pub[id] = s.exists() ? s.data() : null;
       // 對方已刪除帳號：收回我曾揭露給他的實名
       if (!s.exists() && S.myReveals[id] && id !== uid()) F.deleteDoc(F.doc(db, 'reveals', uid(), 'to', id)).catch(() => { });
-    }).catch(() => { S.pub[id] = null; }).finally(() => { delete pubLoading[id]; renderData(); if (S.manage) renderManage(); });
+    }).catch(() => { S.pub[id] = null; }).finally(() => { delete pubLoading[id]; renderData(); if (S.manage) renderManage(); if (S.group) renderMsgs(); });
   });
 }
 
@@ -1156,6 +1158,7 @@ async function deletePost(type, id) {
   return withLock('del' + id, async () => {
     try {
       const col = type === 'ride' ? 'rides' : 'trades', sub = type === 'ride' ? 'requests' : 'interests';
+      if (type === 'ride') await delRefs(await rideExtraRefs(id));
       const reqs = await F.getDocs(F.collection(db, col, id, sub));
       const b = F.writeBatch(db);
       reqs.docs.forEach(d => { b.delete(d.ref); if (d.data().status === 'accepted' && S.myReveals[d.id]) b.delete(F.doc(db, 'reveals', uid(), 'to', d.id)); });
@@ -1164,6 +1167,154 @@ async function deletePost(type, id) {
     } catch (e) { toast(errMsg(e)); }
   });
 }
+
+/* ---------- 團體空間：成團後的共用行程與聊天室 ---------- */
+const CHAT_LIMIT = 60;
+const FROM_KEYS = { 台北: '北北基', 臺北: '北北基', 新北: '北北基', 基隆: '北北基', 桃園: '桃園', 新竹: '新竹苗栗', 苗栗: '新竹苗栗', 台中: '台中彰化', 臺中: '台中彰化', 彰化: '台中彰化', 南投: '台中彰化', 雲林: '雲林嘉義', 嘉義: '雲林嘉義', 台南: '台南', 臺南: '台南', 高雄: '高雄屏東', 屏東: '高雄屏東', 宜蘭: '宜蘭花東', 花蓮: '宜蘭花東', 台東: '宜蘭花東', 臺東: '宜蘭花東' };
+const STAYS = ['自動判斷', '當天來回', '住一晚'], BUDGETS = ['省錢', '適中', '享受'];
+function canGroup(r) { return !!r && !r.demo && !!uid() && (r.owner === uid() || S.myStatus['ride_' + r.id] === 'accepted'); }
+function groupRide() { return S.group ? S.rides.find(x => x.id === S.group.id) : null; }
+function closeGroup() {
+  if (!S.group) return;
+  S.group.unsubs.forEach(f => { try { f(); } catch (e) { } });
+  S.group = null;
+}
+function cleanGroupPlan(p, r) {
+  const k = Object.keys(FROM_KEYS).find(w => String(r.from || '').includes(w));
+  const d = { from: k ? FROM_KEYS[k] : '台中彰化', mode: r.kind === '包車' ? '包車共乘' : '高鐵', stay: r.kind === '住宿' ? '住一晚' : '自動判斷', budget: '適中', dateIdx: 0 };
+  if (!p) return d;
+  return {
+    from: REGIONS[p.from] ? p.from : d.from, mode: MODES.includes(p.mode) ? p.mode : d.mode,
+    stay: STAYS.includes(p.stay) ? p.stay : d.stay, budget: BUDGETS.includes(p.budget) ? p.budget : d.budget,
+    dateIdx: Number.isInteger(p.dateIdx) && p.dateIdx >= 0 && p.dateIdx < 40 ? p.dateIdx : 0
+  };
+}
+function openGroup(id) {
+  closeGroup(); if (S.manageUnsub) { S.manageUnsub(); S.manageUnsub = null; } S.manage = null;
+  const r = S.rides.find(x => x.id === id);
+  if (!canGroup(r)) return toast('成團後才能進入團體空間');
+  const g = S.group = { id, tab: 'chat', plan: null, planReady: false, msgs: [], msgReady: false, unsubs: [], err: '', planErr: '', editing: false, lastSend: 0, out: null, first: true };
+  g.unsubs.push(F.onSnapshot(F.doc(db, 'rides', id, 'meta', 'plan'), s => {
+    if (S.group !== g) return; g.plan = s.exists() ? s.data() : null; g.planReady = true;
+    if (g.tab === 'plan' && !g.editing) renderGroup();
+  }, e => { if (S.group !== g) return; g.planReady = true; g.planErr = errMsg(e); if (g.tab === 'plan') renderGroup(); }));
+  g.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'rides', id, 'chat'), F.orderBy('createdAt'), F.limitToLast(CHAT_LIMIT)), snap => {
+    if (S.group !== g) return;
+    g.msgs = snap.docs.map(d => Object.assign({}, d.data({ serverTimestamps: 'estimate' }), { id: d.id }));
+    g.msgReady = true; g.err = ''; loadPubs(g.msgs.map(m => m.uid)); renderMsgs();
+  }, e => { if (S.group !== g) return; g.msgReady = true; g.err = errMsg(e); renderMsgs(); }));
+  renderGroup();
+}
+function renderGroup() {
+  const g = S.group, r = groupRide(); if (!g) return;
+  if (!r) { closeSheet(); return toast('這個媒合已經刪除'); }
+  const c = C(r.concertId) || { artist: '', venue: '', date: '' };
+  const tabs = '<div class="seg" style="margin-bottom:12px">' + [['chat', '💬 聊天室'], ['plan', '🗺️ 共用行程']].map(t => '<button class="' + (g.tab === t[0] ? 'on' : '') + '" data-act="gTab" data-v="' + t[0] + '">' + t[1] + '</button>').join('') + '</div>';
+  const head = '<div class="psub" style="margin-bottom:10px">' + esc(str(r.title, 40)) + '・' + esc(c.artist) + (c.date ? ' ' + dinfo(c.date).md : '') + '・' + Math.min(num(r.capacity), 1 + num(r.memberCount)) + ' 人</div>';
+  openSheet('團體空間', head + tabs + (g.tab === 'chat' ? chatHtml() : planHtml(r)));
+  if (g.tab === 'chat') { g.first = true; renderMsgs(); }
+}
+function chatHtml() {
+  return '<div class="safe">💬 只有發起人和已確認的成員看得到。<b>不要在聊天室匯款、給帳號或提供身分證件</b>；遇到騷擾或可疑訊息請按「檢舉」，必要時可撥 165。</div>' +
+    '<div id="gMsgs" class="chat"></div>' +
+    '<form id="chatF" class="chatbar"><input class="in" id="chatIn" maxlength="300" placeholder="輸入訊息（最多 300 字）" autocomplete="off" aria-label="訊息"><button class="btn pink" type="submit">送出</button></form>';
+}
+function msgTime(m) {
+  const t = m.createdAt && typeof m.createdAt.toDate === 'function' ? m.createdAt.toDate() : null;
+  if (!t) return '';
+  return (t.getMonth() + 1) + '/' + t.getDate() + ' ' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+}
+const CHAT_WARN = /匯款|轉帳|先付|訂金|ATM|無卡|帳號|賣貨便|https?:|身分證|驗證碼/i;
+function renderMsgs() {
+  const g = S.group, box = $('#gMsgs'); if (!g || !box) return;
+  const r = groupRide(), owner = r ? r.owner : '', amOwner = owner === uid();
+  let h;
+  if (g.err) h = '<div class="err">' + esc(g.err) + '</div>';
+  else if (!g.msgReady) h = '<div class="empty">載入中…</div>';
+  else if (!g.msgs.length) h = '<div class="empty">還沒有訊息，先打聲招呼、約好集合地點吧！</div>';
+  else h = (g.msgs.length >= CHAT_LIMIT ? '<div class="small muted" style="text-align:center;margin-bottom:8px">只顯示最近 ' + CHAT_LIMIT + ' 則</div>' : '') + g.msgs.map(m => {
+    const mine = m.uid === uid(), p = S.pub[m.uid];
+    const nick = mine ? '我' : p ? str(p.nickname, 20) : p === null ? '已離開的會員' : '…';
+    const ops = mine || amOwner ? '<button class="lnk" data-act="delMsg" data-id="' + esc(m.id) + '">刪除</button>' : '';
+    const rep = !mine ? '<button class="lnk" data-act="repMsg" data-id="' + esc(m.id) + '">檢舉</button>' : '';
+    const warn = !mine && CHAT_WARN.test(String(m.text || '')) ? '<div class="mwarn">⚠️ 這則訊息提到金錢、連結或個資，請不要私下匯款，先用小幫手的防詐檢查看看</div>' : '';
+    return '<div class="msg' + (mine ? ' me' : '') + '"><div class="mh"><b>' + esc(nick) + '</b>' + (m.uid === owner ? '<span class="tag">發起人</span>' : '') + (p && p.minor ? '<span class="tag">未成年</span>' : '') + '<span>' + esc(msgTime(m)) + '</span></div>' +
+      '<div class="mb">' + esc(str(m.text, 300)) + '</div>' + warn + (ops || rep ? '<div class="mo">' + ops + rep + '</div>' : '') + '</div>';
+  }).join('');
+  const near = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+  box.innerHTML = h;
+  if (g.first || near) { box.scrollTop = box.scrollHeight; g.first = false; }
+}
+async function sendChat() {
+  const g = S.group, inp = $('#chatIn'); if (!g || !inp) return;
+  const text = inp.value.trim().slice(0, 300); if (!text) return;
+  if (Date.now() - g.lastSend < 2500) return toast('傳太快了，稍等一下再送');
+  g.lastSend = Date.now();
+  const u = uid(), mid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), b = F.writeBatch(db);
+  b.set(F.doc(db, 'rides', g.id, 'chat', mid), { uid: u, text, createdAt: F.serverTimestamp() });
+  b.set(F.doc(db, 'rides', g.id, 'chatLast', u), { at: F.serverTimestamp() });
+  b.set(F.doc(db, 'myChats', u, 'rides', g.id), { at: F.serverTimestamp() });
+  inp.value = ''; inp.focus(); g.first = true;
+  const ok = await commit(b);
+  if (!ok && !inp.value) inp.value = text;
+}
+function delMsg(mid) {
+  const g = S.group; if (!g) return;
+  return withLock('dm' + mid, async () => { try { await F.deleteDoc(F.doc(db, 'rides', g.id, 'chat', mid)); toast('已刪除訊息'); } catch (e) { toast(errMsg(e)); } });
+}
+function repMsg(mid) {
+  const g = S.group; if (!g) return;
+  const m = g.msgs.find(x => x.id === mid); if (!m) return;
+  return withLock('rp' + mid, async () => {
+    try {
+      await F.setDoc(F.doc(db, 'reports', uid() + '_' + mid), { by: uid(), rideId: g.id, msgId: mid, who: String(m.uid || ''), text: str(m.text, 300), reason: '聊天室訊息', createdAt: F.serverTimestamp() });
+      toast('已檢舉，管理員會處理；你也可以請發起人移除對方');
+    } catch (e) { toast(e && e.code === 'permission-denied' ? '你已經檢舉過這則訊息' : errMsg(e)); }
+  });
+}
+function planHtml(r) {
+  const g = S.group, amOwner = r.owner === uid(), c = C(r.concertId);
+  if (!g.planReady) return '<div class="empty">載入中…</div>';
+  if (g.planErr) return '<div class="err">' + esc(g.planErr) + '</div>';
+  if (!c) return '<div class="empty">找不到這場演出的資料</div>';
+  if (amOwner && (g.editing || !g.plan)) {
+    const p = cleanGroupPlan(g.plan, r), sel = (id, list, v) => '<select class="in" id="' + id + '">' + list.map(x => '<option' + (x === v ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select>';
+    const dates = c.d.map((x, i) => '<option value="' + i + '"' + (i === p.dateIdx ? ' selected' : '') + '>' + dinfo(x[0]).full + (x[1] ? ' ' + esc(tm(x[1])) : '') + '</option>').join('');
+    return '<div class="safe">🗺️ 由發起人設定一次，全團成員都會看到同一份行程，也都能下載成同樣格式的行程圖。</div>' +
+      '<form id="gPlanF">' + (c.d.length > 1 ? '<label class="f" for="gDate">場次</label><select class="in" id="gDate">' + dates + '</select>' : '') +
+      '<label class="f" for="gFrom">集合出發地區</label>' + sel('gFrom', Object.keys(REGIONS), p.from) +
+      '<label class="f" for="gMode">交通方式</label>' + sel('gMode', MODES, p.mode) +
+      '<label class="f" for="gStay">過夜</label>' + sel('gStay', STAYS, p.stay) +
+      '<label class="f" for="gBudget">預算</label>' + sel('gBudget', BUDGETS, p.budget) +
+      '<div id="sheetErr"></div><div class="actions" style="margin-top:14px">' + (g.plan ? '<button class="btn line" type="button" data-act="gEditCancel" style="flex:1">取消</button>' : '') + '<button class="btn pink" type="submit" style="flex:2">儲存並分享給全團</button></div></form>';
+  }
+  if (!g.plan) return '<div class="empty">發起人還沒設定共用行程，可以先在聊天室討論出發地和交通方式。</div>';
+  const p = cleanGroupPlan(g.plan, r);
+  g.out = makePlan(Object.assign({ concert: r.concertId }, p));
+  if (!g.out) return '<div class="empty">這場演出的資料已更新，請發起人重新設定行程</div>';
+  const when = g.plan.updatedAt && typeof g.plan.updatedAt.toDate === 'function' ? msgTime({ createdAt: g.plan.updatedAt }) : '';
+  return '<div class="rowline"><span class="small muted">發起人設定' + (when ? '・' + esc(when) + ' 更新' : '') + '</span>' + (amOwner ? '<button class="btn line" data-act="gEdit">修改行程</button>' : '') + '</div>' +
+    renderPlan(g.out, 'groupPlanImg');
+}
+async function savePlan(form) {
+  const g = S.group, r = groupRide(); if (!g || !r || r.owner !== uid()) return;
+  const p = {
+    from: $('#gFrom').value, mode: $('#gMode').value, stay: $('#gStay').value, budget: $('#gBudget').value,
+    dateIdx: $('#gDate') ? Number($('#gDate').value) || 0 : 0
+  };
+  if (!REGIONS[p.from] || !MODES.includes(p.mode) || !STAYS.includes(p.stay) || !BUDGETS.includes(p.budget)) return sheetErr('選項不正確，請重新選擇');
+  busyBtn(form, true, '儲存中…');
+  try {
+    await F.setDoc(F.doc(db, 'rides', g.id, 'meta', 'plan'), Object.assign(p, { updatedAt: F.serverTimestamp() }));
+    g.editing = false; toast('已分享給全團'); renderGroup();
+  } catch (e) { sheetErr(errMsg(e)); busyBtn(form, false, '儲存並分享給全團'); }
+}
+// 刪除整團時一起刪：聊天訊息、發言時間紀錄、共用行程
+async function rideExtraRefs(id) {
+  const [chat, last] = await Promise.all([F.getDocs(F.collection(db, 'rides', id, 'chat')), F.getDocs(F.collection(db, 'rides', id, 'chatLast'))]);
+  return chat.docs.map(d => d.ref).concat(last.docs.map(d => d.ref), [F.doc(db, 'rides', id, 'meta', 'plan')]);
+}
+async function delRefs(refs) { for (let i = 0; i < refs.length; i += 400) { const b = F.writeBatch(db); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); } }
 
 /* ---------- 發文 ---------- */
 function rideForm() {
@@ -1280,7 +1431,14 @@ async function deleteAccount(form) {
     const del = async refs => { for (let i = 0; i < refs.length; i += 400) { const b = F.writeBatch(db); refs.slice(i, i + 400).forEach(r => b.delete(r)); await b.commit(); } };
     for (const [col, sub] of [['rides', 'requests'], ['trades', 'interests']]) {
       const mine = await F.getDocs(F.query(F.collection(db, col), F.where('owner', '==', u)));
-      for (const d of mine.docs) { const reqs = await F.getDocs(F.collection(db, col, d.id, sub)); await del(reqs.docs.map(x => x.ref).concat([d.ref])); }
+      for (const d of mine.docs) { if (col === 'rides') await del(await rideExtraRefs(d.id)); const reqs = await F.getDocs(F.collection(db, col, d.id, sub)); await del(reqs.docs.map(x => x.ref).concat([d.ref])); }
+    }
+    // 在別人團裡的發言也一起刪
+    const chats = await F.getDocs(F.collection(db, 'myChats', u, 'rides'));
+    for (const d of chats.docs) {
+      const ms = await F.getDocs(F.query(F.collection(db, 'rides', d.id, 'chat'), F.where('uid', '==', u))).catch(() => ({ docs: [] }));
+      await del(ms.docs.map(x => x.ref).concat([F.doc(db, 'rides', d.id, 'chatLast', u)])).catch(() => { });
+      await del([d.ref]);
     }
     const items = await F.getDocs(F.collection(db, 'myRequests', u, 'items'));
     const refs = [];
@@ -1326,6 +1484,13 @@ document.addEventListener('click', e => {
     case 'doDelPost': deletePost(el.dataset.type, id); break;
     case 'plan': S.ai.out = makePlan(S.ai); render(); break;
     case 'planImg': downloadPlan(); break;
+    case 'group': openGroup(id); break;
+    case 'gTab': if (S.group) { S.group.tab = v === 'plan' ? 'plan' : 'chat'; S.group.editing = false; renderGroup(); } break;
+    case 'gEdit': if (S.group) { S.group.editing = true; renderGroup(); } break;
+    case 'gEditCancel': if (S.group) { S.group.editing = false; renderGroup(); } break;
+    case 'groupPlanImg': if (S.group && S.group.out) downloadPlan(S.group.out); break;
+    case 'delMsg': delMsg(id); break;
+    case 'repMsg': repMsg(id); break;
     case 'frSample': S.fraud.text = '大巨蛋 2 張連號搖滾區，急售！比原價便宜 2000，今天先付訂金 1000 保留，加 LINE 私聊，用賣貨便連結下單，客服會幫你做金流驗證'; S.fraud.out = null; render(); break;
     case 'fraud': if (!S.fraud.text.trim()) toast('先貼上一則訊息'); else { S.fraud.out = ruleFraud(S.fraud.text); render(); } break;
     case 'authTab': S.authTab = v; render(); break;
@@ -1374,6 +1539,8 @@ document.addEventListener('submit', e => {
   else if (f.id === 'tradeF') submitTrade(f);
   else if (f.id === 'nickF') submitNick(f);
   else if (f.id === 'delF') deleteAccount(f);
+  else if (f.id === 'chatF') sendChat();
+  else if (f.id === 'gPlanF') savePlan(f);
 });
 $('#veil').addEventListener('click', e => { if (e.target.id === 'veil') closeSheet(); });
 
