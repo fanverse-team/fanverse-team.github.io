@@ -198,3 +198,5 @@
   .sg mark{background:#ffe0ef;color:inherit;border-radius:3px;padding:0 1px}
   .sg-sub{display:block;font-size:12px;color:var(--muted);margin-top:1px}
   .sg-tag{font-size:10px;color:#9a5b00;background:#fff4dc;border-radius:999px;padding:1px 6px;margin-left:6px;font-weight:500}
+  .mhead{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:12px;font-size:14px;color:var(--ink)}
+  .picker .sug{z-index:25}
