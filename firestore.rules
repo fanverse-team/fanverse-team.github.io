@@ -138,6 +138,70 @@ service cloud.firestore {
           && request.resource.data.status in ['accepted', 'declined'];
         allow delete: if verified() && (me() == uid || ride(rideId).owner == me());
       }
+
+      // ---------- 團體空間：只有發起人與「已接受」的成員能進 ----------
+      function isMember() {
+        return ride(rideId).owner == me()
+          || get(/databases/$(database)/documents/rides/$(rideId)/requests/$(me())).data.status == 'accepted';
+      }
+      function lastRef() { return /databases/$(database)/documents/rides/$(rideId)/chatLast/$(me()); }
+
+      // 聊天訊息：每則最多 300 字；同一人兩則訊息至少間隔 2 秒（靠 chatLast 檢查）
+      match /chat/{msgId} {
+        allow read: if verified() && (isMember() || resource.data.uid == me());
+        allow create: if verified() && hasProfile() && isMember()
+          && request.resource.data.keys().hasOnly(['uid', 'text', 'createdAt'])
+          && request.resource.data.keys().hasAll(['uid', 'text', 'createdAt'])
+          && request.resource.data.uid == me()
+          && str(request.resource.data.text, 1, 300)
+          && request.resource.data.createdAt == request.time
+          && getAfter(lastRef()).data.at == request.time
+          && (!exists(lastRef()) || get(lastRef()).data.at < request.time - duration.value(2, 's'));
+        allow delete: if verified() && (resource.data.uid == me() || ride(rideId).owner == me());
+      }
+      match /chatLast/{uid} {
+        allow read: if verified() && me() == uid;
+        allow create, update: if verified() && me() == uid && isMember()
+          && request.resource.data.keys().hasOnly(['at'])
+          && request.resource.data.at == request.time;
+        allow delete: if signedIn() && (me() == uid || ride(rideId).owner == me());
+      }
+
+      // 共用行程：發起人設定，成員只能看
+      match /meta/{docId} {
+        allow read: if verified() && isMember();
+        allow create, update: if verified() && ride(rideId).owner == me() && docId == 'plan'
+          && request.resource.data.keys().hasOnly(['from', 'mode', 'stay', 'budget', 'dateIdx', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['from', 'mode', 'stay', 'budget', 'dateIdx', 'updatedAt'])
+          && request.resource.data.from in ['北北基', '桃園', '新竹苗栗', '台中彰化', '雲林嘉義', '台南', '高雄屏東', '宜蘭花東']
+          && request.resource.data.mode in ['高鐵', '台鐵', '客運', '包車共乘', '自行開車']
+          && request.resource.data.stay in ['自動判斷', '當天來回', '住一晚']
+          && request.resource.data.budget in ['省錢', '適中', '享受']
+          && request.resource.data.dateIdx is int && request.resource.data.dateIdx >= 0 && request.resource.data.dateIdx < 40
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if verified() && ride(rideId).owner == me();
+      }
+    }
+
+    // ---------- 自己參與過的聊天室索引（刪除帳號時用來清掉自己的發言） ----------
+    match /myChats/{uid}/rides/{rideId} {
+      allow read, delete: if signedIn() && me() == uid;
+      allow create, update: if verified() && me() == uid
+        && request.resource.data.keys().hasOnly(['at'])
+        && request.resource.data.at == request.time;
+    }
+
+    // ---------- 檢舉：只能新增，任何人都讀不到（管理員在 Firebase 後台查看） ----------
+    match /reports/{reportId} {
+      allow create: if verified() && hasProfile()
+        && reportId == me() + '_' + request.resource.data.msgId
+        && request.resource.data.keys().hasOnly(['by', 'rideId', 'msgId', 'who', 'text', 'reason', 'createdAt'])
+        && request.resource.data.keys().hasAll(['by', 'rideId', 'msgId', 'who', 'text', 'reason', 'createdAt'])
+        && request.resource.data.by == me()
+        && str(request.resource.data.rideId, 1, 64) && str(request.resource.data.msgId, 1, 64)
+        && str(request.resource.data.who, 0, 128) && str(request.resource.data.text, 0, 300)
+        && request.resource.data.reason == '聊天室訊息'
+        && request.resource.data.createdAt == request.time;
     }
 
     // ---------- 周邊交換 ----------
