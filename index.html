@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-HvTYCCwI/1UktPg+mH95noGXwzZZW/IhD5qFXSjytHc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-UEmmH0QVf0g4P8OBUR/oug7McS7LuAFMMIFCQAx2rQk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -366,12 +366,42 @@ function gate(what) {
     '<button class="btn pink full" data-act="tab" data-v="me">' + (S.mode === 'out' ? '登入／註冊' : '前往完成') + '</button></div>';
 }
 
+/* ---------- 訪客模式：沒登入（或還沒完成實名）時，同行媒合與周邊交換只顯示示範貼文，不讀資料庫、不碰任何真實會員資料 ---------- */
+const DEMO_PUB = {
+  demo1: { nickname: '小星星（示範）', gender: '女', ageBand: '18–24' },
+  demo2: { nickname: '阿凱（示範）', gender: '男', ageBand: '25–34' },
+  demo3: { nickname: '應援團長（示範）', gender: '女', ageBand: '25–34' }
+};
+function demoRides() {
+  const u = UPCOMING(), tp = u.find(c => VENUES[c.venue].city === '台北') || u[0], kh = u.find(c => VENUES[c.venue].city === '高雄') || u[0];
+  if (!tp) return [];
+  return [
+    { id: 'demo-r1', demo: true, kind: '包車', concertId: kh.id, title: '台中出發包車，散場直接上車', from: '台中高鐵站', capacity: 8, memberCount: 5, cost: 650, note: '示範貼文：包車會寫出發地、人數和每人分攤費用', owner: 'demo1' },
+    { id: 'demo-r2', demo: true, kind: '住宿', concertId: tp.id, title: '場館附近四人房，還缺兩位', from: '捷運站步行 5 分鐘的旅館', capacity: 4, memberCount: 1, cost: 1200, note: '示範貼文：住宿分攤只開放成年會員參加', owner: 'demo2' },
+    { id: 'demo-r3', demo: true, kind: '旅伴', concertId: tp.id, title: '第一次去，想找人一起排隊進場', from: '台北車站集合', capacity: 3, memberCount: 1, cost: 0, note: '示範貼文：找旅伴可以一起吃飯、排隊、散場一起走', owner: 'demo3' }
+  ];
+}
+function demoTrades() {
+  const u = UPCOMING(), c = u[0];
+  return [
+    { id: 'demo-t1', demo: true, mode: '交換', category: '小卡', have: '專輯隨機小卡 A 版', want: '同專輯 B 版', condition: '全新', concertId: c ? c.id : '', tags: ['可面交'], note: '示範貼文：交換會寫「我有」和「想換」', owner: 'demo1' },
+    { id: 'demo-t2', demo: true, mode: '出售', category: '應援物', have: '官方手燈（附電池）', price: 900, condition: '近全新', concertId: '', tags: ['原價'], note: '示範貼文：出售要寫價格與物品狀況', owner: 'demo2' },
+    { id: 'demo-t3', demo: true, mode: '徵求', category: '專輯', want: '初回限定盤', price: 1200, concertId: '', tags: [], note: '示範貼文：徵求可以寫預算', owner: 'demo3' }
+  ];
+}
+function guestBanner(what) {
+  if (S.mode === 'off') return gate(what);
+  if (S.mode === 'loading') return '<div class="empty">載入中…</div>';
+  const msg = S.mode === 'out' ? '登入／註冊實名會員' : '前往完成實名註冊';
+  return '<div class="safe" style="background:var(--warnbg);color:var(--warn)">👀 <b>訪客模式</b>：以下是<b>示範貼文</b>，讓你先看看' + what + '怎麼運作。真實貼文、發起與申請只開放給實名會員，保護大家的個資與安全。</div>' +
+    '<button class="btn line full" style="margin-bottom:12px" data-act="tab" data-v="me">' + msg + '</button>';
+}
 function personBlock(ownerId) {
-  const p = S.pub[ownerId];
+  const p = S.pub[ownerId] || DEMO_PUB[ownerId];
   const n = p ? str(p.nickname, 20) : (p === null ? '已刪除的帳號' : '…');
   const meta = p ? (str(p.gender, 2) + '・' + (p.minor ? '年齡不公開' : str(p.ageBand, 8) + ' 歲')) : '';
   return '<div class="host"><div class="avatar">' + esc(n.slice(0, 1)) + '</div><div>' + esc(n) + (ownerId === uid() ? '（我）' : '') +
-    (p ? ' <span class="ver">✓ 實名註冊</span>' : '') + '<div class="small muted">' + esc(meta) + '</div></div></div>';
+    (p && !DEMO_PUB[ownerId] ? ' <span class="ver">✓ 實名註冊</span>' : '') + '<div class="small muted">' + esc(meta) + '</div></div></div>';
 }
 function acceptedBlock(type, item) {
   const owner = item.owner, name = S.revealedToMe[owner];
@@ -384,22 +414,25 @@ function acceptedBlock(type, item) {
 }
 
 function vMatch() {
-  if (S.mode !== 'ready') return '<h2 class="vt">同行媒合</h2><p class="vsub">包車共乘、住宿分攤、找旅伴</p>' + gate('同行媒合');
-  const list = S.rides.filter(r => (S.matchKind === '全部' || r.kind === S.matchKind) && (!S.matchConcert || r.concertId === S.matchConcert));
+  const guest = S.mode !== 'ready';
+  if (guest && (S.mode === 'off' || S.mode === 'loading')) return '<h2 class="vt">同行媒合</h2><p class="vsub">包車共乘、住宿分攤、找旅伴</p>' + gate('同行媒合');
+  const list = (guest ? demoRides() : S.rides).filter(r => (S.matchKind === '全部' || r.kind === S.matchKind) && (!S.matchConcert || r.concertId === S.matchConcert));
   const opts = '<option value="">所有場次</option>' + UPCOMING().map(c => '<option value="' + c.id + '"' + (S.matchConcert === c.id ? ' selected' : '') + '>' + esc(c.artist) + '・' + dinfo(c.date).md + ' ' + esc(c.venue) + '</option>').join('');
   return '<h2 class="vt">同行媒合</h2><p class="vsub">包車共乘、住宿分攤、找旅伴，一起出發更省</p>' +
     '<div class="chips">' + ['全部', '包車', '住宿', '旅伴'].map(k => '<button class="chip' + (S.matchKind === k ? ' on' : '') + '" data-act="mkind" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
     '<select class="in" id="mConcert" style="margin-bottom:12px">' + opts + '</select>' +
+    (guest ? guestBanner('同行媒合') : '') +
     '<div class="safe">🛡️ 對方的真實姓名只會在雙方都確認後才顯示。見面前請在平台確認，<b>不要私下先匯款或付訂金</b>；誰申請了哪一團，只有發起人看得到。</div>' +
-    (!S.ridesReady ? '<div class="empty">載入中…</div>' : list.length ? list.map(rideCard).join('') : '<div class="empty">還沒有人發起，按右下角「發起媒合」當第一個！</div>');
+    (!guest && !S.ridesReady ? '<div class="empty">載入中…</div>' : list.length ? list.map(rideCard).join('') : '<div class="empty">還沒有人發起，按右下角「發起媒合」當第一個！</div>');
 }
 function rideCard(r) {
   const c = C(r.concertId) || { artist: '', venue: '', date: '2026-12-31' };
   const cap = Math.max(2, num(r.capacity, 2)), n = Math.min(cap, 1 + Math.max(0, num(r.memberCount))), full = n >= cap;
   const mine = r.owner === uid(), key = 'ride_' + r.id, st = S.myStatus[key];
-  const minorBlocked = r.kind === '住宿' && S.profile.minor;
+  const minorBlocked = r.kind === '住宿' && S.profile && S.profile.minor;
   let actions;
-  if (mine) actions = '<button class="btn" data-act="manage" data-type="ride" data-id="' + esc(r.id) + '">管理申請</button><button class="btn line" data-act="delPost" data-type="ride" data-id="' + esc(r.id) + '">刪除</button>';
+  if (r.demo) actions = '<button class="btn" disabled>登入實名會員後才能申請</button>';
+  else if (mine) actions = '<button class="btn" data-act="manage" data-type="ride" data-id="' + esc(r.id) + '">管理申請</button><button class="btn line" data-act="delPost" data-type="ride" data-id="' + esc(r.id) + '">刪除</button>';
   else if (!st || st === 'gone') actions = minorBlocked ? '<span class="small muted">未成年帳號不能參加住宿分攤</span>' : full ? '<button class="btn" disabled>已額滿</button>' : '<button class="btn pink" data-act="apply" data-type="ride" data-id="' + esc(r.id) + '">申請加入</button>';
   else if (st === 'pending') actions = '<span class="pill">等待發起人確認</span><button class="btn line" data-act="cancelReq" data-type="ride" data-id="' + esc(r.id) + '">取消申請</button>';
   else if (st === 'declined') actions = '<span class="pill">發起人婉拒了</span><button class="btn line" data-act="cancelReq" data-type="ride" data-id="' + esc(r.id) + '">移除</button>';
@@ -414,13 +447,15 @@ function rideCard(r) {
 }
 
 function vMarket() {
-  if (S.mode !== 'ready') return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物</p>' + gate('周邊交換');
-  const list = S.trades.filter(t => (S.marketMode === '全部' || t.mode === S.marketMode) && (S.marketCat === '全部' || t.category === S.marketCat));
+  const guest = S.mode !== 'ready';
+  if (guest && (S.mode === 'off' || S.mode === 'loading')) return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物</p>' + gate('周邊交換');
+  const list = (guest ? demoTrades() : S.trades).filter(t => (S.marketMode === '全部' || t.mode === S.marketMode) && (S.marketCat === '全部' || t.category === S.marketCat));
   return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物，交換紀錄都留在平台</p>' +
     '<div class="chips">' + ['全部', '交換', '出售', '徵求'].map(k => '<button class="chip' + (S.marketMode === k ? ' on' : '') + '" data-act="mmode" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
     '<div class="chips">' + ['全部', '小卡', '專輯', '應援物', '其他'].map(k => '<button class="chip' + (S.marketCat === k ? ' on' : '') + '" data-act="mcat" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
+    (guest ? guestBanner('周邊交換') : '') +
     '<div class="safe">🎫 票券只開放<b>原價讓票</b>，不得加價轉售。交易請保留紀錄，優先選擇演唱會現場面交。</div>' +
-    (!S.tradesReady ? '<div class="empty">載入中…</div>' : list.length ? list.map(tradeCard).join('') : '<div class="empty">這個分類還沒有東西，來上架第一個吧！</div>');
+    (!guest && !S.tradesReady ? '<div class="empty">載入中…</div>' : list.length ? list.map(tradeCard).join('') : '<div class="empty">這個分類還沒有東西，來上架第一個吧！</div>');
 }
 function tradeCard(t) {
   const c = C(t.concertId);
@@ -432,7 +467,8 @@ function tradeCard(t) {
   else line = '徵求 <b>' + esc(str(t.want, 50)) + '</b>' + (num(t.price) ? '<br>預算 NT$' + num(t.price).toLocaleString() : '');
   const tags = arr(t.tags).slice(0, 5).map(x => '<span class="pill">#' + esc(str(x, 16)) + '</span>').join('');
   let actions;
-  if (mine) actions = '<button class="btn" data-act="manage" data-type="trade" data-id="' + esc(t.id) + '">查看有興趣的人</button><button class="btn line" data-act="delPost" data-type="trade" data-id="' + esc(t.id) + '">刪除</button>';
+  if (t.demo) actions = '<button class="btn" disabled>登入實名會員後才能表達興趣</button>';
+  else if (mine) actions = '<button class="btn" data-act="manage" data-type="trade" data-id="' + esc(t.id) + '">查看有興趣的人</button><button class="btn line" data-act="delPost" data-type="trade" data-id="' + esc(t.id) + '">刪除</button>';
   else if (!st || st === 'gone') actions = '<button class="btn pink" data-act="apply" data-type="trade" data-id="' + esc(t.id) + '">我有興趣</button>';
   else if (st === 'pending') actions = '<span class="pill">等待對方回覆</span><button class="btn line" data-act="cancelReq" data-type="trade" data-id="' + esc(t.id) + '">取消</button>';
   else if (st === 'declined') actions = '<span class="pill">對方婉拒了</span><button class="btn line" data-act="cancelReq" data-type="trade" data-id="' + esc(t.id) + '">移除</button>';
