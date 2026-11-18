@@ -1,30 +1,30 @@
 {
- "updated": "2026-11-18",
+ "updated": "2026-11-19",
  "seq": 38,
  "status": {
   "arena": {
    "ok": true,
-   "at": "2026-11-18",
+   "at": "2026-11-19",
    "count": 6
   },
   "tmc": {
    "ok": true,
-   "at": "2026-11-18",
+   "at": "2026-11-19",
    "count": 7
   },
   "wikiDome": {
    "ok": true,
-   "at": "2026-11-18",
+   "at": "2026-11-19",
    "count": 5
   },
   "wikiKH": {
    "ok": true,
-   "at": "2026-11-18",
+   "at": "2026-11-19",
    "count": 9
   },
   "wikiStadium": {
    "ok": true,
-   "at": "2026-11-18",
+   "at": "2026-11-19",
    "count": 5
   }
  },
@@ -39,16 +39,16 @@
   {"id":"e34","artist":"F✦FOREVER","genre":"華語","title":"F✦FOREVER恆星之城巡迴演唱會","venue":"台北大巨蛋","d":[["2026-11-28",""],["2026-11-29",""]],"src":["wikiDome"],"auto":true,"priceCheckedAt":"2026-11-18"},
   {"id":"e36","artist":"2026 K-WONDER IN KAOHSIUNG","genre":"綜合","title":"MISAMO、少女時代-孝利秀、Eunha、SinB、Umji《2026 K-WONDER IN KAOHSIUNG》","venue":"高雄巨蛋","d":[["2026-11-29",""]],"src":["wikiKH"],"auto":true,"priceCheckedAt":"2026-11-18"},
   {"id":"e05","artist":"劉若英","genre":"華語","title":"劉若英《飛行日》2026 巡迴演唱會","venue":"台北小巨蛋","d":[["2026-12-05","18:30"]],"src":["yolo","ett","arena"],"priceCheckedAt":"2026-11-18","price":"NT$800–4,500","prices":[["非輪椅身障席／輪椅身障席","400"]],"autoPrice":true,"priceSrc":["劉若英12/5台北小巨蛋演唱會完售！時間地點、售票時間、票價座位一次看","https://tw.news.yahoo.com/%E5%8A%89%E8%8B%A5%E8%8B%B1912%E9%AB%98%E9%9B%84%E5%B7%A8%E8%9B%8B%E9%96%8B%E5%94%B1%EF%BC%81%E6%99%82%E9%96%93%E5%9C%B0%E9%BB%9E%E3%80%81%E5%94%AE%E7%A5%A8%E6%99%82%E9%96%93%E3%80%81%E7%A5%A8%E5%83%B9%E5%BA%A7%E4%BD%8D%E4%B8%80%E6%AC%A1%E7%9C%8B-072705939.html"],"platform":"拓元售票","ticketUrl":"https://tixcraft.com/activity/detail/26_renetp"},
-  {"id":"e06","artist":"Asia Artist Awards","genre":"綜合","title":"2026 Asia Artist Awards IN KAOHSIUNG（AAA 亞洲明星盛典）","venue":"高雄國家體育場","d":[["2026-12-05","17:00"],["2026-12-06","17:00"]],"platform":"拓元售票","src":["udn","ett","mcAAA","wikiStadium"],"price":"NT$1,980–6,980","prices":[["身心障礙席","NT$3,490"]],"note":"每張另收 NT$200 系統服務費"},
-  {"id":"e32","artist":"JANNABI","genre":"韓流","title":"JANNABI 2026 ASIA TOUR FINAL ＜SWEAT & STARDUST ＞ IN TAIPEI","venue":"台北流行音樂中心","d":[["2026-12-05",""]],"src":["tmc"],"auto":true},
-  {"id":"e07","artist":"Stray Kids","genre":"韓流","title":"Stray Kids World Tour〈RUN IT〉in TAIPEI","venue":"台北大巨蛋","d":[["2026-12-12","18:00"]],"platform":"拓元售票","src":["udn","yahooK","mcSkz","wikiDome"],"price":"NT$2,880–6,880","prices":[["VIP 限量套票","NT$7,880"]]},
-  {"id":"e08","artist":"滅火器 Fire EX.","genre":"華語","title":"ON FIRE DAY 2026 滅火器高雄巨蛋演唱會","venue":"高雄巨蛋","d":[["2026-12-12","19:30"],["2026-12-13",""]],"platform":"KKTIX","src":["udn","bw26","yolo","wikiKH"]},
-  {"id":"e09","artist":"田馥甄","genre":"華語","title":"田馥甄《要去什麼地方》2026 台北小巨蛋演唱會","venue":"台北小巨蛋","d":[["2026-12-12",""],["2026-12-13",""],["2026-12-15",""],["2026-12-18",""],["2026-12-19",""],["2026-12-20",""]],"note":"實名登記抽選制","src":["yolo","line","aaHebe","arena"],"price":"NT$800–5,200","platform":"遠大售票 Ticket Plus"},
-  {"id":"e33","artist":"顏社","genre":"華語","title":"《K21》顏社二十一週年演唱會","venue":"台北流行音樂中心","d":[["2026-12-12",""],["2026-12-13",""]],"src":["tmc"],"auto":true},
-  {"id":"e10","artist":"T.O.P","genre":"韓流","title":"T.O.P PRE-STUDIO 2026 IN KAOHSIUNG","venue":"高雄巨蛋","d":[["2026-12-19","18:00"]],"src":["udn","yahooK"]},
-  {"id":"e11","artist":"Atarayo","genre":"日本","title":"Atarayo ASIA TOUR 2026『夕立が去ったその後で』in TAIPEI","venue":"台北流行音樂中心","d":[["2026-12-19","19:00"]],"src":["yahooJ","tmc"]},
-  {"id":"e12","artist":"鼓鼓 呂思緯","genre":"華語","title":"鼓鼓 呂思緯《我現在又在想你了》巡迴演唱會","venue":"台北流行音樂中心","d":[["2026-12-26","19:00"]],"platform":"拓元售票","src":["udn","bw26","tmc"]},
-  {"id":"e13","artist":"米津玄師","genre":"日本","title":"米津玄師 2026-2027 WORLD TOUR／GHOST","venue":"台北大巨蛋","d":[["2026-12-26","18:00"],["2026-12-27","18:00"]],"price":"NT$1,800–5,980","platform":"遠大售票 Ticket Plus","sale":"一般販售 11/19（四）12:00 開始登記","note":"實名登記抽選制；15:00 開放入場","src":["yonezu","line","wikiDome"]},
+  {"id":"e06","artist":"Asia Artist Awards","genre":"綜合","title":"2026 Asia Artist Awards IN KAOHSIUNG（AAA 亞洲明星盛典）","venue":"高雄國家體育場","d":[["2026-12-05","17:00"],["2026-12-06","17:00"]],"platform":"拓元售票","src":["udn","ett","mcAAA","wikiStadium"],"price":"NT$1,980–6,980","prices":[["身心障礙席","NT$3,490"]],"note":"每張另收 NT$200 系統服務費","priceCheckedAt":"2026-11-19"},
+  {"id":"e32","artist":"JANNABI","genre":"韓流","title":"JANNABI 2026 ASIA TOUR FINAL ＜SWEAT & STARDUST ＞ IN TAIPEI","venue":"台北流行音樂中心","d":[["2026-12-05",""]],"src":["tmc"],"auto":true,"priceCheckedAt":"2026-11-19"},
+  {"id":"e07","artist":"Stray Kids","genre":"韓流","title":"Stray Kids World Tour〈RUN IT〉in TAIPEI","venue":"台北大巨蛋","d":[["2026-12-12","18:00"]],"platform":"拓元售票","src":["udn","yahooK","mcSkz","wikiDome"],"price":"NT$2,880–6,880","prices":[["VIP 限量套票","NT$7,880"]],"priceCheckedAt":"2026-11-19"},
+  {"id":"e08","artist":"滅火器 Fire EX.","genre":"華語","title":"ON FIRE DAY 2026 滅火器高雄巨蛋演唱會","venue":"高雄巨蛋","d":[["2026-12-12","19:30"],["2026-12-13",""]],"platform":"KKTIX","src":["udn","bw26","yolo","wikiKH"],"priceCheckedAt":"2026-11-19"},
+  {"id":"e09","artist":"田馥甄","genre":"華語","title":"田馥甄《要去什麼地方》2026 台北小巨蛋演唱會","venue":"台北小巨蛋","d":[["2026-12-12",""],["2026-12-13",""],["2026-12-15",""],["2026-12-18",""],["2026-12-19",""],["2026-12-20",""]],"note":"實名登記抽選制","src":["yolo","line","aaHebe","arena"],"price":"NT$800–5,200","platform":"遠大售票 Ticket Plus","priceCheckedAt":"2026-11-19"},
+  {"id":"e33","artist":"顏社","genre":"華語","title":"《K21》顏社二十一週年演唱會","venue":"台北流行音樂中心","d":[["2026-12-12",""],["2026-12-13",""]],"src":["tmc"],"auto":true,"priceCheckedAt":"2026-11-19"},
+  {"id":"e10","artist":"T.O.P","genre":"韓流","title":"T.O.P PRE-STUDIO 2026 IN KAOHSIUNG","venue":"高雄巨蛋","d":[["2026-12-19","18:00"]],"src":["udn","yahooK"],"priceCheckedAt":"2026-11-19","price":"NT$3,800–6,300","prices":[["／身障席","2,400／1,900"]],"autoPrice":true,"priceSrc":["T.O.P高雄演唱會12/19高雄巨蛋登場！時間地點、售票時間、票價座位一次看","https://tw.news.yahoo.com/top%E9%AB%98%E9%9B%84%E6%BC%94%E5%94%B1%E6%9C%831219%E9%AB%98%E9%9B%84%E5%B7%A8%E8%9B%8B%E7%99%BB%E5%A0%B4%EF%BC%81%E6%99%82%E9%96%93%E5%9C%B0%E9%BB%9E%E3%80%81%E5%94%AE%E7%A5%A8%E6%99%82%E9%96%93%E3%80%81%E7%A5%A8%E5%83%B9%E5%BA%A7%E4%BD%8D%E4%B8%80%E6%AC%A1%E7%9C%8B-07554"],"platform":"拓元售票","ticketUrl":"https://tixcraft.com/activity/detail/26_topkh"},
+  {"id":"e11","artist":"Atarayo","genre":"日本","title":"Atarayo ASIA TOUR 2026『夕立が去ったその後で』in TAIPEI","venue":"台北流行音樂中心","d":[["2026-12-19","19:00"]],"src":["yahooJ","tmc"],"priceCheckedAt":"2026-11-19","price":"NT$1,500–3,800","autoPrice":true,"priceSrc":["Atarayo成團最大規模專場獻給台北 12月首攻北流","https://tw.news.yahoo.com/atarayo%E6%88%90%E5%9C%98%E6%9C%80%E5%A4%A7%E8%A6%8F%E6%A8%A1%E5%B0%88%E5%A0%B4%E7%8D%BB%E7%B5%A6%E5%8F%B0%E5%8C%97-12%E6%9C%88%E9%A6%96%E6%94%BB%E5%8C%97%E6%B5%81-101800785.html"]},
+  {"id":"e12","artist":"鼓鼓 呂思緯","genre":"華語","title":"鼓鼓 呂思緯《我現在又在想你了》巡迴演唱會","venue":"台北流行音樂中心","d":[["2026-12-26","19:00"]],"platform":"拓元售票","src":["udn","bw26","tmc"],"priceCheckedAt":"2026-11-19"},
+  {"id":"e13","artist":"米津玄師","genre":"日本","title":"米津玄師 2026-2027 WORLD TOUR／GHOST","venue":"台北大巨蛋","d":[["2026-12-26","18:00"],["2026-12-27","18:00"]],"price":"NT$1,800–5,980","platform":"遠大售票 Ticket Plus","sale":"一般販售 11/19（四）12:00 開始登記","note":"實名登記抽選制；15:00 開放入場","src":["yonezu","line","wikiDome"],"priceCheckedAt":"2026-11-19","ticketUrl":"https://ticketplus.com.tw/activity/73ed24f36dd62ca2b67a8b266c23df7f"},
   {"id":"e14","artist":"Mr.Children","genre":"日本","title":"Mr.Children Tour 2026 \"Saturday in the park\" 台北公演","venue":"台北小巨蛋","d":[["2026-12-26","17:00"],["2026-12-27","16:00"]],"price":"NT$800–7,000","sale":"抽選登記已於 10 月結束","note":"實名制、全場對號入座","src":["yahooJ","yolo","arena"]},
   {"id":"e15","artist":"NCT 127","genre":"韓流","title":"NCT 127 5TH TOUR 'NEO CITY – THE REDLINE'","venue":"台北小巨蛋","d":[["2027-01-02",""]],"src":["bw27"]},
   {"id":"e16","artist":"YOASOBI","genre":"日本","title":"YOASOBI ASIA 10-CITY DOME & STADIUM TOUR 2026-2027《超惑星 SUPER PLANET》","venue":"台北大巨蛋","d":[["2027-01-09","18:00"],["2027-01-10","18:00"]],"price":"NT$1,800–6,880","platform":"遠大售票 Ticket Plus","note":"實名登記抽選制；15:00 開放入場","src":["storm","bw27","wikiDome"]},
