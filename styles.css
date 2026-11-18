@@ -164,3 +164,16 @@
   .acct{font-size:12px;color:#FFB3D2;font-weight:700;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* reCAPTCHA 標誌改用登入頁的文字說明，避免擋住底部選單 */
   .grecaptcha-badge{visibility:hidden}
+  /* 團體空間聊天室 */
+  .chat{max-height:46vh;min-height:180px;overflow-y:auto;background:var(--paper2);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+  .msg{max-width:86%;align-self:flex-start;background:var(--card);border-radius:12px 12px 12px 4px;padding:8px 10px;box-shadow:0 1px 3px rgba(22,19,43,.08)}
+  .msg.me{align-self:flex-end;background:var(--okbg);border-radius:12px 12px 4px 12px}
+  .msg .mh{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted);margin-bottom:2px;flex-wrap:wrap}
+  .msg .mh b{color:var(--ink);font-size:12px}
+  .msg .tag{font-size:10px;border:1px solid var(--line);border-radius:999px;padding:0 6px}
+  .msg .mb{font-size:14px;color:var(--body);white-space:pre-wrap;word-break:break-word;line-height:1.55}
+  .msg .mo{display:flex;gap:10px;justify-content:flex-end;margin-top:2px}
+  .msg .mwarn{font-size:11px;color:#9a5b00;background:#fff4dc;border-radius:8px;padding:4px 6px;margin-top:4px;line-height:1.5}
+  .lnk{border:0;background:none;padding:0;font-size:11px;color:var(--muted);text-decoration:underline;cursor:pointer}
+  .chatbar{display:flex;gap:8px}
+  .chatbar .in{flex:1;margin:0}
