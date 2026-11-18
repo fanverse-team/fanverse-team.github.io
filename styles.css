@@ -162,3 +162,5 @@
   .rowline:last-child{border-bottom:0}
   .danger{background:var(--bad);color:#fff}
   .acct{font-size:12px;color:#FFB3D2;font-weight:700;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* reCAPTCHA 標誌改用登入頁的文字說明，避免擋住底部選單 */
+  .grecaptcha-badge{visibility:hidden}
