@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-FtTU119IA2zPpdQoP0yslKhJyh+Tapo+FZKLVGigxx4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-RRWvkfOT/RILfPXNSC+g+hwSwq55kx2+0AxyDyivCDE='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -287,7 +287,7 @@ const S = {
   rides: [], trades: [], ridesReady: false, tradesReady: false,
   pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {},
   unsubs: [], itemUnsubs: {}, revealUnsubs: {}, manage: null, manageUnsub: null, group: null, busy: {},
-  ownRides: [], rideCache: {}, seats: {}, lastAt: {}, lastUnsubs: {}, seen: loadLS('fv_seen2', {}),
+  ownRides: [], rideCache: {}, seats: {}, lastAt: {}, lastUnsubs: {}, seen: loadLS('fv_seen2', {}), fixes: {}, openCid: '', fixOpen: null,
   follows: loadLS('fv_follows2', []), reminders: loadLS('fv_rem', []),
   ai: { concert: '', dateIdx: 0, from: '台中彰化', mode: '高鐵', stay: '自動判斷', budget: '適中', out: null },
   fraud: { text: '', out: null }, lastVerifySend: 0
@@ -857,20 +857,29 @@ function venueBlock(v, name, date) {
     '<p class="small muted" style="margin:6px 0 0">平日雙人房約 NT$' + v.price.hotel[0].toLocaleString() + '–' + v.price.hotel[1].toLocaleString() + '、青年旅館床位約 NT$' + v.price.hostel[0].toLocaleString() + '–' + v.price.hostel[1].toLocaleString() + '（估算）。演唱會當晚常漲到 1.5–2 倍以上，越早訂越好。 <a href="' + mapLink(name + ' 附近 住宿') + '" target="_blank" rel="noopener">查附近住宿</a></p>' +
     '<div class="sec">吃什麼</div><p style="margin:0;font-size:14px;line-height:1.7">' + esc(v.food) + '</p>';
 }
-function openConcert(id) {
+function openConcert(id, keep) {
   const c = C(id); if (!c) return;
   const v = VENUES[c.venue], left = daysLeft(c.date), rem = S.reminders.includes(c.id);
-  const dates = c.d.map(x => '<li>' + dinfo(x[0]).full + '　' + esc(tm(x[1])) + '</li>').join('');
+  S.fixOpen = null;
+  const keepY = keep && S.openCid === id ? $('#sheet').scrollTop : 0;
+  const dates = c.d.map(x => {
+    const ct = crowd(id, 'time', x[0]);
+    const t = x[1] ? esc(x[1]) + (ct && ct.v !== x[1] ? '<br><span class="small muted">另有 ' + ct.n + ' 位會員回報是 ' + esc(ct.v) + '，請以主辦公告為準</span>' : '') : ct ? '<b>' + esc(ct.v) + '</b> ' + crowdTag(ct.n) : '時間未公布';
+    return '<li>' + dinfo(x[0]).full + '　' + t + '</li>';
+  }).join('');
+  const stWarn = c.d.map(x => { const s = crowd(id, 'status', x[0]); return s && s.v !== '照常' ? '<div class="err" style="margin-bottom:10px">⚠️ 有 ' + s.n + ' 位會員回報 ' + dinfo(x[0]).full + ' 這場已<b>' + esc(s.v) + '</b>，尚未經官方確認，請到主辦或售票網站查證。</div>' : ''; }).join('');
+  const cp = !c.price && crowd(id, 'price'), cf = !c.platform && !c.ticketUrl && crowd(id, 'platform');
   const pf = c.platform && PLATFORMS[c.platform] ? '<a href="' + (c.ticketUrl || PLATFORMS[c.platform]) + '" target="_blank" rel="noopener">' + esc(c.platform) + (c.ticketUrl ? '（這場的售票頁）' : '') + '</a>' : (c.ticketUrl ? '<a href="' + c.ticketUrl + '" target="_blank" rel="noopener">這場的售票頁</a>' : '');
   const extra = (c.prices || []).map(p => '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>').join('');
   const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).map(s => '<li><a href="' + s[1] + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a></li>').join('');
   openSheet(c.artist,
     '<div class="hero"><div class="artist">' + esc(c.artist) + '・' + esc(c.genre) + '</div><div class="ctitle">' + esc(c.title) + '</div>' +
     '<div style="display:flex;align-items:baseline;gap:8px;margin-top:8px"><span class="count">' + Math.max(0, left) + '</span><span>天後' + (c.d.length > 1 ? '（下一場）' : '開演') + '</span></div></div>' +
-    '<div class="sec" style="margin-top:0">演出日期</div><ul class="list">' + dates + '</ul>' +
+    stWarn + '<div class="sec" style="margin-top:0">演出日期</div><ul class="list">' + dates + '</ul>' +
     '<dl class="kv" style="margin-top:10px"><dt>場館</dt><dd>' + esc(c.venue) + '<br><span class="small muted">' + esc(v.addr) + '</span></dd>' +
     (c.price ? '<dt>' + (/–/.test(c.price) ? '票價區間' : '票價') + '</dt><dd>' + esc(c.price) + '<br><span class="small muted">' + (c.autoPrice ? '系統從新聞自動擷取，可能有誤，' : '') + (/–/.test(c.price) ? '依座位區不同，' : '') + '以售票頁為準</span></dd>' : '') + extra +
-    (pf ? '<dt>售票平台</dt><dd>' + pf + '</dd>' : '') +
+    (cp ? '<dt>票價區間</dt><dd>' + esc(priceTxt(cp.v)) + '<br>' + crowdTag(cp.n) + '</dd>' : '') +
+    (pf ? '<dt>售票平台</dt><dd>' + pf + '</dd>' : cf ? '<dt>售票平台</dt><dd><a href="' + PLATFORMS[cf.v] + '" target="_blank" rel="noopener">' + esc(cf.v) + '</a><br>' + crowdTag(cf.n) + '</dd>' : '') +
     (c.sale ? '<dt>開賣資訊</dt><dd>' + esc(c.sale) + '</dd>' : '') + (c.note ? '<dt>注意事項</dt><dd>' + esc(c.note) + '</dd>' : '') + '</dl>' +
     '<div class="safe" style="margin-top:12px">本站不顯示剩餘票數或是否完售：熱門場次常在開賣幾分鐘內售完，之後也可能釋出退票或加開座位，只有售票頁上的狀態是準的。' + (pf ? '請點上方售票平台查看。' : '') + '購票只走官方售票平台，不要向來路不明的賣家買票。</div>' +
     (c.auto ? '<p class="src">這一場是系統從場館公開列表自動帶入的，目前沒有票價與售票平台資料。</p>' : '') +
@@ -878,7 +887,93 @@ function openConcert(id) {
     '<div class="actions" style="margin-top:14px"><button class="btn ' + (rem ? 'ghost' : 'line') + '" data-act="remind" data-id="' + c.id + '">' + (rem ? '★ 已收藏' : '☆ 收藏這場') + '</button>' +
     '<button class="btn pink" style="flex:1" data-act="findRide" data-id="' + c.id + '">找同行</button></div>' +
     '<button class="btn full" style="margin-top:8px" data-act="planFor" data-id="' + c.id + '">排這場的行程</button>' +
-    '<div class="sec">資料來源（更新至 ' + DATA_ASOF + '）</div><ul class="list small">' + srcs + '</ul>');
+    '<div class="sec">資料來源（更新至 ' + DATA_ASOF + '）</div><ul class="list small">' + srcs + '</ul>' +
+    '<div class="fixbox"><span>開演時間、票價或售票平台有誤或缺漏？</span><button class="btn line" data-act="fixForm" data-id="' + c.id + '">協助回報</button></div>');
+  S.openCid = id; if (keepY) $('#sheet').scrollTop = keepY;
+  if (!keep) loadFixes(id);
+}
+
+/* ---------- 會員回報：讓使用者協助補正開演時間、票價、售票平台與延期／取消 ---------- */
+// 規則：每人每場每個項目只能有一筆（可修改）；至少 3 位會員回報同一個內容、而且比其他說法多，才顯示在頁面上，並標示「會員回報」
+// 官方資料優先：官方已有資料時只附註差異，不覆蓋；會員回報的時間不拿來擋同行報名
+const FIX_MIN = 3, FIX_FIELDS = { time: '開演時間', price: '票價區間', platform: '售票平台', status: '延期或取消' };
+const STATUS_V = ['延期', '取消', '照常'];
+const fixKey = (f, day) => f + (day ? '_' + day : '');
+const priceTxt = v => { const [a, b] = v.split('-').map(Number); return 'NT$' + a.toLocaleString() + (b !== a ? '–' + b.toLocaleString() : ''); };
+function cleanFix(x) {
+  if (!x || !FIX_FIELDS[x.f] || typeof x.v !== 'string') return null;
+  const day = typeof x.day === 'string' ? x.day : '';
+  if (x.f === 'time' && /^\d{4}-\d\d-\d\d$/.test(day) && /^([01]\d|2[0-3]):[0-5]\d$/.test(x.v)) return { f: 'time', day, v: x.v };
+  if (x.f === 'status' && /^\d{4}-\d\d-\d\d$/.test(day) && STATUS_V.includes(x.v)) return { f: 'status', day, v: x.v };
+  if (x.f === 'price' && !day && /^\d{2,6}-\d{2,6}$/.test(x.v)) return { f: 'price', day: '', v: x.v };
+  if (x.f === 'platform' && !day && PLATFORMS[x.v]) return { f: 'platform', day: '', v: x.v };
+  return null;
+}
+async function loadFixes(cid, force) {
+  if (!db || !F) return;
+  const cur = S.fixes[cid]; if (cur && !force && Date.now() - cur.at < 120000) return;
+  try {
+    const snap = await F.getDocs(F.query(F.collection(db, 'fixes', cid, 'r'), F.limit(300)));
+    const tally = {}, mine = {}, me = uid();
+    snap.docs.forEach(d => {
+      const x = cleanFix(d.data()); if (!x) return;
+      const k = fixKey(x.f, x.day); (tally[k] = tally[k] || {})[x.v] = (tally[k][x.v] || 0) + 1;
+      if (me && d.id === me + '_' + k) mine[k] = x.v;
+    });
+    S.fixes[cid] = { at: Date.now(), tally, mine };
+  } catch (e) { S.fixes[cid] = { at: Date.now(), tally: {}, mine: {}, err: true }; }
+  if (S.openCid === cid && !S.fixOpen) openConcert(cid, true);
+}
+// 回傳 { v, n } 代表成立的會員回報；沒有就回傳 null
+function crowd(cid, f, day) {
+  const t = S.fixes[cid] && S.fixes[cid].tally[fixKey(f, day)]; if (!t) return null;
+  const arr = Object.entries(t).sort((a, b) => b[1] - a[1]);
+  if (arr[0][1] < FIX_MIN || (arr[1] && arr[1][1] >= arr[0][1])) return null;
+  return { v: arr[0][0], n: arr[0][1] };
+}
+function crowdTag(n) { return '<span class="crowd">' + n + ' 位會員回報・未經官方確認</span>'; }
+function fixForm(cid, f) {
+  const c = C(cid); if (!c) return;
+  if (S.mode !== 'ready') return toast('登入實名會員後才能回報');
+  f = FIX_FIELDS[f] ? f : 'time'; S.fixOpen = { cid, f };
+  const fx = S.fixes[cid] || { mine: {} };
+  const days = c.d.map(x => '<option value="' + x[0] + '">' + dinfo(x[0]).full + '（目前資料：' + esc(tm(x[1])) + '）</option>').join('');
+  const mineList = Object.keys(fx.mine || {}).map(k => { const [ff, dd] = k.split('_'); const v = fx.mine[k]; return '<div class="rowline"><span>' + FIX_FIELDS[ff] + (dd ? '・' + dinfo(dd).md : '') + '：<b>' + esc(ff === 'price' ? priceTxt(v) : v) + '</b></span><button class="btn line" data-act="fixDel" data-id="' + esc(cid) + '" data-v="' + esc(k) + '">撤回</button></div>'; }).join('');
+  let body = '';
+  if (f === 'time') body = '<label class="f" for="fxDay">哪一場</label><select class="in" id="fxDay">' + days + '</select><label class="f" for="fxTime">開演時間</label><input class="in" id="fxTime" type="time" required>';
+  else if (f === 'status') body = '<label class="f" for="fxDay">哪一場</label><select class="in" id="fxDay">' + days + '</select><label class="f" for="fxSt">狀態</label><select class="in" id="fxSt">' + STATUS_V.map(x => '<option>' + x + '</option>').join('') + '</select><div class="hint">選「照常」可以反駁錯誤的延期／取消回報。</div>';
+  else if (f === 'price') body = '<div class="grid2"><div><label class="f" for="fxMin">最低票價（NT$）</label><input class="in" id="fxMin" type="number" min="10" max="200000" required></div><div><label class="f" for="fxMax">最高票價（NT$）</label><input class="in" id="fxMax" type="number" min="10" max="200000" required></div></div><div class="hint">只有一種票價時，兩格填一樣的數字。</div>';
+  else body = '<label class="f" for="fxPf">售票平台</label><select class="in" id="fxPf">' + Object.keys(PLATFORMS).map(x => '<option>' + esc(x) + '</option>').join('') + '</select>';
+  openSheet('回報資料・' + c.artist,
+    '<div class="safe">🙌 謝謝你幫忙！回報不會馬上改掉資料：要有 <b>' + FIX_MIN + ' 位以上會員</b>回報相同內容才會顯示，而且會標示「會員回報」；官方資料更新後一律以官方為準。請依主辦或售票網站的公告回報，不要猜。</div>' +
+    '<form id="fixF" data-id="' + esc(cid) + '" data-f="' + f + '"><label class="f">要回報什麼</label><div class="seg" id="fxSeg" style="flex-wrap:wrap">' + Object.keys(FIX_FIELDS).map(k => '<button type="button" class="' + (k === f ? 'on' : '') + '" data-act="fixField" data-id="' + esc(cid) + '" data-v="' + k + '">' + FIX_FIELDS[k] + '</button>').join('') + '</div>' +
+    body + '<div id="sheetErr"></div><div class="actions" style="margin-top:14px"><button class="btn line" type="button" data-act="concert" data-id="' + esc(cid) + '" style="flex:1">返回</button><button class="btn pink" type="submit" style="flex:2">送出回報</button></div></form>' +
+    (mineList ? '<div class="sec">你回報過的</div>' + mineList : ''));
+}
+async function submitFix(form) {
+  const cid = form.dataset.id, f = form.dataset.f, c = C(cid); if (!c || !FIX_FIELDS[f]) return;
+  let day = '', v = '';
+  if (f === 'time' || f === 'status') { day = $('#fxDay').value; if (!c.d.some(x => x[0] === day)) return sheetErr('請選擇場次'); }
+  if (f === 'time') { v = $('#fxTime').value; if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) return sheetErr('請填開演時間'); }
+  else if (f === 'status') v = $('#fxSt').value;
+  else if (f === 'price') {
+    const a = Math.round(num($('#fxMin').value, 0)), b = Math.round(num($('#fxMax').value, 0));
+    if (a < 10 || b < 10 || a > 200000 || b > 200000) return sheetErr('票價要在 NT$10 到 200,000 之間');
+    if (a > b) return sheetErr('最低票價不能高於最高票價');
+    v = a + '-' + b;
+  } else v = $('#fxPf').value;
+  if (!cleanFix({ f, day, v })) return sheetErr('內容格式不正確');
+  const k = fixKey(f, day), u = uid(), b = F.writeBatch(db);
+  b.set(F.doc(db, 'fixes', cid, 'r', u + '_' + k), { f, day, v, at: F.serverTimestamp() });
+  b.set(F.doc(db, 'myFixes', u, 'k', cid + '_' + k), { at: F.serverTimestamp() });
+  busyBtn(form, true, '送出中…');
+  try { await b.commit(); toast('已收到回報，謝謝！'); S.fixOpen = null; await loadFixes(cid, true); openConcert(cid, true); }
+  catch (e) { sheetErr(errMsg(e)); busyBtn(form, false, '送出回報'); }
+}
+async function delFix(cid, k) {
+  const u = uid(), b = F.writeBatch(db);
+  b.delete(F.doc(db, 'fixes', cid, 'r', u + '_' + k)); b.delete(F.doc(db, 'myFixes', u, 'k', cid + '_' + k));
+  try { await b.commit(); toast('已撤回'); await loadFixes(cid, true); fixForm(cid, S.fixOpen ? S.fixOpen.f : 'time'); } catch (e) { toast(errMsg(e)); }
 }
 
 /* ---------- sheets ---------- */
@@ -890,7 +985,7 @@ function openSheet(title, html) {
 function closeSheet() {
   $('#veil').classList.add('hidden'); document.body.style.overflow = '';
   if (S.manageUnsub) { S.manageUnsub(); S.manageUnsub = null; }
-  S.manage = null; closeGroup();
+  S.manage = null; closeGroup(); S.openCid = ''; S.fixOpen = null;
 }
 function setErr(msg) { const b = $('#authErr') || $('#sheetErr'); if (b) b.innerHTML = msg ? '<div class="err">' + esc(msg) + '</div>' : ''; }
 function busyBtn(form, on, label) { const b = form && form.querySelector('button[type=submit]'); if (b) { b.disabled = on; if (label) b.textContent = label; } }
@@ -976,7 +1071,7 @@ function stopListeners() {
 }
 async function onUser(u) {
   stopListeners();
-  Object.assign(S, { ownRides: [], rideCache: {}, seats: {}, user: u, profile: null, priv: null, rides: [], trades: [], ridesReady: false, tradesReady: false, pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {}, note: '' });
+  Object.assign(S, { ownRides: [], rideCache: {}, seats: {}, fixes: {}, user: u, profile: null, priv: null, rides: [], trades: [], ridesReady: false, tradesReady: false, pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {}, note: '' });
   if (!u) { S.mode = 'out'; render(); return; }
   if (!u.emailVerified) {
     // 使用者可能剛在另一個分頁點了驗證連結，先安靜地重新整理一次狀態
@@ -1208,14 +1303,14 @@ async function deletePost(type, id) {
 // 4. 等待確認中的同行申請，每人最多同時 5 筆
 const SHOW_HOURS = 3, MAX_PENDING = 5;
 const SEAT_KIND = { 包車: 'bus', 住宿: 'stay' };
-function rideIdx(r) { const c = C(r.concertId); if (!c) return null; if (c.d.length === 1) return 0; return Number.isInteger(r.dateIdx) && r.dateIdx >= 0 && r.dateIdx < c.d.length ? r.dateIdx : null; }
+function rideIdx(r) { const c = C(r.concertId); if (!c) return null; if (typeof r.day === 'string' && r.day) { const i = c.d.findIndex(x => x[0] === r.day); return i < 0 ? null : i; } return c.d.length === 1 ? 0 : null; }
 function rideSlot(r) {
   const c = r && C(r.concertId); if (!c) return null;
   const i = rideIdx(r), day = i === null ? null : c.d[i];
   return { id: r.id, c, title: r.title, date: day ? day[0] : null, time: day ? day[1] : '', city: VENUES[c.venue].city };
 }
 function rideDay(r) { const s = rideSlot(r); return s && s.date ? s.date : (C(r.concertId) || {}).date; }
-function seatKey(r) { return SEAT_KIND[r.kind] ? r.concertId + '_' + (Number.isInteger(r.dateIdx) ? String(r.dateIdx) : 'x') + '_' + SEAT_KIND[r.kind] : ''; }
+function seatKey(r) { return SEAT_KIND[r.kind] ? r.concertId + '_' + (typeof r.day === 'string' && r.day ? r.day : 'x') + '_' + SEAT_KIND[r.kind] : ''; }
 function seatRef(who, r) { return F.doc(db, 'seats', who, 'k', seatKey(r)); }
 function cacheRides(list) { list.forEach(r => { S.rideCache[r.id] = r; }); }
 function rideById(id) { return S.rides.find(x => x.id === id) || S.rideCache[id] || null; }
@@ -1304,7 +1399,7 @@ function cleanGroupPlan(p, r) {
   return {
     from: REGIONS[p.from] ? p.from : d.from, mode: MODES.includes(p.mode) ? p.mode : d.mode,
     stay: STAYS.includes(p.stay) ? p.stay : d.stay, budget: BUDGETS.includes(p.budget) ? p.budget : d.budget,
-    dateIdx: Number.isInteger(p.dateIdx) && p.dateIdx >= 0 && p.dateIdx < 40 ? p.dateIdx : 0
+    dateIdx: rideIdx(r) !== null ? rideIdx(r) : Number.isInteger(p.dateIdx) && p.dateIdx >= 0 && p.dateIdx < 40 ? p.dateIdx : 0
   };
 }
 function openGroup(id) {
@@ -1401,7 +1496,7 @@ function planHtml(r) {
     const p = cleanGroupPlan(g.plan, r), sel = (id, list, v) => '<select class="in" id="' + id + '">' + list.map(x => '<option' + (x === v ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select>';
     const dates = c.d.map((x, i) => '<option value="' + i + '"' + (i === p.dateIdx ? ' selected' : '') + '>' + dinfo(x[0]).full + (x[1] ? ' ' + esc(tm(x[1])) : '') + '</option>').join('');
     return '<div class="safe">🗺️ 由發起人設定一次，全團成員都會看到同一份行程，也都能下載成同樣格式的行程圖。</div>' +
-      '<form id="gPlanF">' + (c.d.length > 1 ? '<label class="f" for="gDate">場次</label><select class="in" id="gDate">' + dates + '</select>' : '') +
+      '<form id="gPlanF">' + (c.d.length > 1 && rideIdx(r) === null ? '<label class="f" for="gDate">場次</label><select class="in" id="gDate">' + dates + '</select>' : '') +
       '<label class="f" for="gFrom">集合出發地區</label>' + sel('gFrom', Object.keys(REGIONS), p.from) +
       '<label class="f" for="gMode">交通方式</label>' + sel('gMode', MODES, p.mode) +
       '<label class="f" for="gStay">過夜</label>' + sel('gStay', STAYS, p.stay) +
@@ -1420,7 +1515,7 @@ async function savePlan(form) {
   const g = S.group, r = groupRide(); if (!g || !r || r.owner !== uid()) return;
   const p = {
     from: $('#gFrom').value, mode: $('#gMode').value, stay: $('#gStay').value, budget: $('#gBudget').value,
-    dateIdx: $('#gDate') ? Number($('#gDate').value) || 0 : 0
+    dateIdx: $('#gDate') ? Number($('#gDate').value) || 0 : (rideIdx(r) || 0)
   };
   if (!REGIONS[p.from] || !MODES.includes(p.mode) || !STAYS.includes(p.stay) || !BUDGETS.includes(p.budget)) return sheetErr('選項不正確，請重新選擇');
   busyBtn(form, true, '儲存中…');
@@ -1457,7 +1552,7 @@ function rideForm() {
 }
 function rideDateSel(cid) {
   const c = C(cid); if (!c || c.d.length < 2) return '';
-  return '<label class="f" for="rD">哪一天</label><select class="in" id="rD">' + c.d.map((x, i) => '<option value="' + i + '"' + (x[0] === c.date ? ' selected' : '') + '>' + dinfo(x[0]).full + (x[1] ? ' ' + esc(tm(x[1])) : '') + '</option>').join('') + '</select>';
+  return '<label class="f" for="rD">哪一天</label><select class="in" id="rD">' + c.d.map(x => '<option value="' + x[0] + '"' + (x[0] === c.date ? ' selected' : '') + '>' + dinfo(x[0]).full + (x[1] ? ' ' + esc(tm(x[1])) : '') + '</option>').join('') + '</select>';
 }
 let tradeImg = '';
 function tradeForm() {
@@ -1504,7 +1599,7 @@ async function submitRide(form) {
   if (kind === '住宿' && S.profile.minor) return sheetErr('未成年帳號不能發起住宿分攤');
   const concertId = $('#rC').value, c = C(concertId); if (!c) return sheetErr('請選擇場次');
   const data = { kind, concertId, title, from, capacity, cost, note, owner: uid(), createdAt: F.serverTimestamp(), memberCount: 0 };
-  if (c.d.length > 1) { const i = Number($('#rD') ? $('#rD').value : 0); data.dateIdx = Number.isInteger(i) && i >= 0 && i < c.d.length ? i : 0; }
+  const dv = $('#rD') ? $('#rD').value : ''; data.day = c.d.some(x => x[0] === dv) ? dv : c.d[0][0]; // 一律記日期：之後就算加開場次也不會對錯天
   const ref = F.doc(F.collection(db, 'rides')), probe = Object.assign({ id: ref.id }, data);
   if (!form.dataset.force) {
     const chk = await checkConflicts(probe);
@@ -1583,6 +1678,8 @@ async function deleteAccount(form) {
     const refs = [];
     items.docs.forEach(d => { const x = d.data(); if (x.type === 'ride' || x.type === 'trade') refs.push(targetRef(x.type, String(x.targetId), u)); refs.push(d.ref); });
     await del(refs);
+    const fx = await F.getDocs(F.collection(db, 'myFixes', u, 'k'));
+    await del(fx.docs.map(d => { const i = d.id.indexOf('_'); return F.doc(db, 'fixes', d.id.slice(0, i), 'r', u + '_' + d.id.slice(i + 1)); }).concat(fx.docs.map(d => d.ref)));
     const st = await F.getDocs(F.collection(db, 'seats', u, 'k'));
     await del(st.docs.map(d => d.ref));
     const rv = await F.getDocs(F.collection(db, 'reveals', u, 'to'));
@@ -1615,6 +1712,9 @@ document.addEventListener('click', e => {
     case 'newTrade': tradeForm(); break;
     case 'seg': el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); break;
     case 'apply': apply(el.dataset.type, id); break;
+    case 'fixForm': fixForm(id, 'time'); break;
+    case 'fixField': fixForm(id, v); break;
+    case 'fixDel': delFix(id, v); break;
     case 'applyForce': closeSheet(); apply(el.dataset.type, id, true); break;
     case 'cancelReq': cancelReq(el.dataset.type, id); break;
     case 'reveal': revealTo(el.dataset.to); break;
@@ -1683,6 +1783,7 @@ document.addEventListener('submit', e => {
   else if (f.id === 'nickF') submitNick(f);
   else if (f.id === 'delF') deleteAccount(f);
   else if (f.id === 'chatF') sendChat();
+  else if (f.id === 'fixF') submitFix(f);
   else if (f.id === 'gPlanF') savePlan(f);
 });
 $('#veil').addEventListener('click', e => { if (e.target.id === 'veil') closeSheet(); });
