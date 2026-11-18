@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-UEmmH0QVf0g4P8OBUR/oug7McS7LuAFMMIFCQAx2rQk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-eJP9lm5VGs4UfrQ4x/rybhuCx1IsrIPREefAB853tW8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -272,7 +272,8 @@ function errMsg(e) {
     'auth/too-many-requests': '嘗試次數太多，請稍後再試', 'auth/network-request-failed': '網路連線失敗，請稍後再試',
     'auth/requires-recent-login': '為了安全，請重新輸入密碼', 'auth/unauthorized-continue-uri': '網域尚未授權',
     'permission-denied': '權限不足：資料不符規則，或帳號尚未完成驗證', 'unavailable': '暫時連不上伺服器，請稍後再試',
-    'failed-precondition': '資料狀態已改變，請重新整理'
+    'failed-precondition': '資料狀態已改變，請重新整理',
+    'auth/admin-restricted-operation': '目前暫停開放註冊，可以先用訪客模式試玩網站功能', 'auth/operation-not-allowed': '目前暫停開放註冊，可以先用訪客模式試玩網站功能'
   };
   return M[c] || '發生錯誤，請稍後再試';
 }
