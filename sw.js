@@ -1,6 +1,6 @@
 // FANVERSE 離線支援：網站本身與場次資料「先連網、失敗才用快取」，所以永遠優先拿到最新版，沒網路時也能看已載入過的場次
-const CACHE = 'fanverse-v1';
-const CORE = ['./', './index.html', './styles.css', './concerts.json', './hotels.json', './privacy.html', './manifest.json', './icon-192.png'];
+const CACHE = 'fanverse-v2';
+const CORE = ['./', './index.html', './styles.css', './concerts.json', './hotels.json', './arts.json', './venues.json', './privacy.html', './manifest.json', './icon-192.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE).catch(() => { })).then(() => self.skipWaiting()));
 });
