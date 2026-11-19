@@ -118,4 +118,117 @@ async function rail() {
   } catch (e) { console.log('✘ 班次抓取失敗，沿用舊資料：' + String(e.message).replace(secret, '***')); }
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) { await weather(); await rail(); }
+/* ---------- 場館周邊交通：捷運（站、出口、首末班）、公車路線、YouBike；國道客運時刻 ---------- */
+const dist = (a, b) => { const R = 6371000, r = Math.PI / 180, dl = (b[0] - a[0]) * r, dn = (b[1] - a[1]) * r; const x = Math.sin(dl / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dn / 2) ** 2; return Math.round(2 * R * Math.asin(Math.sqrt(x))); };
+const pos = p => p && Number.isFinite(+p.PositionLat) && Number.isFinite(+p.PositionLon) ? [+p.PositionLat, +p.PositionLon] : null;
+const zh = x => tw(x && (x.Zh_tw || x)) || '';
+const zr = x => String((x && (x.Zh_tw || x)) || '').replace(/臺/g, '台').trim();
+const TDX = 'https://tdx.transportdata.tw/api/basic/';
+// 縣市代碼 → 網站用的縣市簡稱；縣市簡稱 → TDX 的 City 參數
+export const CODE = { TPE: '台北', NWT: '新北', KEE: '基隆', TAO: '桃園', HSZ: '新竹', HSQ: '新竹', MIA: '苗栗', TXG: '台中', CHA: '彰化', NAN: '南投', YUN: '雲林', CYI: '嘉義', CYQ: '嘉義', TNN: '台南', KHH: '高雄', PIF: '屏東', ILA: '宜蘭', HUA: '花蓮', TTT: '台東', PEN: '澎湖', KIN: '金門', LIE: '連江' };
+const TDXCITY = { 台北: ['Taipei'], 新北: ['NewTaipei'], 基隆: ['Keelung'], 桃園: ['Taoyuan'], 新竹: ['Hsinchu', 'HsinchuCounty'], 苗栗: ['MiaoliCounty'], 台中: ['Taichung'], 彰化: ['ChanghuaCounty'], 南投: ['NantouCounty'], 雲林: ['YunlinCounty'], 嘉義: ['Chiayi', 'ChiayiCounty'], 台南: ['Tainan'], 高雄: ['Kaohsiung'], 屏東: ['PingtungCounty'], 宜蘭: ['YilanCounty'], 花蓮: ['HualienCounty'], 台東: ['TaitungCounty'], 澎湖: ['PenghuCounty'], 金門: ['KinmenCounty'], 連江: ['LienchiangCounty'] };
+const METRO = { TRTC: '台北捷運', NTMC: '新北捷運', NTDLRT: '淡海輕軌', NTALRT: '安坑輕軌', TYMC: '桃園捷運', TMRT: '台中捷運', KRTC: '高雄捷運', KLRT: '高雄輕軌' };
+// 需要周邊交通資料的場館：有座標、近期有活動
+async function venueList() {
+  const read = async f => { try { return JSON.parse(await readFile(new URL(f, ROOT), 'utf8')); } catch { return null; } };
+  const [vj, cj, aj] = await Promise.all([read('venues.json'), read('concerts.json'), read('arts.json')]);
+  let geo = {}; try { geo = (await import('./update.mjs')).VENUE_GEO || {}; } catch { }
+  const used = new Set([].concat((cj && cj.events) || [], (aj && aj.events) || []).filter(e => e && e.venue).map(e => e.venue));
+  const out = {};
+  for (const [n, x] of Object.entries((vj && vj.venues) || {})) if (x && Array.isArray(x.at) && used.has(n)) out[n] = { at: x.at, city: x.city || '' };
+  for (const [n, x] of Object.entries(geo)) out[n] = { at: x.at, city: n.startsWith('高雄') ? '高雄' : '台北' };
+  return Object.entries(out).slice(0, 160);
+}
+export function buildMetro(stations, exits, firstLast, at) {
+  const near = stations.map(s => ({ s, d: dist(at, s.p) })).filter(x => x.d <= 1500).sort((a, b) => a.d - b.d).slice(0, 2);
+  return near.map(({ s, d }) => {
+    const ex = exits.filter(e => e.sys === s.sys && e.id === s.id).map(e => ({ e, d: dist(at, e.p) })).sort((a, b) => a.d - b.d);
+    const best = ex[0], lift = ex.find(x => x.e.lift);
+    const last = {};
+    for (const f of firstLast) if (f.sys === s.sys && f.id === s.id && f.last) { const k = f.head; if (!last[k] || (f.last < '04:00' ? '24' + f.last : f.last) > (last[k][1] < '04:00' ? '24' + last[k][1] : last[k][1])) last[k] = [f.first, f.last]; }
+    return { n: s.name, sys: METRO[s.sys], d, ex: best ? [best.e.no, best.d] : null, lift: lift ? [lift.e.no, lift.d] : null, last: Object.entries(last).slice(0, 6).map(([h, t]) => [h, t[0], t[1]]) };
+  });
+}
+async function transit(auth) {
+  const venues = await venueList(); if (!venues.length) return console.log('沒有場館座標，跳過周邊交通');
+  const stations = [], exits = [], firstLast = [];
+  for (const sys of Object.keys(METRO)) {
+    try {
+      for (const x of await get(TDX + 'v2/Rail/Metro/Station/' + sys + '?%24format=JSON', auth)) { const p = pos(x.StationPosition); if (p) stations.push({ sys, id: x.StationID, name: zh(x.StationName) + '站', p }); }
+      await sleep(400);
+      for (const x of await get(TDX + 'v2/Rail/Metro/StationExit/' + sys + '?%24format=JSON', auth)) { const p = pos(x.ExitPosition); if (p) exits.push({ sys, id: x.StationID, no: String(x.ExitID || '').slice(0, 6), p, lift: !!x.Elevator }); }
+      await sleep(400);
+      for (const x of await get(TDX + 'v2/Rail/Metro/FirstLastTimetable/' + sys + '?%24format=JSON', auth)) if (x.ServiceDay ? x.ServiceDay.Saturday !== false : true) firstLast.push({ sys, id: x.StationID, head: String(x.TripHeadSign || ('往' + zh(x.DestinationStationName))).slice(0, 14), first: String(x.FirstTrainTime || '').slice(0, 5), last: String(x.LastTrainTime || '').slice(0, 5) });
+      await sleep(400);
+    } catch (e) { console.log('捷運 ' + sys + ' 略過：' + e.message); }
+  }
+  const out = {};
+  for (const [name, v] of venues) {
+    const o = { mrt: buildMetro(stations, exits, firstLast, v.at), bus: [], bike: [] };
+    for (const city of TDXCITY[v.city] || []) {
+      const sf = '?%24spatialFilter=nearby(' + v.at[0] + ',' + v.at[1] + ',400)&%24format=JSON';
+      try {
+        for (const st of await get(TDX + 'v2/Bus/Station/City/' + city + sf, auth)) {
+          const p = pos(st.StationPosition), routes = [...new Set((st.Stops || []).map(x => zr(x.RouteName)).filter(Boolean))];
+          if (p && routes.length) o.bus.push([zr(st.StationName), dist(v.at, p), routes.slice(0, 12)]);
+        }
+      } catch (e) { }
+      await sleep(250);
+      try {
+        for (const b of await get(TDX + 'v2/Bike/Station/City/' + city + sf.replace(',400)', ',600)'), auth)) { const p = pos(b.StationPosition); if (p) o.bike.push([zr(b.StationName).replace(/^YouBike\d\.\d_/, ''), dist(v.at, p), +b.BikesCapacity || 0]); }
+      } catch (e) { }
+      await sleep(250);
+    }
+    // 同名站牌合併，留最近的；路線合併
+    const bus = {}; for (const [n, d, r] of o.bus) { if (!bus[n]) bus[n] = [n, d, []]; bus[n][1] = Math.min(bus[n][1], d); bus[n][2] = [...new Set(bus[n][2].concat(r))].slice(0, 14); }
+    o.bus = Object.values(bus).sort((a, b) => a[1] - b[1]).slice(0, 4);
+    o.bike = o.bike.sort((a, b) => a[1] - b[1]).slice(0, 3);
+    if (o.mrt.length || o.bus.length || o.bike.length) out[name] = o;
+  }
+  if (Object.keys(out).length < 5) throw new Error('周邊交通只有 ' + Object.keys(out).length + ' 個場館');
+  await writeFile(new URL('transit.json', ROOT), JSON.stringify({ updated: TODAY, source: '交通部 TDX 運輸資料流通服務（捷運、市區公車、公共自行車）', venues: out }) + '\n');
+  console.log('✔ 周邊交通：' + Object.keys(out).length + ' 個場館');
+}
+// 國道客運：每班車只留各縣市第一個停靠站與時間 → 跟火車一樣可以查「A 縣市幾點開、B 縣市幾點到」
+export function compactBus(sched, stopCity) {
+  const DAY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], out = [];
+  for (const r of sched) {
+    const name = zr(r.RouteName) || zr(r.SubRouteName); if (!name) continue;
+    for (const t of r.Timetables || []) {
+      const sd = t.ServiceDay || {}, w = DAY.map(d => (sd[d] === undefined ? 1 : +sd[d] ? 1 : 0)).join('');
+      const s = [], seen = new Set();
+      for (const st of (t.StopTimes || []).slice().sort((a, b) => a.StopSequence - b.StopSequence)) {
+        const city = stopCity[st.StopUID], tm = String(st.DepartureTime || st.ArrivalTime || '').slice(0, 5);
+        if (!city || !/^\d\d:\d\d$/.test(tm)) continue;
+        if (seen.has(city)) continue; seen.add(city); s.push([city, tm, zr(st.StopName).slice(0, 12)]);
+      }
+      if (s.length >= 2) out.push({ n: name.slice(0, 8), t: '', w, s });
+    }
+  }
+  return out.slice(0, 6000);
+}
+async function intercity(auth) {
+  const stopCity = {};
+  for (const x of await get(TDX + 'v2/Bus/Stop/InterCity?%24select=StopUID,LocationCityCode&%24format=JSON', auth)) if (CODE[x.LocationCityCode]) stopCity[x.StopUID] = CODE[x.LocationCityCode];
+  await sleep(1000);
+  const bus = compactBus(await get(TDX + 'v2/Bus/Schedule/InterCity?%24format=JSON', auth), stopCity);
+  if (bus.length < 200) throw new Error('國道客運班次太少：' + bus.length);
+  await writeFile(new URL('bus.json', ROOT), JSON.stringify({ updated: TODAY, source: '交通部 TDX 運輸資料流通服務（公路客運時刻表）', bus }) + '\n');
+  console.log('✔ 國道客運：' + bus.length + ' 班');
+}
+async function tdxAuth() {
+  const id = process.env.TDX_ID, secret = process.env.TDX_SECRET; if (!id || !secret) return null;
+  const tok = await get('https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'client_credentials', client_id: id, client_secret: secret }).toString() });
+  return { headers: { Authorization: 'Bearer ' + tok.access_token, 'Accept-Encoding': 'gzip' } };
+}
+
+if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
+  await weather(); await rail();
+  try {
+    const auth = await tdxAuth();
+    if (auth) {
+      try { await transit(auth); } catch (e) { console.log('✘ 周邊交通失敗，沿用舊資料：' + e.message); }
+      try { await intercity(auth); } catch (e) { console.log('✘ 國道客運失敗，沿用舊資料：' + e.message); }
+    }
+  } catch (e) { console.log('✘ TDX 登入失敗：' + String(e.message).replace(process.env.TDX_SECRET || '\u0000', '***')); }
+}
