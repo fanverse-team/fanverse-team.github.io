@@ -102,6 +102,26 @@ function unitName(x) {
   return s.slice(0, 60) || clean((x.masterUnit || [])[0], 40);
 }
 const ADDON = /加購|升級加購|upgrade|停車|寄物|周邊預購/i;
+// 文化部的類別常常標錯（展覽放在演唱會、VR 影片放在音樂）：依標題、介紹和檔期重新判斷
+const EXPO_RE = /展覽|特展|展出|聯展|個展|策展|典藏|常設|博覽|書展|攝影展|藝術展|文物|裝置|沉浸式|VR|虛擬實境|影像展|互動展|展區|展間|開放參觀|觀展/i;
+const MUSIC_RE = /演唱會|音樂會|演奏會|獨奏|獨唱|巡迴|巡演|專場|音樂節|音樂祭|livehouse|\blive\b|concert|tour|showcase|fan ?meeting|見面會|歌友會/i;
+const STAGE_RE = /舞劇|音樂劇|歌劇|話劇|戲劇|劇團|劇場|舞蹈|舞團|馬戲|魔術|相聲|脫口秀|親子劇|偶戲|京劇|歌仔戲|布袋戲|演出/;
+export function kindOf(k, title, desc, ranged, sessions) {
+  const t = String(title || ''), d = String(desc || '');
+  if (k === 'expo') return MUSIC_RE.test(t) && !ranged ? 'concert' : 'expo';
+  if (MUSIC_RE.test(t)) return k;
+  if (EXPO_RE.test(t) || /市集|限時集/.test(t)) return 'expo';
+  if (k === 'concert' && /節目|工作坊|講座|課程|體驗|導覽|研習/.test(t)) return 'show';
+  // 演唱會不會連開十幾場：場次很多又看不出是音樂演出的，多半是展覽或放映
+  if (k === 'concert' && sessions >= 12) return 'expo';
+  if (STAGE_RE.test(t)) return k === 'concert' ? 'show' : k;
+  // 標題看不出來時：連續好幾天都開放、或場次很多，介紹又提到展覽 → 展覽
+  if (ranged && (EXPO_RE.test(d) || !STAGE_RE.test(d))) return 'expo';
+  if (sessions >= 15 && EXPO_RE.test(d)) return 'expo';
+  if (EXPO_RE.test(d) && !STAGE_RE.test(d) && !/音樂|樂團|歌手|演唱/.test(d)) return 'expo';
+  return k;
+}
+const KIND_LABEL = { concert: '演唱會', show: '表演', expo: '展覽' };
 export function buildEvents(raw, majors) {
   const out = [], seen = new Set();
   for (const x of raw) {
@@ -120,7 +140,8 @@ export function buildEvents(raw, majors) {
       if (!spans.length) continue;
       const ranged = cat[0] === 'expo' || spans.some(s => s.b && s.b.d > s.a.d);
       const s0 = list[0], addr = clean(s0.location, 60), at = +s0.latitude && +s0.longitude ? [+(+s0.latitude).toFixed(5), +(+s0.longitude).toFixed(5)] : null;
-      const e = { id, k: cat[0], cat: cat[1], title, venue: v.venue, city: cityOf(addr, s0.locationName, v.venue) };
+      const k = kindOf(cat[0], title, x.descriptionFilterHtml, ranged, spans.length);
+      const e = { id, k, cat: k === cat[0] ? cat[1] : KIND_LABEL[k], title, venue: v.venue, city: cityOf(addr, s0.locationName, v.venue) };
       if (v.hall) e.hall = v.hall;
       if (ranged) {
         const a = spans.map(s => s.a.d).sort()[0], b = spans.map(s => (s.b || s.a).d).sort().pop();
@@ -135,8 +156,8 @@ export function buildEvents(raw, majors) {
         e.d = d.filter((z, i) => z[1] || !d.some((w, j) => j !== i && w[0] === z[0] && w[1])).slice(0, 40);
       }
       const unit = unitName(x);
-      if (cat[0] === 'concert') { e.artist = (unit && unit.length <= 30 ? unit : guessArtist(title.replace(/^20\d\d\s*年?\s*/, '').replace(/^[「『《【]/, ''))).slice(0, 60); e.genre = classify(e.artist, title, ''); }
-      else { e.artist = unit.slice(0, 60); e.genre = cat[1]; }
+      if (k === 'concert') { e.artist = (unit && unit.length <= 30 ? unit : guessArtist(title.replace(/^20\d\d\s*年?\s*/, '').replace(/^[「『《【]/, ''))).slice(0, 60); e.genre = classify(e.artist, title, ''); }
+      else { e.artist = unit.slice(0, 60); e.genre = k === cat[0] ? cat[1] : k === 'expo' ? '展覽' : '綜藝'; }
       const price = priceText(s0.price, s0.onSales); if (price) e.price = price;
       const url = httpsUrl(x.webSales) && !/^https:\/\/[^/]+\/?$/.test(httpsUrl(x.webSales)) ? httpsUrl(x.webSales) : httpsUrl(x.sourceWebPromote) || httpsUrl(x.webSales);
       if (url) e.url = url;
