@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-ZOOrDve+f/YlNvx6sNAecpNlguvB7jzlInooYtwCaMc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-cwQth+hAVNbnpKVSZA3aShbzz1N42Jo7EfuBfTiRzhc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -678,7 +678,7 @@ async function countRides(cid) {
 function rideBtnLabel(cid) { const n = S.rideCount[cid]; return n === undefined ? '找同行' : n ? '找同行・' + n + ' 團' + (n >= 60 ? '以上' : '') : '找同行・發起第一團'; }
 
 /* ---------- 管理員、封鎖、檢舉貼文、互評、使用統計 ---------- */
-const ADMINS = ['BOC3QdBfSccDfNR3LjNRrLNjGMK2']; // 要增減管理員：這裡和 firestore.rules 的 isAdmin() 一起改
+const ADMINS = ['L1e5CBOsFdSDUCd69QA6nKxha9d2']; // 要增減管理員：這裡和 firestore.rules 的 isAdmin() 一起改
 const isAdmin = () => !!uid() && ADMINS.includes(uid());
 const blocked = id => !!(id && S.blocks[id]);
 function postOps(type, item) {
