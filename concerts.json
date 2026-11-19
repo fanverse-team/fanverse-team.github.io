@@ -59,13 +59,13 @@
   {"id":"e23","artist":"Tizzy Bac","genre":"華語","title":"Tizzy Bac 台北流行音樂中心演唱會","venue":"台北流行音樂中心","d":[["2027-01-23",""]],"price":"NT$1,600–3,800","platform":"拓元售票","src":["bw27","tmc"],"priceCheckedAt":"2026-11-19"},
   {"id":"e21","artist":"Maroon 5 魔力紅","genre":"歐美","title":"Maroon 5 Asia 2027","venue":"高雄國家體育場","d":[["2027-01-24",""]],"price":"NT$2,500–9,700","platform":"拓元售票","src":["bw27","wikiStadium"],"priceCheckedAt":"2026-11-19"},
   {"id":"e22","artist":"Westlife 西城男孩","genre":"歐美","title":"WESTLIFE 25: THE ANNIVERSARY WORLD TOUR","venue":"高雄巨蛋","d":[["2027-01-30","19:30"]],"price":"NT$2,980–8,680","platform":"拓元售票","src":["tvbs","bw27","tvbsWest","wikiKH"],"prices":[["VIP 限量套票","NT$9,180"],["非輪椅區身障優惠票（陪同票）","NT$1,990"],["輪椅區身障優惠票（陪同票）","NT$1,490"]],"priceCheckedAt":"2026-11-19"},
-  {"id":"e24","artist":"BIGBANG","genre":"韓流","title":"BIGBANG 高雄演唱會","venue":"高雄國家體育場","d":[["2027-02-27",""],["2027-02-28",""]],"price":"NT$2,980–9,430","platform":"寬宏售票","note":"部分報導列為 2/26–28 三場，請以主辦公告為準","src":["bw27","wikiStadium"]},
-  {"id":"e25","artist":"周蕙","genre":"華語","title":"周蕙 高雄巨蛋演唱會","venue":"高雄巨蛋","d":[["2027-02-27",""]],"price":"NT$800–4,680","platform":"寬宏售票","src":["bw27","wikiKH"]},
-  {"id":"e26","artist":"TOMORROW X TOGETHER（TXT）","genre":"韓流","title":"TXT 高雄演唱會","venue":"高雄巨蛋","d":[["2027-03-06",""],["2027-03-07",""]],"src":["bw27","wikiKH"]},
-  {"id":"e27","artist":"都敬秀 D.O.","genre":"韓流","title":"都敬秀 D.O. 台北演唱會","venue":"台北流行音樂中心","d":[["2027-03-13",""],["2027-03-14",""]],"src":["bw27"]},
-  {"id":"e28","artist":"頑童 MJ116","genre":"華語","title":"頑童 MJ116《OGS》台北大巨蛋演唱會","venue":"台北大巨蛋","d":[["2027-03-20",""],["2027-03-21",""]],"src":["bw27","wikiDome"]},
-  {"id":"e39","artist":"太妍","genre":"韓流","title":"太妍《TAEYEON CONCERT - F.L.Y.》","venue":"台北大巨蛋","d":[["2027-04-03",""]],"src":["wikiDome"],"auto":true},
-  {"id":"e29","artist":"張震嶽","genre":"華語","title":"國泰世華銀行 張震嶽「跟著感覺走」2027 台北演唱會","venue":"台北小巨蛋","d":[["2027-04-17",""],["2027-04-18",""]],"src":["arena"],"auto":true},
-  {"id":"e38","artist":"Bruno Mars","genre":"歐美","title":"Bruno Mars - The Romantic Tour","venue":"高雄國家體育場","d":[["2027-05-01",""],["2027-05-02",""]],"src":["wikiStadium"],"auto":true}
+  {"id":"e24","artist":"BIGBANG","genre":"韓流","title":"BIGBANG 高雄演唱會","venue":"高雄國家體育場","d":[["2027-02-27",""],["2027-02-28",""]],"price":"NT$2,980–9,430","platform":"寬宏售票","note":"部分報導列為 2/26–28 三場，請以主辦公告為準","src":["bw27","wikiStadium"],"priceCheckedAt":"2026-11-19"},
+  {"id":"e25","artist":"周蕙","genre":"華語","title":"周蕙 高雄巨蛋演唱會","venue":"高雄巨蛋","d":[["2027-02-27",""]],"price":"NT$800–4,680","platform":"寬宏售票","src":["bw27","wikiKH"],"priceCheckedAt":"2026-11-19"},
+  {"id":"e26","artist":"TOMORROW X TOGETHER（TXT）","genre":"韓流","title":"TXT 高雄演唱會","venue":"高雄巨蛋","d":[["2027-03-06",""],["2027-03-07",""]],"src":["bw27","wikiKH"],"priceCheckedAt":"2026-11-19"},
+  {"id":"e27","artist":"都敬秀 D.O.","genre":"韓流","title":"都敬秀 D.O. 台北演唱會","venue":"台北流行音樂中心","d":[["2027-03-13",""],["2027-03-14",""]],"src":["bw27"],"priceCheckedAt":"2026-11-19"},
+  {"id":"e28","artist":"頑童 MJ116","genre":"華語","title":"頑童 MJ116《OGS》台北大巨蛋演唱會","venue":"台北大巨蛋","d":[["2027-03-20",""],["2027-03-21",""]],"src":["bw27","wikiDome"],"priceCheckedAt":"2026-11-19"},
+  {"id":"e39","artist":"太妍","genre":"韓流","title":"太妍《TAEYEON CONCERT - F.L.Y.》","venue":"台北大巨蛋","d":[["2027-04-03",""]],"src":["wikiDome"],"auto":true,"priceCheckedAt":"2026-11-19"},
+  {"id":"e29","artist":"張震嶽","genre":"華語","title":"國泰世華銀行 張震嶽「跟著感覺走」2027 台北演唱會","venue":"台北小巨蛋","d":[["2027-04-17",""],["2027-04-18",""]],"src":["arena"],"auto":true,"priceCheckedAt":"2026-11-19","price":"NT$800–4,500","autoPrice":true,"priceSrc":["張震嶽2027連唱2場台北小巨蛋！11月21日開賣 卡友預購、票價與交通整理","https://n.yam.com/Article/20261115636154"],"platform":"拓元售票","ticketUrl":"https://tixcraft.com/activity/detail/27_ayalkomod"},
+  {"id":"e38","artist":"Bruno Mars","genre":"歐美","title":"Bruno Mars - The Romantic Tour","venue":"高雄國家體育場","d":[["2027-05-01",""],["2027-05-02",""]],"src":["wikiStadium"],"auto":true,"priceCheckedAt":"2026-11-19","price":"NT$3,380（全票）","prices":[["陪同票","7,980"],["及身障優惠票(陪同票)","2,990／2,690／2,490"]],"autoPrice":true,"priceSrc":["火星人布魯諾來了！「明年5月登高雄世運」連唱2場 優先購票日期曝光","https://www.setn.com/news/1896119"]}
  ]
 }
