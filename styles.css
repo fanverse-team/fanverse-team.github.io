@@ -284,3 +284,5 @@
   .newshow .rowline{cursor:pointer}
   .split .grid2{align-items:center}
   @media (min-width:700px){ .plans{max-width:560px} }
+  .tl li.tlday{list-style:none;margin:14px 0 6px -2px;padding:6px 12px;border-radius:10px;background:var(--pinkbg);color:var(--pinkd);font-weight:900;font-size:14px}
+  .tl li.tlday::before,.tl li.tlday::after{display:none}
