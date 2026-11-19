@@ -249,3 +249,38 @@
   .tagchk{display:inline-flex;align-items:center;gap:4px;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;cursor:pointer}
   .tagchk input{accent-color:var(--pink)}
   .tagchk.b{color:#9a5b00}
+  /* 全台活動：種類切換、地區子選單、展期 */
+  .kindseg{margin-bottom:12px}
+  .kindseg .cnt{display:inline-block;margin-left:4px;font-size:11px;font-weight:500;color:var(--muted)}
+  .chips.sub{margin-top:-6px}
+  .chips.sub .chip{font-size:12px;padding:4px 12px}
+  .date.open{background:var(--pinkd)}
+  .date.open .md{font-size:15px;font-family:var(--sans)}
+  .date.open .wd{color:#FFE3EF}
+  /* Plus */
+  .plusb{display:inline-block;font-size:10px;font-weight:700;color:var(--pinkd);background:var(--pinkbg);border-radius:999px;padding:0 6px;margin-left:4px;vertical-align:1px}
+  .mock{font-size:13px;background:var(--warnbg);color:var(--warn);border-radius:12px;padding:10px 12px;margin-bottom:12px;line-height:1.6}
+  .plans{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  .plan{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 14px;display:flex;flex-direction:column;gap:6px}
+  .plan.best{border:2px solid var(--pink)}
+  .plan .tag{position:absolute;top:-10px;right:12px;background:var(--pink);color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px}
+  .plan .pn{font-weight:700;color:var(--ink)}
+  .plan .pp{font-family:var(--disp);font-size:28px;font-weight:700;color:var(--ink)}
+  .plan .pp span{font-size:13px;color:var(--muted);font-family:var(--sans);font-weight:500}
+  .plan .btn{margin-top:auto}
+  .ptab{width:100%;border-collapse:collapse;font-size:13px}
+  .ptab th,.ptab td{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  .ptab th{color:var(--muted);font-weight:500}
+  .ptab td:first-child{color:var(--ink)}
+  .ptab td:last-child b{color:var(--pinkd)}
+  .plushero{border:1px solid var(--pinkbg);background:linear-gradient(135deg,var(--card),var(--pinkbg))}
+  .cheers{display:flex;flex-wrap:wrap;gap:8px}
+  .cheer{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px 5px 6px;font-size:13px}
+  .cheer i{width:18px;height:18px;border-radius:50%;background:var(--c)}
+  .cheer.on{border-color:var(--c);box-shadow:0 0 0 2px var(--c) inset;font-weight:700}
+  .promo{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.6;border-style:dashed}
+  .promo .lnk{font-size:13px;color:var(--pinkd);margin-left:4px}
+  .newshow{border:2px solid var(--pink);margin-bottom:12px}
+  .newshow .rowline{cursor:pointer}
+  .split .grid2{align-items:center}
+  @media (min-width:700px){ .plans{max-width:560px} }
