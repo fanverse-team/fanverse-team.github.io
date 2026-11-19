@@ -19,7 +19,7 @@ service cloud.firestore {
     function concertOk(c) { return c is string && c.matches('^e[0-9]{2,4}$'); }
     function unchanged(field) { return request.resource.data[field] == resource.data[field]; }
     // 管理員名單：要增減管理員，這裡和網站程式裡的 ADMINS 一起改
-    function isAdmin() { return verified() && request.auth.uid in ['BOC3QdBfSccDfNR3LjNRrLNjGMK2']; }
+    function isAdmin() { return verified() && request.auth.uid in ['L1e5CBOsFdSDUCd69QA6nKxha9d2']; }
     // 被管理員停權的帳號不能新增任何內容
     function notBanned() { return !exists(/databases/$(database)/documents/bans/$(request.auth.uid)); }
     function blockedBy(owner) { return exists(/databases/$(database)/documents/blocks/$(owner)/u/$(request.auth.uid)); }
