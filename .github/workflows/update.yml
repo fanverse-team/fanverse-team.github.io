@@ -24,10 +24,14 @@ jobs:
           node-version: 22
       - name: 抓取場次、票價與住宿
         run: node scripts/update.mjs
+      - name: 全台藝文活動（文化部開放資料）、場館與住宿
+        run: node scripts/culture.mjs
+        continue-on-error: true
+        timeout-minutes: 8
       - name: 有異動才提交
         run: |
           git add concerts.json
-          if [ -f hotels.json ]; then git add hotels.json; fi
+          for f in hotels.json arts.json venues.json; do if [ -f $f ]; then git add $f; fi; done
           if git diff --cached --quiet; then
             echo "沒有異動"
           else
