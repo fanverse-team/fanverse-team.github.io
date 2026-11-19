@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-cwQth+hAVNbnpKVSZA3aShbzz1N42Jo7EfuBfTiRzhc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-HpWR6f8z4wEXwjO4ih7kLMXYPxOdpPFFQlFsVJqBahY='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -783,7 +783,7 @@ async function loadAdmin() {
     const [rp, bn, st] = await Promise.all([
       F.getDocs(F.query(F.collection(db, 'reports'), F.orderBy('createdAt', 'desc'), F.limit(60))),
       F.getDocs(F.collection(db, 'bans')),
-      F.getDocs(F.query(F.collection(db, 'stats'), F.orderBy(F.documentId ? F.documentId() : '__name__', 'desc'), F.limit(30))).catch(() => ({ docs: [] }))
+      F.getDocs(F.query(F.collection(db, 'stats'), F.where(F.documentId(), '>=', new Date(Date.now() + 8 * 3600e3 - 30 * 864e5).toISOString().slice(0, 10)))).catch(() => ({ docs: [] }))
     ]);
     a.reports = rp.docs.map(d => Object.assign({}, d.data(), { id: d.id }));
     a.bans = bn.docs.map(d => Object.assign({}, d.data(), { id: d.id }));
