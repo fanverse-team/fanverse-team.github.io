@@ -200,7 +200,11 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['at'])
           && request.resource.data.at == request.time;
         allow create, update: if verified() && ride(rideId).owner == me() && docId == 'plan'
-          && request.resource.data.keys().hasOnly(['from', 'mode', 'stay', 'budget', 'dateIdx', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['from', 'mode', 'stay', 'budget', 'dateIdx', 'updatedAt', 'go', 'goTime', 'back', 'backBy'])
+          && (!('go' in request.resource.data) || request.resource.data.go in ['當天', '前一天'])
+          && (!('back' in request.resource.data) || request.resource.data.back in ['自動判斷', '當天', '隔天', '後天'])
+          && (!('goTime' in request.resource.data) || request.resource.data.goTime.matches('^(([01][0-9]|2[0-3]):[0-5][0-9])?$'))
+          && (!('backBy' in request.resource.data) || request.resource.data.backBy.matches('^(([01][0-9]|2[0-3]):[0-5][0-9])?$'))
           && request.resource.data.keys().hasAll(['from', 'mode', 'stay', 'budget', 'dateIdx', 'updatedAt'])
           && request.resource.data.from in ['北北基', '桃園', '新竹苗栗', '台中彰化', '雲林嘉義', '台南', '高雄屏東', '宜蘭花東']
           && request.resource.data.mode in ['高鐵', '台鐵', '客運', '包車共乘', '自行開車']
