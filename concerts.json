@@ -1,6 +1,6 @@
 {
  "updated": "2026-11-19",
- "seq": 39,
+ "seq": 40,
  "status": {
   "arena": {
    "ok": true,
@@ -15,7 +15,7 @@
   "wikiDome": {
    "ok": true,
    "at": "2026-11-19",
-   "count": 6
+   "count": 7
   },
   "wikiKH": {
    "ok": true,
@@ -55,6 +55,7 @@
   {"id":"e17","artist":"JEONGHAN X JOSHUA（SEVENTEEN）","genre":"韓流","title":"JEONGHAN X JOSHUA JOURNEY INTO DREAMING IN TAIPEI","venue":"台北小巨蛋","d":[["2027-01-09",""],["2027-01-10",""]],"price":"NT$800–6,880","platform":"遠大售票 Ticket Plus","sale":"11/17 18:00 官方會員預購；11/20（五）18:00 全面開賣","src":["bw27","tvbs"],"priceCheckedAt":"2026-11-19","ticketUrl":"https://ticketplus.com.tw/activity/c28f10dad8b2acf1de5e6aff4051a269"},
   {"id":"e18","artist":"告五人","genre":"華語","title":"告五人 2027 高雄巨蛋演唱會","venue":"高雄巨蛋","d":[["2027-01-09","18:30"],["2027-01-10","18:30"]],"price":"NT$800–3,850","platform":"拓元售票","sale":"11/14 12:00 全面開賣","src":["bh","ttw","wikiKH"],"priceCheckedAt":"2026-11-19"},
   {"id":"e19","artist":"草蜢","genre":"華語","title":"草蜢 THREE IN LOVE 演唱會 2027 台北站","venue":"台北小巨蛋","d":[["2027-01-16",""],["2027-01-17",""]],"price":"NT$800–4,880","platform":"KKTIX","src":["bw27","arena"],"priceCheckedAt":"2026-11-19","ticketUrl":"https://kwan.kktix.cc/events/2b4874b0"},
+  {"id":"e40","artist":"蔡依林","genre":"華語","title":"蔡依林《Pleasure》","venue":"台北大巨蛋","d":[["2027-01-22",""],["2027-01-23",""],["2027-01-24",""],["2027-01-29",""],["2027-01-30",""],["2027-01-31",""]],"src":["wikiDome"],"auto":true,"priceCheckedAt":"2026-11-19"},
   {"id":"e20","artist":"NCT WISH","genre":"韓流","title":"NCT WISH 高雄演唱會","venue":"高雄巨蛋","d":[["2027-01-23",""]],"price":"NT$4,980–6,980","platform":"ibon 售票","src":["bw27","wikiKH"],"priceCheckedAt":"2026-11-19"},
   {"id":"e23","artist":"Tizzy Bac","genre":"華語","title":"Tizzy Bac 台北流行音樂中心演唱會","venue":"台北流行音樂中心","d":[["2027-01-23",""]],"price":"NT$1,600–3,800","platform":"拓元售票","src":["bw27","tmc"],"priceCheckedAt":"2026-11-19"},
   {"id":"e21","artist":"Maroon 5 魔力紅","genre":"歐美","title":"Maroon 5 Asia 2027","venue":"高雄國家體育場","d":[["2027-01-24",""]],"price":"NT$2,500–9,700","platform":"拓元售票","src":["bw27","wikiStadium"],"priceCheckedAt":"2026-11-19"},
