@@ -74,7 +74,7 @@ export function normVenue(name0, addr0) {
     if (re.test(name)) { const hall = name.replace(re, '').replace(/^[\s\-－_、·・【\[(（]+|[】\])）\s]+$/g, '').trim(); return { venue: v, hall: hall === v ? '' : hall.slice(0, 24) }; }
   }
   for (const [re, v] of BY_ADDR) if (re.test(addr)) { const hall = /[《》「」]|展覽$|特展|博覽會|^20\d\d/.test(name) ? '' : name.slice(0, 24); return { venue: v, hall: hall === v ? '' : hall }; }
-  const looksLikeEvent = /[《》「」]|展覽|特展|攝影展|博覽會|^20\d\d/.test(name) && !/館|中心|劇場|劇院|廳|堂|園區|藝廊|畫廊|空間|書店/.test(name.replace(/展覽廳/, '廳'));
+  const looksLikeEvent = /[《》「」]|——|展覽|特展|攝影展|博覽會|^20\d\d/.test(name) && !/館|中心|劇場|劇院|廳|堂|園區|藝廊|畫廊|空間|書店/.test(name.replace(/展覽廳/, '廳'));
   if (looksLikeEvent || !name) {
     for (const [re, v] of BY_ADDR) if (re.test(addr)) return { venue: v, hall: '' };
     if (!addr) return null;
@@ -96,8 +96,10 @@ export function priceText(p0, onSales) {
   return p.replace(/\s*\+\s*(\d)/g, ' $1').replace(/;\s*/g, '、').replace(/\s+/g, ' ').slice(0, 80);
 }
 function unitName(x) {
-  const s = clean(x.showUnit, 80).split(/[;；]/)[0].replace(/^[（(][^)）]{1,8}[)）]/, '').trim();
-  return s || clean((x.masterUnit || [])[0], 40);
+  const s = clean(x.showUnit, 200).split(/[;；]/)[0].replace(/^[（(][^)）]{1,8}[)）]/, '').trim();
+  const parts = s.split(/[,，、]/).map(t => t.trim()).filter(Boolean);
+  if (parts.length > 2) return parts.slice(0, 2).join('、') + ' 等';
+  return s.slice(0, 60) || clean((x.masterUnit || [])[0], 40);
 }
 const ADDON = /加購|升級加購|upgrade|停車|寄物|周邊預購/i;
 export function buildEvents(raw, majors) {
