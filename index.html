@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-HpWR6f8z4wEXwjO4ih7kLMXYPxOdpPFFQlFsVJqBahY='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-WgVBVQityA3lgdUsjWFZvg1O6y8sLoLzf0FXBIb0ya4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -75,7 +75,7 @@ function arr(v) { return Array.isArray(v) ? v : []; }
 function safeUrl(u) { try { const x = new URL(String(u)); return x.protocol === 'https:' && !x.username && !x.password ? x.href : ''; } catch (e) { return ''; } }
 function str(v, max) { return String(v == null ? '' : v).slice(0, max || 300); }
 let rq = false;
-function renderData() { if (rq) return; rq = true; requestAnimationFrame(() => { rq = false; if (['match', 'market', 'admin'].includes(S.view) || (S.view === 'me' && S.mode === 'ready')) render(); }); }
+function renderData() { if (rq) return; rq = true; requestAnimationFrame(() => { rq = false; if (['match', 'market', 'admin', 'plus'].includes(S.view) || (S.view === 'me' && S.mode === 'ready')) render(); }); }
 
 /* ---------- content：真實場次（人工彙整自公開報導，非即時；以主辦與售票平台公告為準） ---------- */
 let DATA_ASOF = '2026/11/17';
@@ -173,17 +173,69 @@ let CONCERTS = [
   { id: 'e27', artist: '都敬秀 D.O.', genre: '韓流', title: '都敬秀 D.O. 台北演唱會', venue: '台北流行音樂中心', d: [['2027-03-13', ''], ['2027-03-14', '']], src: ['bw27'] },
   { id: 'e28', artist: '頑童 MJ116', genre: '華語', title: '頑童 MJ116《OGS》台北大巨蛋演唱會', venue: '台北大巨蛋', d: [['2027-03-20', ''], ['2027-03-21', '']], src: ['bw27'] }
 ];
+let BASE = CONCERTS, ARTS = [], ARTS_ASOF = '', VDB = {};
 function todayTW() { return new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10); }
 const GENRES = ['韓流', '日本', '華語', '歐美', '綜合', '其他'];
+/* ---------- 全台場館：五大場館用上面人工整理的資料，其他場館用 venues.json 自動產生（最近車站、Google 地圖路線） ---------- */
+const CITIES = ['台北', '新北', '基隆', '桃園', '新竹', '苗栗', '台中', '彰化', '南投', '雲林', '嘉義', '台南', '高雄', '屏東', '宜蘭', '花蓮', '台東', '澎湖', '金門', '連江'];
+const AREAS = { 北部: ['台北', '新北', '基隆', '桃園', '新竹', '宜蘭'], 中部: ['苗栗', '台中', '彰化', '南投', '雲林'], 南部: ['嘉義', '台南', '高雄', '屏東'], '東部・離島': ['花蓮', '台東', '澎湖', '金門', '連江'] };
+const CITY_REGION = { 台北: '北北基', 新北: '北北基', 基隆: '北北基', 桃園: '桃園', 新竹: '新竹苗栗', 苗栗: '新竹苗栗', 台中: '台中彰化', 彰化: '台中彰化', 南投: '台中彰化', 雲林: '雲林嘉義', 嘉義: '雲林嘉義', 台南: '台南', 高雄: '高雄屏東', 屏東: '高雄屏東', 宜蘭: '宜蘭花東', 花蓮: '宜蘭花東', 台東: '宜蘭花東', 澎湖: '離島', 金門: '離島', 連江: '離島' };
+const KINDS = [['concert', '演唱會'], ['show', '表演'], ['expo', '展覽']];
+const SHOW_CATS = ['音樂', '戲劇', '舞蹈', '親子', '綜藝'];
+const ST_TYPES = ['捷運站', '輕軌站', '火車站', '高鐵站'];
+const VCACHE = {}, VCITY = {};
+function V(name) {
+  if (VENUES[name]) return VENUES[name];
+  if (VCACHE[name] && VCACHE[name].src === VDB) return VCACHE[name];
+  const x = VDB[name] || {}, city = x.city || VCITY[name] || '', st = x.st || [], s0 = st[0], s1 = st[1];
+  const walk = d => Math.max(1, Math.round(d * 1.3 / 80)), far = d => d >= 1000 ? (d / 1000).toFixed(1) + ' 公里' : d + ' 公尺';
+  const tier = city === '台北' ? 0 : ['新北', '桃園', '新竹', '台中', '台南', '高雄'].includes(city) ? 1 : 2;
+  const island = CITY_REGION[city] === '離島';
+  const transit = (s0 ? ['最近的' + s0[1] + '：「' + s0[0] + '」，直線約 ' + far(s0[2]) + '（步行約 ' + walk(s0[2]) + ' 分鐘）'] : [island ? '離島場館：請先訂好機票或船票，到當地後搭計程車、公車或租車前往' : x.at ? '場館 3 公里內沒有捷運或火車站，建議搭客運、計程車或開車前往' : '這個場館還沒有座標資料，請用下方 Google 地圖連結查路線'])
+    .concat(s1 ? ['外縣市來的話，可以到「' + s1[0] + '」（' + s1[1] + '，直線約 ' + far(s1[2]) + '）再轉乘'] : [])
+    .concat(['點下方「查大眾運輸路線」看 Google 地圖的即時路線與班次']);
+  const v = {
+    src: VDB, auto: true, city, addr: x.addr || '', at: x.at || null, st,
+    transit,
+    exit: [s0 ? '散場時往「' + s0[0] + '」的人最多，可以先在附近吃東西或等 15–30 分鐘再走' : '散場後大眾運輸班次可能很少，請先查好回程班次，或和同場的人共乘', '要趕車的話，回程車票請預留至少 1 小時緩衝'],
+    stay: [['場館附近', '步行可到，散場不用再搭車'], [s1 ? '「' + s1[0] + '」周邊' : s0 ? '「' + s0[0] + '」周邊' : city + '市區車站周邊', '隔天搭車回家最方便']],
+    price: [{ hotel: [2500, 5000], hostel: [700, 1300] }, { hotel: [1800, 3800], hostel: [500, 900] }, { hotel: [1500, 3200], hostel: [450, 800] }][tier],
+    food: s0 ? '「' + s0[0] + '」周邊商圈' : '場館周邊店家'
+  };
+  return (VCACHE[name] = v);
+}
+const regionOf = c => CITY_REGION[V(c.venue).city] || '';
+function cleanVdb(o) {
+  const out = {}; let n = 0;
+  for (const [k, x] of Object.entries(o || {})) {
+    if (++n > 4000 || typeof k !== 'string' || k.length > 40 || !x || typeof x !== 'object') continue;
+    const v = {};
+    if (CITIES.includes(x.city)) v.city = x.city;
+    if (typeof x.addr === 'string') v.addr = x.addr.slice(0, 60);
+    if (Array.isArray(x.at) && x.at[0] > 21 && x.at[0] < 27 && x.at[1] > 118 && x.at[1] < 123) v.at = [num(x.at[0]), num(x.at[1])];
+    if (Array.isArray(x.st)) v.st = x.st.filter(s => Array.isArray(s) && typeof s[0] === 'string' && ST_TYPES.includes(s[1]) && Number.isFinite(s[2])).slice(0, 2).map(s => [s[0].slice(0, 20), s[1], Math.max(0, Math.round(s[2]))]);
+    out[k] = v;
+  }
+  return out;
+}
 function prepConcerts() {
   const t = todayTW();
   CONCERTS.forEach(c => {
+    if (c.r) { // 展覽、長期活動：沒有固定場次，用接下來 60 天當作可以選的日期
+      const out = []; for (let x = c.r[0] > t ? c.r[0] : t, i = 0; x <= c.r[1] && i < 60; x = nextDay(x), i++) out.push([x, '']);
+      c.d = out.length ? out : [[c.r[1], '']];
+    }
     const next = c.d.find(x => x[0] >= t) || c.d[c.d.length - 1];
-    c.date = next[0]; c.time = next[1]; c.last = c.d[c.d.length - 1][0];
+    c.date = next[0]; c.time = next[1]; c.last = c.r ? c.r[1] : c.d[c.d.length - 1][0];
   });
   CONCERTS.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
 }
 prepConcerts();
+function rebuild() {
+  for (const k in VCACHE) delete VCACHE[k];
+  CONCERTS = BASE.concat(ARTS); prepConcerts(); checkNewShows(); render();
+  if (S.pendingCid && C(S.pendingCid)) { openConcert(S.pendingCid); S.pendingCid = ''; }
+}
 /* 場次資料由 GitHub Actions 每天更新到 concerts.json；讀不到時沿用上面內建的資料 */
 function cleanEvent(e) {
   const txt = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
@@ -204,8 +256,8 @@ function cleanEvent(e) {
 function cleanHotels(j) {
   const out = {};
   if (!j || typeof j.venues !== 'object') return null;
-  for (const v of Object.keys(VENUES)) {
-    const x = j.venues[v]; if (!x || !Array.isArray(x.list)) continue;
+  for (const v of Object.keys(j.venues).slice(0, 400)) {
+    const x = j.venues[v]; if (v.length > 40 || !x || !Array.isArray(x.list)) continue;
     out[v] = x.list.slice(0, 20).filter(h => h && typeof h.n === 'string' && Number.isFinite(h.d) && Array.isArray(h.p)).map(h => ({ n: h.n.slice(0, 60), en: typeof h.en === 'string' ? h.en.slice(0, 60) : '', t: typeof h.t === 'string' ? h.t.slice(0, 8) : '住宿', s: Number.isInteger(+h.s) && +h.s >= 1 && +h.s <= 5 ? +h.s : 0, d: Math.max(0, Math.round(h.d)), p: [num(h.p[0]), num(h.p[1])] }));
   }
   return out;
@@ -227,12 +279,48 @@ async function loadConcerts() {
     CONCERTS = list.concat(CONCERTS.filter(c => !ids.has(c.id) && c.last < todayTW()));
     if (/^20\d\d-\d\d-\d\d$/.test(j.updated)) DATA_ASOF = j.updated.replace(/-/g, '/');
     DATA_LIVE = true;
-    prepConcerts(); render(); if (S.pendingCid && C(S.pendingCid)) { openConcert(S.pendingCid); S.pendingCid = ''; }
+    BASE = list.concat(BASE.filter(c => !ids.has(c.id) && c.last < todayTW())); rebuild();
   } catch (e) { /* 沿用內建資料 */ }
+}
+/* 全台藝文活動：GitHub Actions 每天從文化部開放資料整理成 arts.json */
+function cleanArt(e) {
+  const txt = (v, n) => typeof v === 'string' ? v.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n) : '';
+  if (!e || !/^k[0-9a-f]{12}$/.test(e.id || '') || !KINDS.some(k => k[0] === e.k)) return null;
+  const title = txt(e.title, 120), venue = txt(e.venue, 40); if (!title || !venue) return null;
+  const o = { id: e.id, k: e.k, title, venue, artist: txt(e.artist, 60), src: [] };
+  o.genre = e.k === 'concert' ? (GENRES.includes(e.genre) ? e.genre : '其他') : e.k === 'expo' ? '展覽' : (SHOW_CATS.includes(e.genre) ? e.genre : '音樂');
+  const okD = x => /^20\d\d-\d\d-\d\d$/.test(x);
+  if (Array.isArray(e.r) && okD(e.r[0]) && okD(e.r[1]) && e.r[0] <= e.r[1]) o.r = [e.r[0], e.r[1]];
+  else if (Array.isArray(e.d)) {
+    const d = e.d.filter(x => Array.isArray(x) && okD(x[0])).map(x => [x[0], /^\d\d:\d\d$/.test(x[1]) ? x[1] : '']).slice(0, 40).sort((a, b) => a[0] + a[1] < b[0] + b[1] ? -1 : 1);
+    if (!d.length) return null; o.d = d;
+  } else return null;
+  ['price', 'hall', 'sn'].forEach(k => { const t = txt(e[k], 80); if (t) o[k] = t; });
+  const desc = txt(e.desc, 200); if (desc) o.desc = desc;
+  if (/^\d\d:\d\d–\d\d:\d\d$/.test(e.hours || '')) o.hours = e.hours;
+  if (typeof e.url === 'string' && e.url.length < 320 && safeUrl(e.url)) o.url = safeUrl(e.url);
+  if (o.price === '免費') o.free = true;
+  if (!o.artist) { o.artist = o.venue; o.noArtist = true; }
+  if (CITIES.includes(e.city)) VCITY[venue] = VCITY[venue] || e.city;
+  return o;
+}
+async function loadArts() {
+  const get = u => fetch(u, { cache: 'no-cache', credentials: 'omit' }).then(r => r.ok ? r.json() : null).catch(() => null);
+  const [a, v] = await Promise.all([get('arts.json?d=' + todayTW() + '-' + Math.floor(Date.now() / 3600000 % 24)), get('venues.json?d=' + todayTW())]);
+  try {
+    if (v && v.venues && typeof v.venues === 'object') VDB = cleanVdb(v.venues);
+    if (!a || !Array.isArray(a.events)) { if (v) render(); return; }
+    ARTS = a.events.slice(0, 4000).map(cleanArt).filter(Boolean);
+    if (/^20\d\d-\d\d-\d\d$/.test(a.updated)) ARTS_ASOF = a.updated.replace(/-/g, '/');
+    rebuild();
+  } catch (e) { /* 沒有藝文資料時只顯示演唱會 */ }
 }
 const UPCOMING = () => CONCERTS.filter(c => c.last >= todayTW());
 const C = id => CONCERTS.find(c => c.id === id);
-function dateLabel(c) { return c.d.map(x => dinfo(x[0]).md).join('、'); }
+function dateLabel(c) { return c.r ? rangeLabel(c) : c.d.map(x => dinfo(x[0]).md).join('、'); }
+function rangeLabel(c) { return dinfo(c.r[0]).md + '–' + dinfo(c.r[1]).md; }
+const kindName = c => (KINDS.find(k => k[0] === (c.k || 'concert')) || KINDS[0])[1];
+const isLong = c => !!c.r && Date.parse(c.r[1]) - Date.parse(c.r[0]) > 400 * 864e5;
 function tm(t) { return t || '時間未公布'; }
 function firstId() { const u = UPCOMING(); return u.length ? u[0].id : CONCERTS[CONCERTS.length - 1].id; }
 
@@ -290,14 +378,14 @@ function errMsg(e) {
 
 /* ---------- state ---------- */
 const S = {
-  view: 'home', city: '全部', genre: '全部', q: '', onlyFollow: false,
+  view: 'home', kind: 'concert', city: '全部', genre: '全部', q: '', onlyFollow: false,
   matchKind: '全部', matchConcert: '', marketMode: '全部', marketCat: '全部',
   mode: 'loading', note: '', authTab: 'login', meKey: '',
   user: null, profile: null, priv: null,
   rides: [], trades: [], ridesReady: false, tradesReady: false,
   pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {},
   unsubs: [], itemUnsubs: {}, revealUnsubs: {}, manage: null, manageUnsub: null, group: null, busy: {},
-  ownRides: [], rideCache: {}, seats: {}, lastAt: {}, lastUnsubs: {}, seen: loadLS('fv_seen2', {}), fixes: {}, openCid: '', fixOpen: null, sugOpen: false, sugIdx: -1, sugItems: [], pk: null, cRides: { cid: '', list: [], ready: true, unsub: null }, rideCount: {}, blocks: {}, rep: {}, admin: null, banned: false, recentQ: loadLS('fv_recentq', []),
+  ownRides: [], rideCache: {}, seats: {}, lastAt: {}, lastUnsubs: {}, seen: loadLS('fv_seen2', {}), fixes: {}, openCid: '', fixOpen: null, sugOpen: false, sugIdx: -1, sugItems: [], pk: null, cRides: { cid: '', list: [], ready: true, unsub: null }, rideCount: {}, blocks: {}, rep: {}, admin: null, banned: false, recentQ: loadLS('fv_recentq', []), plus: null, plusPub: {}, newShows: null, homeLimit: 0,
   follows: loadLS('fv_follows2', []), reminders: loadLS('fv_rem', []),
   ai: { concert: '', dateIdx: 0, from: '台中彰化', mode: '高鐵', stay: '自動判斷', budget: '適中', out: null },
   fraud: { text: '', out: null }, lastVerifySend: 0
@@ -316,8 +404,8 @@ const TABS = [['home', '情報站'], ['match', '同行媒合'], ['market', '周�
 
 function route() {
   const h = (location.hash || '').replace('#', '');
-  const cm = h.match(/^c\/(e\d{2,4})$/); // 分享連結：#c/e01 直接打開那一場
-  S.view = TABS.some(t => t[0] === h) || h === 'admin' ? h : 'home';
+  const cm = h.match(/^c\/(e\d{2,4}|k[0-9a-f]{12})$/); // 分享連結：#c/e01 直接打開那一場
+  S.view = TABS.some(t => t[0] === h) || h === 'admin' || h === 'plus' ? h : 'home';
   if (cm) setTimeout(() => { if (C(cm[1])) openConcert(cm[1]); else S.pendingCid = cm[1]; }, 0);
   S.meKey = '';
   render();
@@ -334,7 +422,7 @@ function renderTabs() {
 function render() {
   renderTabs();
   $('#noteBar').innerHTML = S.note ? '<div class="note-bar">' + esc(S.note) + '</div>' : '';
-  $('#acct').textContent = S.mode === 'ready' && S.profile ? '👤 ' + S.profile.nickname : S.mode === 'out' ? '未登入' : '';
+  $('#acct').textContent = S.mode === 'ready' && S.profile ? (isPlus() ? '✦ ' : '👤 ') + S.profile.nickname : S.mode === 'out' ? '未登入' : '';
   const v = $('#view'); v.dataset.view = S.view;
   if (S.view === 'me' && ['out', 'verify', 'profile'].includes(S.mode)) {
     // 表單畫面只在狀態改變時重畫，避免打字到一半被清掉
@@ -347,6 +435,7 @@ function render() {
     else if (S.view === 'market') v.innerHTML = vMarket();
     else if (S.view === 'ai') v.innerHTML = vAI();
     else if (S.view === 'admin') v.innerHTML = vAdmin();
+    else if (S.view === 'plus') v.innerHTML = vPlus();
     else v.innerHTML = vMe();
   }
   const fab = S.mode === 'ready' && S.view === 'match' ? '<button class="fab" data-act="newRide">＋ 發起媒合</button>' : S.mode === 'ready' && S.view === 'market' ? '<button class="fab" data-act="newTrade">＋ 上架周邊</button>' : '';
@@ -354,14 +443,17 @@ function render() {
 }
 
 function concertCard(c) {
-  const d = dinfo(c.date), left = daysLeft(c.date), fol = S.follows.includes(c.artist), multi = c.d.length > 1;
+  const d = dinfo(c.date), left = daysLeft(c.date), fol = S.follows.includes(c.artist), multi = !c.r && c.d.length > 1, open = c.r && c.r[0] <= todayTW();
+  const city = V(c.venue).city, where = c.venue + (c.hall ? '・' + c.hall : '') + (city && !c.venue.startsWith(city) && !VENUES[c.venue] ? '（' + city + '）' : '');
+  const pills = c.r ? (isLong(c) ? '<span class="pill">常設展</span>' : '<span class="pill hot">' + (open ? '展出中・到 ' + dinfo(c.r[1]).md : rangeLabel(c)) + '</span>') + (c.free ? '<span class="pill ok">免費</span>' : c.price ? '<span class="pill">' + esc(str(c.price, 24)) + '</span>' : '') + (!open && left >= 0 ? '<span class="pill">' + left + ' 天後開展</span>' : '')
+    : (multi ? '<span class="pill hot">共 ' + c.d.length + ' 場</span>' : '') + (c.free ? '<span class="pill ok">免費</span>' : c.price ? '<span class="pill">' + esc(str(c.price, 24)) + '</span>' : '') + (left >= 0 ? '<span class="pill">倒數 ' + left + ' 天</span>' : '');
   return '<div class="card concert" data-act="concert" data-id="' + c.id + '">' +
-    '<div class="date"><div class="md">' + d.md + '</div><div class="wd">' + d.wd + '</div></div>' +
-    '<div class="cinfo"><div class="artist">' + esc(c.artist) + '・' + esc(c.genre) + '</div>' +
+    '<div class="date' + (open ? ' open' : '') + '"><div class="md">' + (open ? '展出中' : d.md) + '</div><div class="wd">' + (open ? '到 ' + dinfo(c.r[1]).md : d.wd) + '</div></div>' +
+    '<div class="cinfo"><div class="artist">' + esc(c.noArtist ? (c.k === 'expo' ? '展覽' : kindName(c) + '・' + c.genre) : c.artist + '・' + c.genre) + '</div>' +
     '<div class="ctitle">' + esc(c.title) + '</div>' +
-    '<div class="meta"><span>📍 ' + esc(c.venue) + '</span><span>🕖 ' + esc(tm(c.time)) + '</span></div>' +
-    '<div class="pills">' + (multi ? '<span class="pill hot">共 ' + c.d.length + ' 場</span>' : '') + (c.price ? '<span class="pill">' + esc(c.price) + '</span>' : '') + (left >= 0 ? '<span class="pill">倒數 ' + left + ' 天</span>' : '') + '</div></div>' +
-    '<button class="star' + (fol ? ' on' : '') + '" data-act="follow" data-artist="' + esc(c.artist) + '" aria-label="追蹤 ' + esc(c.artist) + '">' + (fol ? '★' : '☆') + '</button></div>';
+    '<div class="meta"><span>📍 ' + esc(where) + '</span><span>🕖 ' + esc(c.r ? (c.hours || '開放時間見活動頁') : tm(c.time)) + '</span></div>' +
+    '<div class="pills">' + pills + '</div></div>' +
+    (c.noArtist || c.k === 'expo' ? '' : '<button class="star' + (fol ? ' on' : '') + '" data-act="follow" data-artist="' + esc(c.artist) + '" aria-label="追蹤 ' + esc(c.artist) + '">' + (fol ? '★' : '☆') + '</button>') + '</div>';
 }
 /* ---------- 智慧搜尋：容錯、別名、日期，邊打邊建議（全部在瀏覽器裡算，不讀資料庫） ---------- */
 // 新場次的藝人名、標題、場館、類型會自動進索引；下面的別名表只是加分，不維護也能搜得到
@@ -377,7 +469,8 @@ const VENUE_ALIAS = {
   '台北大巨蛋': ['大巨蛋', '北蛋', 'taipei dome'], '台北小巨蛋': ['小巨蛋', 'taipei arena'], '台北流行音樂中心': ['北流', '流行音樂中心', 'tmc'],
   '高雄巨蛋': ['高巨', '巨蛋', 'kaohsiung arena'], '高雄國家體育場': ['世運', '世運主場館', '國家體育場', '龍騰體育場']
 };
-const GENRE_ALIAS = { 韓流: ['kpop', 'k-pop', '韓團', '韓國'], 日本: ['jpop', 'j-pop', '日團', '日系'], 華語: ['華語', '中文', 'cpop', '台灣'], 歐美: ['西洋', '歐美', '英文'], 綜合: ['頒獎', '音樂節', '聯合'] };
+const GENRE_ALIAS = { 韓流: ['kpop', 'k-pop', '韓團', '韓國'], 日本: ['jpop', 'j-pop', '日團', '日系'], 華語: ['華語', '中文', 'cpop', '台灣'], 歐美: ['西洋', '歐美', '英文'], 綜合: ['頒獎', '音樂節', '聯合'],
+  展覽: ['展覽', '特展', '展', '博物館', '美術館', '藝術展'], 戲劇: ['戲劇', '舞台劇', '音樂劇', '劇場', '戲曲', '歌仔戲', '京劇'], 舞蹈: ['舞蹈', '芭蕾', '舞團'], 音樂: ['音樂會', '古典', '交響', '管樂', '室內樂', '獨奏'], 親子: ['親子', '兒童', '小朋友'], 綜藝: ['綜藝', '秀'] };
 const norm = s => String(s || '').normalize('NFKC').toLowerCase().replace(/臺/g, '台').replace(/[\s·・.,'’"“”!！?？\-–—_()（）《》「」【】\[\]\/:：、✦&+]+/g, '');
 const isLatin = s => /^[a-z0-9]+$/.test(s);
 function editDist(a, b, max) {
@@ -406,7 +499,7 @@ function searchIndex() {
     add(c.title, 5, c.artist);
     (String(c.title).match(/[A-Za-z][A-Za-z0-9 .'&]{2,}|[一-鿿]{2,}/g) || []).forEach(x => add(x, 4, c.artist));
     add(c.venue, 4); (VENUE_ALIAS[c.venue] || []).forEach(a => add(a, 3, c.venue));
-    add(VENUES[c.venue].city, 3); add(c.genre, 3); (GENRE_ALIAS[c.genre] || []).forEach(a => add(a, 2, c.genre));
+    add(V(c.venue).city, 3); if (c.hall) add(c.hall, 3, c.venue); if (c.k && c.k !== 'concert') add(kindName(c), 2); add(c.genre, 3); (GENRE_ALIAS[c.genre] || []).forEach(a => add(a, 2, c.genre));
     if (c.platform) add(c.platform, 1);
     return { c, keys, words: keys.filter(k => isLatin(k.t) && k.t.length >= 3) };
   });
@@ -430,6 +523,7 @@ function dateTok(tok) {
   if (tok === '下個月') { const M = m === 12 ? 1 : m + 1, Y = m === 12 ? y + 1 : y; return range(iso(Y, M, 1), iso(Y, M, 31), '下個月'); }
   return null;
 }
+function rangeHas(c, test) { for (let x = c.r[0] > todayTW() ? c.r[0] : todayTW(), i = 0; x <= c.r[1] && i < 400; x = nextDay(x), i++) if (test(x)) return true; return false; }
 // 回傳 [{c, score, hit}]，hit 是命中的欄位文字（給建議清單用）；tokens 之間是「且」
 function searchConcerts(q, pool) {
   const toks = String(q || '').trim().split(/\s+/).filter(Boolean);
@@ -440,7 +534,7 @@ function searchConcerts(q, pool) {
     let score = 0, hit = '', fuzzy = false, ok = true;
     for (const raw of toks) {
       const dt = dateTok(raw);
-      if (dt) { if (e.c.d.some(x => dt.test(x[0]))) { score += 3; continue; } ok = false; break; }
+      if (dt) { if (e.c.r ? rangeHas(e.c, dt.test) : e.c.d.some(x => dt.test(x[0]))) { score += 3; continue; } ok = false; break; }
       const t = norm(raw); if (!t) continue;
       let best = 0, bh = '', bf = false;
       for (const k of e.keys) {
@@ -477,15 +571,16 @@ function suggestions() {
   const q = S.q.trim(), items = [];
   if (!q) {
     (S.recentQ || []).slice(0, 4).forEach(x => items.push({ kind: 'recent', q: x, html: '<span class="sg-ic">🕘</span>' + esc(x) }));
-    UPCOMING().slice().sort((a, b) => a.date < b.date ? -1 : 1).slice(0, 3).forEach(c => items.push({ kind: 'concert', id: c.id, html: '<span class="sg-ic">🔥</span><b>' + esc(c.artist) + '</b><span class="sg-sub">' + dinfo(c.date).md + '・' + esc(c.venue) + '</span>' }));
+    UPCOMING().filter(c => (c.k || 'concert') === S.kind).sort((a, b) => a.date < b.date ? -1 : 1).slice(0, 3).forEach(c => items.push({ kind: 'concert', id: c.id, html: '<span class="sg-ic">🔥</span><b>' + esc(c.artist) + '</b><span class="sg-sub">' + dinfo(c.date).md + '・' + esc(c.venue) + '</span>' }));
     return items;
   }
   const res = searchConcerts(q, UPCOMING()) || [], t = norm(q);
   const kw = [];
-  Object.keys(VENUES).forEach(v => { if ([v].concat(VENUE_ALIAS[v] || []).some(a => norm(a).startsWith(t) || (t.length >= 2 && norm(a).includes(t)))) kw.push({ kind: 'kw', q: v, html: '<span class="sg-ic">📍</span>' + esc(v) + ' 的所有場次' }); });
+  [...new Set(UPCOMING().map(c => c.venue))].forEach(v => { if (kw.length < 2 && [v].concat(VENUE_ALIAS[v] || []).some(a => norm(a).startsWith(t) || (t.length >= 2 && norm(a).includes(t)))) kw.push({ kind: 'kw', q: v, html: '<span class="sg-ic">📍</span>' + esc(v) + ' 的所有活動' }); });
+  CITIES.forEach(x => { if (norm(x) === t || norm(x + '市') === t || norm(x + '縣') === t) kw.unshift({ kind: 'city', v: x, html: '<span class="sg-ic">🗺️</span>只看' + x + '的活動' }); });
   Object.keys(GENRE_ALIAS).forEach(g => { if ([g].concat(GENRE_ALIAS[g]).some(a => norm(a).startsWith(t))) kw.push({ kind: 'genre', v: g, html: '<span class="sg-ic">🏷️</span>只看「' + g + '」' }); });
   const dt = dateTok(q.split(/\s+/).pop()); if (dt) kw.push({ kind: 'kw', q, html: '<span class="sg-ic">📅</span>' + esc(dt.label) + ' 的場次' });
-  res.slice(0, 5).forEach(r => items.push({ kind: 'concert', id: r.c.id, html: '<span class="sg-ic">🎤</span><span><b>' + hl(r.c.artist, q) + '</b>' + (r.fuzzy ? '<span class="sg-tag">你是不是要找</span>' : '') + '<span class="sg-sub">' + dinfo(r.c.date).md + (r.c.d.length > 1 ? ' 等 ' + r.c.d.length + ' 場' : '') + '・' + esc(r.c.venue) + (r.hit && ![r.c.artist, r.c.venue].some(x => norm(x) === norm(r.hit)) ? '・' + hl(r.hit, q) : '') + '</span></span>' }));
+  res.slice(0, 5).forEach(r => items.push({ kind: 'concert', id: r.c.id, html: '<span class="sg-ic">' + ({ show: '🎭', expo: '🖼️' }[r.c.k] || '🎤') + '</span><span><b>' + hl(r.c.artist, q) + '</b>' + (r.fuzzy ? '<span class="sg-tag">你是不是要找</span>' : '') + '<span class="sg-sub">' + (r.c.r ? rangeLabel(r.c) : dinfo(r.c.date).md + (r.c.d.length > 1 ? ' 等 ' + r.c.d.length + ' 場' : '')) + '・' + esc(r.c.venue) + (r.hit && ![r.c.artist, r.c.venue].some(x => norm(x) === norm(r.hit)) ? '・' + hl(r.hit, q) : '') + '</span></span>' }));
   return kw.slice(0, 2).concat(items).slice(0, 7);
 }
 function renderSug() {
@@ -501,37 +596,52 @@ function pickSug(i) {
   const x = S.sugItems && S.sugItems[i]; if (!x) return;
   S.sugOpen = false; S.sugIdx = -1;
   if (x.kind === 'concert') { addRecent(S.q.trim() || C(x.id).artist); renderSug(); openConcert(x.id); return; }
-  if (x.kind === 'genre') { S.genre = x.v; S.q = ''; }
+  if (x.kind === 'genre') { const k = SHOW_CATS.includes(x.v) ? 'show' : x.v === '展覽' ? 'expo' : 'concert'; S.kind = k; S.genre = k === 'expo' ? '全部' : x.v; S.q = ''; }
+  else if (x.kind === 'city') { S.city = x.v; S.q = ''; }
   else { S.q = x.q; addRecent(x.q); }
   render();
 }
+function inPlace(c) { if (S.city === '全部') return true; const city = V(c.venue).city; return AREAS[S.city] ? AREAS[S.city].includes(city) : city === S.city; }
+function genreOk(c) { return S.genre === '全部' || (S.genre === '免費' ? c.free : S.genre === '展出中' ? c.r && c.r[0] <= todayTW() : c.genre === S.genre); }
+const PAGE = 60;
 function homeList() {
-  const pool = UPCOMING(), base = c => (S.city === '全部' || VENUES[c.venue].city === S.city) && (S.genre === '全部' || c.genre === S.genre) && (!S.onlyFollow || S.follows.includes(c.artist));
+  const pool = UPCOMING(), kindOk = c => (c.k || 'concert') === S.kind;
+  const base = c => inPlace(c) && genreOk(c) && (!S.onlyFollow || S.follows.includes(c.artist));
   const byDate = (a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
   const res = searchConcerts(S.q, pool);
-  if (!res) { const list = pool.filter(base).sort(byDate); return list.length ? '<div class="cgrid">' + list.map(concertCard).join('') + '</div>' : '<div class="empty">沒有符合的場次</div>'; }
+  if (!res) {
+    const list = pool.filter(c => kindOk(c) && base(c)).sort(byDate), lim = S.homeLimit || PAGE;
+    if (!list.length) return '<div class="empty">' + (S.kind === 'concert' ? '沒有符合的場次' : '沒有符合的活動') + (S.city !== '全部' ? '，試試看其他地區' : '') + '</div>';
+    return '<div class="cgrid">' + withPromo(list.slice(0, lim).map(concertCard)).join('') + '</div>' + (list.length > lim ? '<button class="btn line full" data-act="more">再看 ' + Math.min(PAGE, list.length - lim) + ' 筆（共 ' + list.length + ' 筆）</button>' : '');
+  }
   const shown = res.filter(r => base(r.c)), hidden = res.length - shown.length;
   const exact = shown.filter(r => !r.fuzzy), fz = shown.filter(r => r.fuzzy);
   let h = '';
-  if (shown.length) h += '<div class="small muted" style="margin:0 0 8px">找到 ' + shown.length + ' 場' + (exact.length ? '' : '，以下是拼法相近的結果') + '</div>' + '<div class="cgrid">' + exact.concat(fz).map(r => concertCard(r.c)).join('') + '</div>';
+  if (shown.length) h += '<div class="small muted" style="margin:0 0 8px">找到 ' + shown.length + ' 筆' + (exact.length ? '' : '，以下是拼法相近的結果') + (S.kind !== 'concert' || shown.some(r => r.c.k && r.c.k !== 'concert') ? '（搜尋時會一起找演唱會、表演和展覽）' : '') + '</div>' + '<div class="cgrid">' + exact.concat(fz).slice(0, 120).map(r => concertCard(r.c)).join('') + '</div>';
   if (hidden) h += '<div class="empty">還有 ' + hidden + ' 場符合「' + esc(S.q.trim()) + '」，但被上方的篩選條件隱藏了 <button class="btn line" data-act="clearFilters">清除篩選</button></div>';
   if (!res.length) {
     const past = CONCERTS.filter(c => c.last < todayTW()), pr = searchConcerts(S.q, past) || [];
-    h += '<div class="empty">找不到「' + esc(S.q.trim()) + '」的近期場次。' + (pr.length ? '<br>它可能已經演完了（' + esc(pr[0].c.artist) + '・' + dinfo(pr[0].c.last).md + '）。' : '<br>可以試試藝人英文名、場館（例如「大巨蛋」）或月份（例如「12月」）。') + '<br><span class="small">場次每天自動更新兩次，新公布的演出通常一兩天內會出現。</span></div>';
+    h += '<div class="empty">找不到「' + esc(S.q.trim()) + '」的近期活動。' + (pr.length ? '<br>它可能已經演完了（' + esc(pr[0].c.artist) + '・' + dinfo(pr[0].c.last).md + '）。' : '<br>可以試試藝人英文名、場館（例如「大巨蛋」）或月份（例如「12月」）。') + '<br><span class="small">場次每天自動更新兩次，新公布的演出通常一兩天內會出現。</span></div>';
   }
   return h;
 }
 function updateHome() { const l = $('#homeList'); if (l) l.innerHTML = homeList(); renderSug(); }
 
 function vHome() {
-  return '<h2 class="vt">演唱會情報站</h2><p class="vsub">台北、高雄五大場館近期場次，點卡片看售票、交通與住宿</p>' +
-    '<div class="sbox"><input class="search" id="q" type="search" enterkeyhint="search" placeholder="搜尋藝人、場館、月份（例：防彈、大巨蛋、12月）" value="' + esc(S.q) + '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="sugBox" aria-expanded="false">' +
+  const up = UPCOMING(), count = k => up.filter(c => (c.k || 'concert') === k).length;
+  const area = AREAS[S.city] ? S.city : Object.keys(AREAS).find(a => AREAS[a].includes(S.city)) || '';
+  const genres = S.kind === 'concert' ? ['全部', '韓流', '日本', '華語', '歐美', '綜合'].concat(up.some(c => (c.k || 'concert') === 'concert' && c.genre === '其他') ? ['其他'] : []) : S.kind === 'show' ? ['全部'].concat(SHOW_CATS, ['免費']) : ['全部', '展出中', '免費'];
+  return '<h2 class="vt">全台演出與展覽情報站</h2><p class="vsub">演唱會、音樂、戲劇、舞蹈與展覽，點卡片看售票、交通與住宿</p>' +
+    newShowsBar() + '<div class="seg kindseg" role="tablist">' + KINDS.map(([k, l]) => '<button role="tab" aria-selected="' + (S.kind === k) + '" class="' + (S.kind === k ? 'on' : '') + '" data-act="kind" data-v="' + k + '">' + l + (count(k) ? '<span class="cnt">' + count(k) + '</span>' : '') + '</button>').join('') + '</div>' +
+    '<div class="sbox"><input class="search" id="q" type="search" enterkeyhint="search" placeholder="' + (S.kind === 'expo' ? '搜尋展覽、博物館、縣市（例：法老、奇美、台中）' : S.kind === 'show' ? '搜尋節目、團體、場館（例：交響、衛武營、親子）' : '搜尋藝人、場館、月份（例：防彈、大巨蛋、12月）') + '" value="' + esc(S.q) + '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="sugBox" aria-expanded="false">' +
     (S.q ? '<button class="sclear" data-act="clearQ" aria-label="清除搜尋">✕</button>' : '') + '<div id="sugBox" class="sug" role="listbox" hidden></div></div>' +
-    '<div class="chips">' + ['全部', '台北', '高雄'].map(x => '<button class="chip' + (S.city === x ? ' on' : '') + '" data-act="city" data-v="' + x + '">' + x + '</button>').join('') +
-    '<button class="chip' + (S.onlyFollow ? ' on' : '') + '" data-act="onlyFollow">★ 只看追蹤</button></div>' +
-    '<div class="chips">' + ['全部', '韓流', '日本', '華語', '歐美', '綜合'].concat(UPCOMING().some(c => c.genre === '其他') ? ['其他'] : []).map(x => '<button class="chip' + (S.genre === x ? ' on' : '') + '" data-act="genre" data-v="' + x + '">' + x + '</button>').join('') + '</div>' +
+    '<div class="chips">' + ['全部'].concat(Object.keys(AREAS)).map(x => '<button class="chip' + (S.city === x || (x === area && S.city !== '全部') ? ' on' : '') + '" data-act="city" data-v="' + x + '">' + x + '</button>').join('') +
+    (S.kind === 'concert' ? '<button class="chip' + (S.onlyFollow ? ' on' : '') + '" data-act="onlyFollow">★ 只看追蹤</button>' : '') + '</div>' +
+    (area ? '<div class="chips sub">' + AREAS[area].filter(c => up.some(x => V(x.venue).city === c)).map(x => '<button class="chip' + (S.city === x ? ' on' : '') + '" data-act="city" data-v="' + x + '">' + x + '</button>').join('') + '</div>' : '') +
+    '<div class="chips">' + genres.map(x => '<button class="chip' + (S.genre === x ? ' on' : '') + '" data-act="genre" data-v="' + x + '">' + x + '</button>').join('') + '</div>' +
     '<div id="homeList">' + homeList() + '</div>' +
-    '<p class="src">' + (DATA_LIVE ? '場次每天自動比對臺北小巨蛋、北流官網與維基百科的演唱會列表，再加上人工整理的票價與售票資訊；資料日期 ' : '場次資料整理自公開報導，資料日期 ') + DATA_ASOF + '。日期、票價與售票狀況可能異動，購票前請以主辦單位與售票平台公告為準。</p>';
+    '<p class="src">' + (DATA_LIVE ? '五大場館的演唱會每天自動比對臺北小巨蛋、北流官網與維基百科，再加上人工整理的票價與售票資訊（資料日期 ' + DATA_ASOF + '）' : '演唱會整理自公開報導（資料日期 ' + DATA_ASOF + '）') +
+    '；全台的演唱會、表演與展覽來自<a href="https://cloud.culture.tw/" target="_blank" rel="noopener">文化部藝文活動開放資料</a>' + (ARTS_ASOF ? '（' + ARTS_ASOF + ' 更新）' : '') + '，每天自動更新。日期、票價可能異動，請以主辦單位與售票平台公告為準。</p>';
 }
 
 function gate(what) {
@@ -549,7 +659,7 @@ const DEMO_PUB = {
   demo3: { nickname: '應援團長（示範）', gender: '女', ageBand: '25–34' }
 };
 function demoRides() {
-  const u = UPCOMING(), tp = u.find(c => VENUES[c.venue].city === '台北') || u[0], kh = u.find(c => VENUES[c.venue].city === '高雄') || u[0];
+  const u = UPCOMING().filter(c => !c.k || c.k === 'concert'), tp = u.find(c => V(c.venue).city === '台北') || u[0], kh = u.find(c => V(c.venue).city === '高雄') || u[0];
   if (!tp) return [];
   return [
     { id: 'demo-r1', demo: true, kind: '包車', concertId: kh.id, title: '台中出發包車，散場直接上車', from: '台中高鐵站', capacity: 8, memberCount: 5, cost: 650, note: '示範貼文：包車會寫出發地、人數和每人分攤費用', owner: 'demo1' },
@@ -576,7 +686,8 @@ function personBlock(ownerId) {
   const p = S.pub[ownerId] || DEMO_PUB[ownerId];
   const n = p ? str(p.nickname, 20) : (p === null ? '已刪除的帳號' : '…');
   const meta = p ? (str(p.gender, 2) + '・' + (p.minor ? '年齡不公開' : str(p.ageBand, 8) + ' 歲')) : '';
-  return '<div class="host"><div class="avatar">' + esc(n.slice(0, 1)) + '</div><div>' + esc(n) + (ownerId === uid() ? '（我）' : '') +
+  const px = p && !DEMO_PUB[ownerId] ? plusOf(ownerId) : null;
+  return '<div class="host"><div class="avatar"' + (px ? ' style="background:' + cheer(px.color)[1] + '"' : '') + '>' + esc(n.slice(0, 1)) + '</div><div><span' + (px ? nameStyle(ownerId) : '') + '>' + esc(n) + '</span>' + (ownerId === uid() ? '（我）' : '') + (px ? plusBadge(ownerId) : '') +
     (p && !DEMO_PUB[ownerId] ? ' <span class="ver">✓ 實名註冊</span>' : '') + '<div class="small muted">' + esc(meta) + (p && !DEMO_PUB[ownerId] ? (loadRep(ownerId), ' ' + repLine(ownerId)) : '') + '</div></div></div>';
 }
 function acceptedBlock(type, item) {
@@ -607,7 +718,7 @@ function pkItems(id, q) {
     UPCOMING().slice().sort((a, b) => a.date < b.date ? -1 : 1).slice(0, 8).forEach(c => items.push({ v: c.id, html: '<span class="sg-ic">🎤</span><span><b>' + esc(c.artist) + '</b><span class="sg-sub">' + dinfo(c.date).md + '・' + esc(c.venue) + '</span></span>' }));
     return items;
   }
-  (searchConcerts(q, UPCOMING()) || []).slice(0, 8).forEach(r => items.push({ v: r.c.id, html: '<span class="sg-ic">🎤</span><span><b>' + hl(r.c.artist, q) + '</b>' + (r.fuzzy ? '<span class="sg-tag">你是不是要找</span>' : '') + '<span class="sg-sub">' + dinfo(r.c.date).md + (r.c.d.length > 1 ? ' 等 ' + r.c.d.length + ' 場' : '') + '・' + esc(r.c.venue) + '</span></span>' }));
+  (searchConcerts(q, UPCOMING()) || []).slice(0, 8).forEach(r => items.push({ v: r.c.id, html: '<span class="sg-ic">🎤</span><span><b>' + hl(r.c.artist, q) + '</b>' + (r.fuzzy ? '<span class="sg-tag">你是不是要找</span>' : '') + '<span class="sg-sub">' + (r.c.r ? rangeLabel(r.c) : dinfo(r.c.date).md + (r.c.d.length > 1 ? ' 等 ' + r.c.d.length + ' 場' : '')) + '・' + esc(r.c.venue) + '</span></span>' }));
   if (!items.length) items.push({ v: null, html: '<span class="sg-ic">🤔</span><span class="muted">找不到「' + esc(q) + '」，試試藝人英文名、場館或月份</span>' });
   return items;
 }
@@ -778,7 +889,8 @@ async function delRev(who) {
 
 /* ---------- 管理員後台（只有 ADMINS 名單裡的帳號看得到，資料庫規則也會再檢查一次） ---------- */
 async function loadAdmin() {
-  const a = S.admin = { ready: false, reports: [], bans: [], stats: [] };
+  const a = S.admin = { ready: false, reports: [], bans: [], stats: [], subs: null };
+  F.getDocs(F.collection(db, 'subs')).then(q => { const now = Date.now(), xs = q.docs.map(d => cleanSub(d.data())).filter(x => x && x.until > now); a.subs = { n: xs.length, month: xs.filter(x => x.plan === 'month').length, year: xs.filter(x => x.plan === 'year').length, renew: xs.filter(x => x.autoRenew).length }; if (S.view === 'admin') render(); }).catch(() => { });
   try {
     const [rp, bn, st] = await Promise.all([
       F.getDocs(F.query(F.collection(db, 'reports'), F.orderBy('createdAt', 'desc'), F.limit(60))),
@@ -812,6 +924,7 @@ function vAdmin() {
   const bans = a.bans.length ? a.bans.map(b => '<div class="rowline"><span>' + esc(nick(b.id)) + '<br><span class="small muted">' + esc(str(b.reason, 40)) + '</span></span><button class="btn line" data-act="admUnban" data-v="' + esc(b.id) + '">解除停權</button></div>').join('') : '<div class="small muted">沒有停權中的帳號</div>';
   return '<h2 class="vt">管理員後台</h2><p class="vsub">處理檢舉、停權帳號、看使用人數</p>' +
     '<div class="card"><div class="sec" style="margin-top:0">每日造訪（最近 14 天）</div>' + stats + '</div>' +
+    (a.subs ? '<div class="card"><div class="sec" style="margin-top:0">Plus 訂閱（模擬）</div><div class="rowline"><span>有效訂閱</span><b>' + a.subs.n + ' 人</b></div><div class="rowline"><span>月繳／年繳</span><span>' + a.subs.month + '／' + a.subs.year + '</span></div><div class="rowline"><span>開著自動續訂</span><span>' + a.subs.renew + '</span></div><div class="rowline"><span>換算每月收入（模擬）</span><b>NT$' + Math.round(a.subs.month * 49 + a.subs.year * 490 / 12).toLocaleString() + '</b></div></div>' : '') +
     '<div class="sec">檢舉（' + a.reports.length + '）</div>' + reps +
     '<div class="card"><div class="sec" style="margin-top:0">停權中的帳號</div>' + bans + '<div class="small muted" style="margin-top:6px">被停權的人可以登入、瀏覽，但不能發文、申請、聊天或回報。</div></div>' +
     '<button class="btn line full" data-act="admReload">重新整理</button>';
@@ -847,27 +960,265 @@ function shareConcert(id) {
 function icsEsc(s) { return String(s).replace(/\\/g, '\\\\').replace(/[,;]/g, m => '\\' + m).replace(/\r?\n/g, '\\n'); }
 function downloadIcs(id) {
   const c = C(id); if (!c) return;
-  const pad = n => String(n).padStart(2, '0'), stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
-  const ev = c.d.map(([day, t], i) => {
-    let when;
-    if (/^\d\d:\d\d$/.test(t || '')) {
-      const st = new Date(Date.parse(day + 'T' + t + ':00+08:00')), en = new Date(st.getTime() + 3 * 3600e3);
-      const f = x => x.getUTCFullYear() + pad(x.getUTCMonth() + 1) + pad(x.getUTCDate()) + 'T' + pad(x.getUTCHours()) + pad(x.getUTCMinutes()) + '00Z';
-      when = 'DTSTART:' + f(st) + '\r\nDTEND:' + f(en);
-    } else {
-      const nx = new Date(Date.parse(day + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10).replace(/-/g, '');
-      when = 'DTSTART;VALUE=DATE:' + day.replace(/-/g, '') + '\r\nDTEND;VALUE=DATE:' + nx;
-    }
-    return ['BEGIN:VEVENT', 'UID:' + c.id + '-' + i + '@fanverse-team.github.io', 'DTSTAMP:' + stamp, when,
-      'SUMMARY:' + icsEsc(c.artist + '｜' + c.title), 'LOCATION:' + icsEsc(c.venue + ' ' + (VENUES[c.venue] ? VENUES[c.venue].addr || '' : '')),
-      'DESCRIPTION:' + icsEsc((t ? '' : '開演時間未公布，請留意主辦公告。') + '場次資訊：' + SITE + '#c/' + c.id), 'URL:' + SITE + '#c/' + c.id,
-      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc('明天就是 ' + c.artist + '！記得帶票和證件'), 'TRIGGER:-P1D', 'END:VALARM', 'END:VEVENT'].join('\r\n');
-  }).join('\r\n');
-  const ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//FANVERSE//TW\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n' + ev + '\r\nEND:VCALENDAR\r\n';
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' })); a.download = 'fanverse-' + c.id + '.ics';
-  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  toast('已下載行事曆檔，打開就能加入手機或 Google 行事曆');
+  saveIcs(icsEvents(c, isPlus()), 'fanverse-' + c.id + '.ics');
+  toast(isPlus() ? '已下載行事曆檔（含 Plus 多段提醒）' : '已下載行事曆檔，打開就能加入手機或 Google 行事曆');
 }
+
+/* ---------- FANVERSE Plus（模擬訂閱：課堂展示用，不串金流、不會真的扣款） ---------- */
+// 原則：安全功能（檢舉、封鎖、防詐、實名）與媒合公平性永遠免費；Plus 只加方便與好看的功能
+const PLUS_PRICE = { month: 49, year: 490 }, PLUS_DAYS = { month: 30, year: 365 };
+const FREE_LIMIT = { rem: 5, follow: 5, plan: 3 };
+const CHEER = [['應援粉', '#FF4F9A', '#C21F66', '#FFE3EF'], ['夢幻紫', '#8B5CF6', '#6D28D9', '#EDE9FE'], ['天空藍', '#0EA5E9', '#0369A1', '#E0F2FE'], ['薄荷綠', '#10B981', '#047857', '#D1FAE5'],
+  ['活力橘', '#F97316', '#C2410C', '#FFEDD5'], ['閃耀黃', '#EAB308', '#A16207', '#FEF9C3'], ['熱情紅', '#EF4444', '#B91C1C', '#FEE2E2'], ['深海藍', '#2563EB', '#1E40AF', '#DBEAFE']];
+const PAY = ['信用卡', 'LINE Pay', 'Apple Pay', '街口支付'];
+const isPlus = () => !!(S.plus && S.plus.until > Date.now());
+const cheer = name => CHEER.find(x => x[0] === name) || CHEER[0];
+const fmtDay = ms => { const d = new Date(ms + 8 * 3600e3); return d.getUTCFullYear() + '/' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); };
+function applyTheme() {
+  const c = isPlus() ? cheer(S.plus.color) : CHEER[0], r = document.documentElement.style;
+  r.setProperty('--pink', c[1]); r.setProperty('--pinkd', c[2]); r.setProperty('--pinkbg', c[3]);
+  IMG.pink = c[1]; IMG.pinkd = c[2];
+}
+function cleanSub(x) {
+  if (!x || !['month', 'year'].includes(x.plan) || !x.until || typeof x.until.toMillis !== 'function') return null;
+  return { plan: x.plan, until: x.until.toMillis(), since: x.since && x.since.toMillis ? x.since.toMillis() : 0, autoRenew: x.autoRenew === true, color: CHEER.some(c => c[0] === x.color) ? x.color : CHEER[0][0] };
+}
+// 其他會員的 Plus 徽章與應援色名牌（讀一次就快取）
+function plusOf(id) {
+  if (!id || DEMO_PUB[id] || !db || S.mode !== 'ready') return null;
+  if (id === uid()) return isPlus() ? S.plus : null;
+  if (S.plusPub[id] === undefined) {
+    S.plusPub[id] = null;
+    F.getDoc(F.doc(db, 'subs', id)).then(s => { const x = s.exists() ? cleanSub(s.data()) : null; S.plusPub[id] = x && x.until > Date.now() ? x : false; if (S.plusPub[id]) { renderData(); if (S.manage) renderManage(); if (S.group) renderMsgs(); } }).catch(() => { S.plusPub[id] = false; });
+  }
+  return S.plusPub[id] || null;
+}
+const plusBadge = id => plusOf(id) ? ' <span class="plusb" title="FANVERSE Plus 會員">✦ Plus</span>' : '';
+const nameStyle = id => { const x = plusOf(id); return x ? ' style="color:' + cheer(x.color)[2] + '"' : ''; };
+// 免費版每天可以產生 3 次行程，Plus 不限
+function planQuota() { const q = loadLS('fv_planc', {}); return q.d === todayTW() ? num(q.n) : 0; }
+function usePlan() { if (isPlus()) return true; const n = planQuota(); if (n >= FREE_LIMIT.plan) { plusSheet('今天的 ' + FREE_LIMIT.plan + ' 次免費行程規劃已經用完'); return false; } saveLS('fv_planc', { d: todayTW(), n: n + 1 }); return true; }
+// 收藏、追蹤超過免費額度時
+function overLimit(kind) {
+  if (isPlus()) return false;
+  const list = kind === 'rem' ? S.reminders : S.follows;
+  if (list.length < FREE_LIMIT[kind]) return false;
+  plusSheet('免費版最多' + (kind === 'rem' ? '收藏 ' : '追蹤 ') + FREE_LIMIT[kind] + (kind === 'rem' ? ' 個活動' : ' 位藝人')); return true;
+}
+function plusSheet(why) {
+  openSheet('升級 FANVERSE Plus', (why ? '<div class="hint" style="margin-top:0">' + esc(why) + '，升級 Plus 就沒有上限。</div>' : '') + plusTable(true) +
+    '<div class="actions"><button class="btn line" style="flex:1" data-act="close">先不要</button><button class="btn pink" style="flex:2" data-act="goPlus">看方案（NT$49／月起）</button></div>');
+}
+function plusTable(short) {
+  const rows = [['收藏活動', '5 個', '無上限'], ['追蹤藝人', '5 位', '無上限'], ['行程規劃', '每天 3 次', '無上限'], ['行事曆提醒', '演出前一天', '前一天＋3 小時前＋開賣提醒'],
+    ['追蹤藝人公布新場次', '—', '開網站就通知'], ['多人分帳計算機', '—', '✓'], ['收藏一次匯出行事曆、追星月曆圖', '—', '✓'], ['應援色主題、名牌與徽章', '—', '8 種顏色'], ['推廣訊息', '有', '無']];
+  if (short) rows.splice(6);
+  return '<table class="ptab"><thead><tr><th></th><th>免費</th><th>Plus</th></tr></thead><tbody>' + rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td><b>' + r[2] + '</b></td></tr>').join('') + '</tbody></table>' +
+    '<p class="small muted" style="margin:6px 0 0">檢舉、封鎖、防詐檢查、實名驗證與同行媒合永遠免費，付費不會讓你的貼文排比較前面。</p>';
+}
+function vPlus() {
+  const me = S.mode === 'ready', p = S.plus, on = isPlus();
+  let status = '';
+  if (on) {
+    status = '<div class="card plushero"><div class="sec" style="margin-top:0">✦ 你是 FANVERSE Plus 會員</div>' +
+      '<div class="rowline"><span class="muted">方案</span><span>' + (p.plan === 'year' ? '年繳 NT$490' : '月繳 NT$49') + '</span></div>' +
+      '<div class="rowline"><span class="muted">' + (p.autoRenew ? '下次自動續訂' : '到期日') + '</span><span>' + fmtDay(p.until) + '</span></div>' +
+      '<div class="rowline"><span class="muted">自動續訂</span><span>' + (p.autoRenew ? '開啟' : '已關閉（到期後回到免費版）') + '</span></div>' +
+      '<div class="sec">應援色（主題、名牌、行程圖都會換成這個顏色）</div><div class="cheers">' + CHEER.map(c => '<button class="cheer' + (p.color === c[0] ? ' on' : '') + '" style="--c:' + c[1] + '" data-act="plusColor" data-v="' + c[0] + '" aria-label="' + c[0] + '"><i></i>' + c[0] + '</button>').join('') + '</div>' +
+      '<div class="actions">' + (p.autoRenew ? '<button class="btn line" data-act="plusRenew" data-v="0">取消自動續訂</button>' : '<button class="btn pink" data-act="plusRenew" data-v="1">恢復自動續訂</button>') + '<button class="btn danger" data-act="plusEnd">立即結束（測試用）</button></div>' +
+      '<p class="small muted" style="margin:8px 0 0">取消自動續訂後，到期前都還能使用 Plus。</p></div>';
+  }
+  const plan = (k, label, sub) => '<div class="plan' + (k === 'year' ? ' best' : '') + '">' + (k === 'year' ? '<span class="tag">省 NT$98</span>' : '') + '<div class="pn">' + label + '</div><div class="pp">NT$' + PLUS_PRICE[k] + '<span>／' + (k === 'year' ? '年' : '月') + '</span></div><div class="small muted">' + sub + '</div>' +
+    (me ? '<button class="btn ' + (k === 'year' ? 'pink' : 'line') + ' full" data-act="plusBuy" data-v="' + k + '"' + (on ? ' disabled' : '') + '>' + (on ? '使用中' : '選這個') + '</button>' : '') + '</div>';
+  return '<h2 class="vt">FANVERSE Plus</h2><p class="vsub">讓追星更省心的進階功能</p>' +
+    '<div class="mock">🧪 這是課堂專題的<b>模擬訂閱</b>：不會真的扣款，也不需要輸入任何卡號。</div>' + status +
+    '<div class="plans">' + plan('month', '月繳', '每月自動續訂，可隨時取消') + plan('year', '年繳', '一次付一年，等於送兩個月') + '</div>' +
+    (me ? '' : '<div class="empty">登入後才能訂閱 <button class="btn pink" data-act="tab" data-v="me">登入／註冊</button></div>') +
+    '<div class="card"><div class="sec" style="margin-top:0">免費版和 Plus 的差別</div>' + plusTable(false) + '</div>' +
+    '<div class="card"><div class="sec" style="margin-top:0">常見問題</div><dl class="kv">' +
+    '<dt>怎麼取消？</dt><dd>在這一頁按「取消自動續訂」，到期前都還能用，不會再扣下一期。</dd>' +
+    '<dt>未成年可以訂嗎？</dt><dd>可以，但要先取得法定代理人（父母或監護人）同意。</dd>' +
+    '<dt>付費會影響媒合嗎？</dt><dd>不會。同行媒合、周邊交換的排序和 Plus 無關，安全功能也都免費。</dd>' +
+    '<dt>真的上線要怎麼收費？</dt><dd>要串接綠界、藍新等金流，完成營業登記並開立電子發票；自動續訂要在付款前清楚告知金額與取消方式。</dd></dl></div>';
+}
+function plusCheckout(plan) {
+  if (S.mode !== 'ready') return go('me');
+  const minor = S.profile && S.profile.minor;
+  openSheet('確認訂閱', '<div class="mock">🧪 模擬付款：不會真的扣款，也不用輸入卡號。</div>' +
+    '<form id="plusF"><div class="rowline"><span>FANVERSE Plus・' + (plan === 'year' ? '年繳' : '月繳') + '</span><b>NT$' + PLUS_PRICE[plan] + '</b></div>' +
+    '<label class="f">付款方式（模擬）</label><div class="seg" id="payS">' + PAY.map((x, i) => '<button type="button" class="' + (i ? '' : 'on') + '" data-act="seg" data-v="' + x + '">' + x + '</button>').join('') + '</div>' +
+    '<label class="tagchk" style="margin-top:12px;display:flex"><input type="checkbox" id="plAuto" checked> 到期自動續訂（每' + (plan === 'year' ? '年' : '月') + ' NT$' + PLUS_PRICE[plan] + '，可隨時取消）</label>' +
+    (minor ? '<label class="tagchk" style="margin-top:8px;display:flex"><input type="checkbox" id="plGuard"> 我已取得法定代理人（父母或監護人）同意</label>' : '') +
+    '<label class="tagchk" style="margin-top:8px;display:flex"><input type="checkbox" id="plTerms"> 我了解這是模擬訂閱，以及取消與續訂方式</label>' +
+    '<input type="hidden" id="plPlan" value="' + plan + '"><div id="sheetErr"></div>' +
+    '<button class="btn pink full" style="margin-top:14px" type="submit">確認模擬付款 NT$' + PLUS_PRICE[plan] + '</button></form>');
+}
+async function submitPlus(form) {
+  const plan = $('#plPlan').value, minor = S.profile && S.profile.minor;
+  if (!PLUS_PRICE[plan]) return;
+  if (!$('#plTerms').checked) return sheetErr('請先勾選確認');
+  if (minor && !($('#plGuard') && $('#plGuard').checked)) return sheetErr('未成年訂閱需要法定代理人同意');
+  busyBtn(form, true, '處理中…');
+  try {
+    await F.setDoc(F.doc(db, 'subs', uid()), { plan, autoRenew: $('#plAuto').checked, color: (S.plus && S.plus.color) || CHEER[0][0], guardian: !!minor, mock: true, since: F.serverTimestamp(), until: F.Timestamp.fromMillis(Date.now() + PLUS_DAYS[plan] * 864e5) });
+    closeSheet(); toast('訂閱成功（模擬），歡迎成為 Plus 會員！'); go('plus');
+  } catch (e) { sheetErr(errMsg(e)); busyBtn(form, false, '確認模擬付款 NT$' + PLUS_PRICE[plan]); }
+}
+async function plusUpdate(patch) {
+  try { await F.setDoc(F.doc(db, 'subs', uid()), patch, { merge: true }); } catch (e) { toast(errMsg(e)); }
+}
+// 模擬自動續訂：到期時如果開著自動續訂，就再延一期（真正上線時由金流的扣款通知處理）
+async function plusAutoRenew() {
+  const p = S.plus; if (!p || p.until > Date.now() || !p.autoRenew || S.renewing) return;
+  S.renewing = true;
+  try { await F.setDoc(F.doc(db, 'subs', uid()), { plan: p.plan, autoRenew: true, color: p.color, guardian: !!(S.profile && S.profile.minor), mock: true, since: F.serverTimestamp(), until: F.Timestamp.fromMillis(Date.now() + PLUS_DAYS[p.plan] * 864e5) }); toast('Plus 已自動續訂（模擬）'); } catch (e) { }
+  S.renewing = false;
+}
+// 推廣訊息：免費版每 12 張卡片插一張；Plus 會員不顯示
+function withPromo(cards) {
+  if (isPlus() || cards.length < 4) return cards;
+  const ads = ['<div class="card promo"><span class="pill">推廣</span><div><b>FANVERSE Plus</b>：收藏、追蹤不限量，追蹤的藝人一公布新場次就通知你。<button class="lnk" data-act="goPlus">看看 NT$49 方案</button></div></div>',
+    '<div class="card promo"><span class="pill">推廣</span><div><b>合作推廣位</b>：歡迎主辦單位、場館與周邊店家洽詢合作（課堂專題示意）。</div></div>'];
+  const out = []; cards.forEach((c, i) => { out.push(c); if (i % 12 === 3) out.push(ads[Math.floor(i / 12) % 2]); });
+  return out;
+}
+
+/* ---------- Plus：追蹤藝人公布新場次（開網站時比對，也可以開瀏覽器通知） ---------- */
+function checkNewShows() {
+  if (!S.follows.length || !DATA_LIVE) return;
+  const known = loadLS('fv_known', null), mine = UPCOMING().filter(c => S.follows.includes(c.artist));
+  const ids = mine.map(c => c.id);
+  if (!known) { saveLS('fv_known', ids); return; }
+  const fresh = mine.filter(c => !known.includes(c.id));
+  if (!fresh.length) return;
+  if (!isPlus()) return; // 免費版不通知，但也不標成已看過，升級後就會跳出來
+  S.newShows = fresh;
+  saveLS('fv_known', known.concat(fresh.map(c => c.id)).slice(-800));
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification('FANVERSE：追蹤的藝人有新場次', { body: fresh.slice(0, 3).map(c => c.artist + '・' + dinfo(c.date).md + ' ' + c.venue).join('\n'), icon: 'icon-192.png' }); } catch (e) { }
+  }
+  render();
+}
+function newShowsBar() {
+  if (!S.newShows || !S.newShows.length) return '';
+  return '<div class="card newshow"><b>🔔 你追蹤的藝人公布新場次</b>' + S.newShows.slice(0, 5).map(c => '<div class="rowline" data-act="concert" data-id="' + c.id + '"><span>' + esc(c.artist) + '・' + esc(str(c.title, 24)) + '</span><span class="small">' + dinfo(c.date).md + ' ' + esc(c.venue) + '</span></div>').join('') +
+    '<div class="actions"><button class="btn line" data-act="newSeen">知道了</button>' + ('Notification' in window && Notification.permission === 'default' ? '<button class="btn" data-act="notifyOn">開啟瀏覽器通知</button>' : '') + '</div></div>';
+}
+
+/* ---------- Plus：多人分帳計算機（資料只存在你的瀏覽器） ---------- */
+function splitData(key) { const d = loadLS('fv_split_' + key, null); return d && Array.isArray(d.people) && Array.isArray(d.items) ? d : { people: [], items: [] }; }
+function splitSave(key, d) { saveLS('fv_split_' + key, { people: d.people.slice(0, 20), items: d.items.slice(0, 60) }); }
+function settle(d) {
+  const n = d.people.length; if (!n) return { total: 0, each: 0, moves: [] };
+  const paid = {}; d.people.forEach(p => { paid[p] = 0; });
+  d.items.forEach(x => { if (paid[x.who] !== undefined) paid[x.who] += num(x.amt); });
+  const total = Object.values(paid).reduce((a, b) => a + b, 0), each = total / n;
+  const bal = d.people.map(p => [p, Math.round((paid[p] - each) * 100) / 100]);
+  const cr = bal.filter(b => b[1] > 0.5).sort((a, b) => b[1] - a[1]), db2 = bal.filter(b => b[1] < -0.5).sort((a, b) => a[1] - b[1]), moves = [];
+  let i = 0, j = 0;
+  while (i < db2.length && j < cr.length) {
+    const m = Math.min(-db2[i][1], cr[j][1]);
+    moves.push([db2[i][0], cr[j][0], Math.round(m)]);
+    db2[i][1] += m; cr[j][1] -= m;
+    if (-db2[i][1] < 0.5) i++; if (cr[j][1] < 0.5) j++;
+  }
+  return { total: Math.round(total), each: Math.round(each), moves, paid };
+}
+function splitHtml(key, defaults) {
+  if (!isPlus()) return '<div class="empty">💰 多人分帳計算機是 Plus 功能：記下誰先付了車資、房費、餐費，自動算出誰該轉給誰多少。<br><button class="btn pink" data-act="goPlus" style="margin-top:8px">看 Plus 方案</button></div>';
+  const d = splitData(key);
+  if (!d.people.length && defaults && defaults.length) { d.people = defaults.slice(0, 20); splitSave(key, d); }
+  const r = settle(d), money = n => 'NT$' + Math.round(n).toLocaleString();
+  return '<div class="split" data-key="' + esc(key) + '">' +
+    '<div class="sec" style="margin-top:0">成員</div><div class="pills">' + d.people.map((p, i) => '<span class="pill">' + esc(p) + ' <button class="lnk" data-act="spDelP" data-v="' + i + '" aria-label="移除">✕</button></span>').join('') + '</div>' +
+    '<div class="grid2" style="margin-top:6px"><input class="in" id="spP" maxlength="12" placeholder="加一位成員"><button class="btn line" data-act="spAddP">加入</button></div>' +
+    '<div class="sec">誰先付了什麼</div>' + (d.items.length ? d.items.map((x, i) => '<div class="rowline"><span>' + esc(x.what) + '<br><span class="small muted">' + esc(x.who) + ' 先付</span></span><span>' + money(x.amt) + ' <button class="lnk" data-act="spDelI" data-v="' + i + '">刪除</button></span></div>').join('') : '<div class="small muted">還沒有記帳</div>') +
+    (d.people.length ? '<div class="grid2" style="margin-top:6px"><select class="in" id="spWho">' + d.people.map(p => '<option>' + esc(p) + '</option>').join('') + '</select><input class="in" id="spAmt" type="number" min="1" max="200000" placeholder="金額"></div>' +
+      '<div class="grid2" style="margin-top:6px"><input class="in" id="spWhat" maxlength="20" placeholder="項目（例：包車、房費）"><button class="btn line" data-act="spAddI">記一筆</button></div>' : '') +
+    '<div class="sec">結算（平均分攤）</div>' + (r.total ? '<div class="rowline"><span>總共</span><b>' + money(r.total) + '</b></div><div class="rowline"><span>每人</span><b>' + money(r.each) + '</b></div>' +
+      (r.moves.length ? r.moves.map(m => '<div class="rowline"><span>' + esc(m[0]) + ' → ' + esc(m[1]) + '</span><b>' + money(m[2]) + '</b></div>').join('') : '<div class="small muted">大家付的剛好一樣，不用互轉</div>') : '<div class="small muted">記帳後會自動算出誰該轉給誰</div>') +
+    '<p class="small muted" style="margin:8px 0 0">分帳資料只存在你這台裝置的瀏覽器，不會上傳。轉帳請當面或用自己熟悉的方式，不要點陌生連結付款。</p></div>';
+}
+function splitAct(act, el, v) {
+  const box = el.closest('.split'), key = box && box.dataset.key; if (!key) return;
+  const d = splitData(key);
+  if (act === 'spAddP') { const n = cleanText($('#spP').value, 12); if (!n || d.people.includes(n)) return toast(n ? '已經有這位了' : '請輸入名字'); d.people.push(n); }
+  else if (act === 'spDelP') { const p = d.people[+v]; d.people.splice(+v, 1); d.items = d.items.filter(x => x.who !== p); }
+  else if (act === 'spAddI') { const amt = Math.round(num($('#spAmt').value)); if (!(amt > 0 && amt <= 200000)) return toast('金額要在 1 到 200,000 之間'); d.items.push({ who: $('#spWho').value, amt, what: cleanText($('#spWhat').value, 20) || '費用' }); }
+  else if (act === 'spDelI') d.items.splice(+v, 1);
+  splitSave(key, d);
+  if (S.group) renderGroup(); else render();
+}
+
+/* ---------- Plus：收藏一次匯出行事曆、追星月曆圖 ---------- */
+function myFavs() { return S.reminders.map(C).filter(c => c && c.last >= todayTW()).sort((a, b) => a.date < b.date ? -1 : 1); }
+function favCard() {
+  const list = myFavs();
+  return '<div class="card"><div class="sec" style="margin-top:0">我的收藏（' + list.length + (isPlus() ? '' : '／' + FREE_LIMIT.rem) + '）</div>' +
+    (list.length ? list.map(c => '<div class="rowline" data-act="concert" data-id="' + c.id + '"><span>' + esc(c.noArtist ? str(c.title, 24) : c.artist) + '<br><span class="small muted">' + esc(c.venue) + '</span></span><span class="small">' + (c.r ? rangeLabel(c) : dinfo(c.date).md) + '</span></div>').join('') : '<div class="small muted">在活動頁按「☆ 收藏」就會出現在這裡</div>') +
+    (list.length ? '<div class="actions"><button class="btn line" data-act="favIcs">📅 全部加入行事曆' + (isPlus() ? '' : '（Plus）') + '</button><button class="btn line" data-act="favImg">🖼️ 追星月曆圖' + (isPlus() ? '' : '（Plus）') + '</button></div>' : '') + '</div>';
+}
+function icsEvents(c, plus) {
+  const pad = n => String(n).padStart(2, '0'), stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  const f = x => x.getUTCFullYear() + pad(x.getUTCMonth() + 1) + pad(x.getUTCDate()) + 'T' + pad(x.getUTCHours()) + pad(x.getUTCMinutes()) + '00Z';
+  const alarm = (trig, msg) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(msg), 'TRIGGER:' + trig, 'END:VALARM'];
+  const name = c.noArtist ? c.title : c.artist;
+  const days = c.r ? [[c.r[0], '', c.r[1]]] : c.d;
+  const out = days.map(([day, t, endDay], i) => {
+    let when;
+    if (/^\d\d:\d\d$/.test(t || '')) { const st = new Date(Date.parse(day + 'T' + t + ':00+08:00')), en = new Date(st.getTime() + 3 * 3600e3); when = 'DTSTART:' + f(st) + '\r\nDTEND:' + f(en); }
+    else when = 'DTSTART;VALUE=DATE:' + day.replace(/-/g, '') + '\r\nDTEND;VALUE=DATE:' + nextDay(endDay || day).replace(/-/g, '');
+    return ['BEGIN:VEVENT', 'UID:' + c.id + '-' + i + '@fanverse-team.github.io', 'DTSTAMP:' + stamp, when,
+      'SUMMARY:' + icsEsc(name + '｜' + c.title), 'LOCATION:' + icsEsc(c.venue + (c.hall ? ' ' + c.hall : '') + ' ' + (V(c.venue).addr || '')),
+      'DESCRIPTION:' + icsEsc((c.r ? (c.hours ? '開放時間 ' + c.hours + '。' : '') : t ? '' : '開演時間未公布，請留意主辦公告。') + '活動資訊：' + SITE + '#c/' + c.id), 'URL:' + SITE + '#c/' + c.id]
+      .concat(alarm('-P1D', (c.r ? '明天開展：' : '明天就是 ') + name + '！'), plus && t ? alarm('-PT3H', '再 3 小時開演：' + name + '，記得帶票和證件') : [], ['END:VEVENT']).join('\r\n');
+  });
+  // 開賣提醒（Plus）：開賣資訊裡有「月/日 時:分」才加
+  const m = plus && (c.sale || '').match(/(\d{1,2})\/(\d{1,2})[^0-9]{0,6}?(\d{1,2}):(\d{2})/);
+  if (m) {
+    const now = new Date(Date.now() + 8 * 3600e3), y = now.getUTCFullYear(), mo = +m[1], yr = mo < now.getUTCMonth() + 1 ? y + 1 : y;
+    const st = new Date(Date.parse(yr + '-' + pad(mo) + '-' + pad(+m[2]) + 'T' + pad(+m[3]) + ':' + m[4] + ':00+08:00'));
+    if (st > Date.now()) out.push(['BEGIN:VEVENT', 'UID:' + c.id + '-sale@fanverse-team.github.io', 'DTSTAMP:' + stamp, 'DTSTART:' + f(st), 'DTEND:' + f(new Date(st.getTime() + 30 * 60e3)),
+      'SUMMARY:' + icsEsc('開賣：' + name), 'DESCRIPTION:' + icsEsc(c.sale + (c.platform ? '｜' + c.platform : '')), 'URL:' + (c.ticketUrl || SITE + '#c/' + c.id)]
+      .concat(alarm('-PT1H', '再 1 小時開賣：' + name), alarm('-PT10M', '再 10 分鐘開賣：' + name + '，先登入售票網站'), ['END:VEVENT']).join('\r\n'));
+  }
+  return out;
+}
+function saveIcs(evs, file) {
+  const ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//FANVERSE//TW\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n' + evs.join('\r\n') + '\r\nEND:VCALENDAR\r\n';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' })); a.download = file;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+async function favImage() {
+  const list = myFavs(); if (!list.length) return;
+  const { W, P } = IMG, rowH = 128;
+  const draw = ctx => {
+    const f = (w, s) => { ctx.font = w + ' ' + s + 'px ' + IMG.font; };
+    const text = (t, x, y, c, w, s, al) => { f(w, s); ctx.fillStyle = c; ctx.textAlign = al || 'left'; ctx.textBaseline = 'top'; ctx.fillText(t, x, y); ctx.textAlign = 'left'; };
+    ctx.fillStyle = IMG.ink; ctx.fillRect(0, 0, W, 230);
+    text('FANVERSE', P, 56, IMG.pink, 700, 26); text('我的追星月曆', P, 100, '#FFFFFF', 900, 56);
+    text('共 ' + list.length + ' 個活動・' + [...new Set(list.map(c => V(c.venue).city).filter(Boolean))].join('、'), P, 172, IMG.sub, 500, 26);
+    let y = 270, month = '';
+    list.forEach(c => {
+      const mo = (c.r ? c.r[0] > todayTW() ? c.r[0] : todayTW() : c.date).slice(0, 7);
+      if (mo !== month) { month = mo; text(+mo.slice(0, 4) + ' 年 ' + +mo.slice(5) + ' 月', P, y, IMG.pinkd, 900, 34); y += 60; }
+      ctx.fillStyle = IMG.card; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(P, y, W - 2 * P, rowH - 18, 20) : ctx.rect(P, y, W - 2 * P, rowH - 18); ctx.fill();
+      text(c.r ? rangeLabel(c) : dinfo(c.date).md + ' ' + dinfo(c.date).wd, P + 28, y + 22, IMG.pinkd, 700, 26);
+      const name = (c.noArtist ? c.title : c.artist); f(900, 32); let n = name; while (ctx.measureText(n).width > W - 2 * P - 330 && n.length > 2) n = n.slice(0, -1); if (n !== name) n += '…';
+      text(n, P + 300, y + 18, IMG.ink, 900, 32);
+      f(500, 24); let v = c.venue + '（' + (V(c.venue).city || '') + '）'; while (ctx.measureText(v).width > W - 2 * P - 330 && v.length > 2) v = v.slice(0, -1);
+      text(v, P + 300, y + 62, IMG.muted, 500, 24);
+      y += rowH;
+    });
+    text('fanverse-team.github.io', P, y + 20, IMG.pinkd, 700, 24);
+    return y + 90;
+  };
+  try { await document.fonts.load('900 32px "Noto Sans TC"', list.map(c => c.artist + c.venue).join('')); } catch (e) { }
+  const m = document.createElement('canvas'); m.width = IMG.W; m.height = 10; const h = Math.ceil(draw(m.getContext('2d')));
+  const cv = document.createElement('canvas'); cv.width = IMG.W; cv.height = h; const ctx = cv.getContext('2d'); ctx.fillStyle = IMG.paper; ctx.fillRect(0, 0, IMG.W, h); draw(ctx);
+  cv.toBlob(b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'FANVERSE追星月曆.png'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast('已下載追星月曆圖'); }, 'image/png');
+}
+
 
 function vMatch() {
   const guest = S.mode !== 'ready';
@@ -944,19 +1295,25 @@ function tradeCard(t) {
 }
 
 /* ---------- 小幫手：行程規劃（規則式估算）與防詐檢查 ---------- */
-// 各地區到台北、高雄的高鐵單程時間（分鐘）與票價（元），皆為估算；rail 表示沒有高鐵、以台鐵為主
-const REGIONS = {
-  '北北基': { TPE: null, KHH: [115, 1490] }, '桃園': { TPE: [22, 160], KHH: [100, 1330] }, '新竹苗栗': { TPE: [35, 290], KHH: [90, 1200] },
-  '台中彰化': { TPE: [55, 700], KHH: [50, 790] }, '雲林嘉義': { TPE: [85, 1080], KHH: [32, 410] }, '台南': { TPE: [105, 1350], KHH: [14, 140] },
-  '高雄屏東': { TPE: [115, 1490], KHH: null }, '宜蘭花東': { TPE: [120, 440], KHH: [300, 900], rail: true }
-};
+// 出發地區；rail 表示沒有高鐵、以台鐵為主。車程與票價由 tripBase() 估算
+const REGIONS = { '北北基': {}, '桃園': {}, '新竹苗栗': {}, '台中彰化': {}, '雲林嘉義': {}, '台南': {}, '高雄屏東': {}, '宜蘭花東': { rail: true } };
+// 各地區到台北的高鐵車程（分鐘）與標準車廂票價；兩地之間取差值估算
+const HSR = { 北北基: [0, 0], 桃園: [22, 160], 新竹苗栗: [35, 290], 台中彰化: [55, 700], 雲林嘉義: [85, 1080], 台南: [105, 1350], 高雄屏東: [115, 1490] };
+const ARRIVE = { 北北基: '台北車站或南港站', 桃園: '高鐵桃園站或桃園車站', 新竹苗栗: '高鐵新竹站或新竹車站', 台中彰化: '高鐵台中站或台中車站', 雲林嘉義: '高鐵嘉義站或嘉義車站', 台南: '高鐵台南站或台南車站', 高雄屏東: '高鐵／台鐵左營站或高雄車站', 宜蘭花東: '宜蘭、花蓮或台東車站' };
+function tripBase(from, to) {
+  if (!to || from === to || to === '離島') return null;
+  if (HSR[from] && HSR[to]) return [Math.max(15, Math.abs(HSR[from][0] - HSR[to][0])), Math.max(100, Math.abs(HSR[from][1] - HSR[to][1]))];
+  const other = from === '宜蘭花東' ? to : from;
+  if (other === '高雄屏東') return [300, 900]; if (other === '台南') return [330, 1000];
+  return [120 + HSR[other][0], 440 + Math.round(HSR[other][1] * 0.6)];
+}
 const MODES = ['高鐵', '台鐵', '客運', '包車共乘', '自行開車'];
 function hm(x) { const m = Math.round(((x % 24) + 24) % 24 * 60); return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
 function dur(min) { const h = Math.floor(min / 60), m = Math.round(min % 60 / 5) * 5; return (h ? h + ' 小時' : '') + (m ? ' ' + m + ' 分' : '') || '約 10 分'; }
 function r50(n) { return Math.round(n / 50) * 50; }
 function travelOptions(reg, dest) {
-  const base = REGIONS[reg][dest]; if (!base) return [];
-  const [m, f] = base, rail = REGIONS[reg].rail, out = [];
+  const base = tripBase(reg, dest); if (!base) return [];
+  const [m, f] = base, rail = reg === '宜蘭花東' || dest === '宜蘭花東', out = [];
   if (!rail) out.push({ mode: '高鐵', min: m, cost: f, note: '最快；演唱會日的熱門班次要提早訂位' });
   out.push({ mode: '台鐵', min: rail ? m : m * 2.3, cost: rail ? f : r50(f * 0.58), note: rail ? '這個地區的主要選擇，自強號請提早訂票' : '比高鐵便宜，車程較長' });
   out.push({ mode: '客運', min: (rail ? m * 1.3 : m * 2.8), cost: r50((rail ? f : f * 0.42)), note: '最省錢，部分路線有深夜班次，散場後還搭得到' });
@@ -966,14 +1323,18 @@ function travelOptions(reg, dest) {
 }
 function makePlan(a) {
   const c = C(a.concert); if (!c) return null;
-  const v = VENUES[c.venue], dest = v.city === '台北' ? 'TPE' : 'KHH';
+  const v = V(c.venue), dest = CITY_REGION[v.city] || '', island = dest === '離島', visit = !!c.r;
   const pick = c.d[Math.min(a.dateIdx, c.d.length - 1)] || c.d[0];
-  const timeKnown = !!pick[1], start = timeKnown ? Number(pick[1].slice(0, 2)) + Number(pick[1].slice(3)) / 60 : 19;
-  const big = /大巨蛋|國家體育場/.test(c.venue), early = big ? 2.5 : 2, end = start + 3;
+  const open = visit && c.hours ? Number(c.hours.slice(0, 2)) + Number(c.hours.slice(3, 5)) / 60 : 10;
+  const timeKnown = visit || !!pick[1], start = visit ? Math.max(open, 10.5) : pick[1] ? Number(pick[1].slice(0, 2)) + Number(pick[1].slice(3)) / 60 : 19;
+  const big = /大巨蛋|國家體育場/.test(c.venue), early = visit ? 0 : c.k === 'show' ? 0.75 : big ? 2.5 : 2, end = start + (visit ? 2.5 : c.k === 'show' ? 2 : 3);
   const opts = travelOptions(a.from, dest), local = !opts.length;
   const opt = local ? null : (opts.find(o => o.mode === a.mode) || opts[0]);
   const warn = [];
+  if (!dest) warn.push('這個場館還沒有縣市資料，交通先用同生活圈估算，請用活動頁的 Google 地圖連結確認。');
+  if (island) warn.push('離島活動需要先訂機票或船票，班次少、假日常客滿；以下只排當地行程。');
   if (!timeKnown) warn.push('這場的開演時間還沒公布，以下先用 19:00 估算，公布後請重新排一次。');
+  if (visit) warn.push('展覽以上午 10:30 入場、參觀約 2.5 小時估算；請先查好休館日（很多館週一休館）。');
   // 是否過夜
   let stay = false, tight = false;
   if (!local) {
@@ -984,25 +1345,34 @@ function makePlan(a) {
     if (a.stay === '當天來回') stay = false;
     if (!stay && (opt.mode === '高鐵' || opt.mode === '台鐵') && atStation > 22) warn.push('散場後到車站大約 ' + hm(atStation) + '，' + opt.mode + '末班車多半已經開走（末班時間請查官方時刻表）。當天來回建議改搭深夜客運或包車。');
     else if (tight && !stay) warn.push('散場後到車站大約 ' + hm(atStation) + '，離' + opt.mode + '末班車很近。請先查好末班時間，並考慮安可前先往出口移動。');
-    if (!stay && opt.mode === '自行開車') warn.push('回到家會是深夜，疲勞駕駛很危險，至少兩個人輪流開。');
+    if (!stay && opt.mode === '自行開車' && !visit) warn.push('回到家會是深夜，疲勞駕駛很危險，至少兩個人輪流開。');
   }
   // 時間軸
   const tl = [], localMin = 35;
-  const arriveVenue = start - early, mealAt = arriveVenue - 1.25;
+  const arriveVenue = start - early, mealAt = visit ? end : arriveVenue - 1.25;
+  const goAt = visit ? start - 0.75 : mealAt - 0.75;
   if (local) {
-    tl.push({ t: hm(mealAt - 0.75), h: '出門', d: '搭捷運或公車前往場館周邊。' + v.transit[0] });
+    tl.push({ t: hm(goAt), h: '出門', d: (island ? '' : '搭捷運或公車前往場館周邊。') + v.transit[0] });
   } else {
-    const dep = mealAt - 0.5 - (stay ? 0.75 : 0) - (opt.min + localMin) / 60;
+    const dep = (visit ? start - 0.25 : mealAt - 0.5) - (stay && !visit ? 0.75 : 0) - (opt.min + localMin) / 60;
     tl.push({ t: hm(dep), h: '從' + a.from + '出發', d: '搭' + opt.mode + '，車程約' + dur(opt.min) + '。' + opt.note });
-    tl.push({ t: hm(dep + opt.min / 60), h: '抵達' + v.city, d: (dest === 'TPE' ? '到台北車站或南港站後轉捷運。' : '到高鐵／台鐵左營站後轉高雄捷運紅線。') + v.transit[1] });
-    if (stay) tl.push({ t: hm(mealAt - 0.6), h: '放行李', d: '先到住宿辦入住或寄放行李，輕裝進場。場館多半禁止攜帶大型行李。' });
+    tl.push({ t: hm(dep + opt.min / 60), h: '抵達' + v.city, d: (ARRIVE[dest] ? '到' + ARRIVE[dest] + '後轉市區交通。' : '') + v.transit[0] });
+    if (stay && !visit) tl.push({ t: hm(mealAt - 0.6), h: '放行李', d: '先到住宿辦入住或寄放行李，輕裝進場。場館多半禁止攜帶大型行李。' });
   }
-  tl.push({ t: hm(mealAt), h: '吃飯', d: v.food + '。開演前 1 小時場館周邊最擠，提早吃。' });
-  tl.push({ t: hm(arriveVenue), h: '到場館', d: (big ? '大型場館驗票和安檢要排比較久。' : '') + '想買官方周邊的話要再提早，熱門場次常在中午前就開始排隊。' });
-  tl.push({ t: hm(start - 1), h: '排隊入場', d: '準備好票券和證件' + (/實名/.test(c.note || '') ? '（這場是實名制，一定要帶身分證件正本）' : '') + '，先上廁所、裝水。' });
-  tl.push({ t: hm(start), h: '開演', d: c.title });
-  tl.push({ t: hm(end), h: '散場（估計）', d: v.exit[0] });
-  if (local) tl.push({ t: hm(end + 1), h: '回家', d: '錯開第一波人潮再搭車，或先吃宵夜。' });
+  if (visit) {
+    tl.push({ t: hm(start), h: '入場參觀', d: c.title + (c.hall ? '（' + c.hall + '）' : '') + (c.free ? '・免費參觀' : c.price ? '・' + c.price : '') });
+    tl.push({ t: hm(end), h: '午餐、逛周邊', d: v.food + '。' });
+  } else {
+    tl.push({ t: hm(mealAt), h: '吃飯', d: v.food + '。開演前 1 小時場館周邊最擠，提早吃。' });
+    if (c.k === 'show') tl.push({ t: hm(arriveVenue), h: '到場館、取票', d: '多數劇場開演前 30 分鐘開放入場，遲到要等中場或適當段落才能進場。' });
+    else {
+      tl.push({ t: hm(arriveVenue), h: '到場館', d: (big ? '大型場館驗票和安檢要排比較久。' : '') + '想買官方周邊的話要再提早，熱門場次常在中午前就開始排隊。' });
+      tl.push({ t: hm(start - 1), h: '排隊入場', d: '準備好票券和證件' + (/實名/.test(c.note || '') ? '（這場是實名制，一定要帶身分證件正本）' : '') + '，先上廁所、裝水。' });
+    }
+    tl.push({ t: hm(start), h: '開演', d: c.title });
+    tl.push({ t: hm(end), h: '散場（估計）', d: v.exit[0] });
+  }
+  if (local) tl.push({ t: hm(end + 1), h: '回家', d: visit ? '回程可以順路逛附近景點。' : '錯開第一波人潮再搭車，或先吃宵夜。' });
   else if (stay) {
     tl.push({ t: hm(end + 0.75), h: '回住宿', d: '住得近可以直接走回去；想吃宵夜可以去' + v.food.split('、')[0] + '。' });
     tl.push({ t: '隔天', h: '回程', d: '搭' + opt.mode + '回' + a.from + '，車程約' + dur(opt.min) + '。演唱會隔天上午的班次也很搶手，回程票一起先訂。' });
@@ -1022,18 +1392,18 @@ function makePlan(a) {
     stayTxt = a.budget === '省錢' ? '青年旅館床位' : a.budget === '適中' ? '雙人房和同場粉絲分攤' : '雙人房一人住';
   }
   const total = b.reduce((x, y) => x + y[1], 0);
-  const check = ['票券（電子票先截圖）和身分證件', '行動電源、充電線', '手燈和備用電池', '悠遊卡或一卡通，先儲值好', '輕便雨衣（多數場館不能帶長傘）', '耳塞、口罩、小包衛生紙'];
+  const check = visit ? ['門票或預約紀錄（有些展要先線上預約時段）', '學生證、敬老卡等優待證件', '行動電源', '悠遊卡或一卡通', '水壺（展區內多半不能飲食）', '舒適好走的鞋子'] : c.k === 'show' ? ['票券和優待票證件', '行動電源', '悠遊卡或一卡通', '薄外套（劇場冷氣通常很強）'] : ['票券（電子票先截圖）和身分證件', '行動電源、充電線', '手燈和備用電池', '悠遊卡或一卡通，先儲值好', '輕便雨衣（多數場館不能帶長傘）', '耳塞、口罩、小包衛生紙'];
   if (stay) check.push('訂房確認信、換洗衣物');
   if (!local) check.push('回程車票先訂好');
-  return { c, v, pick, date: pick[0], opts, opt, local, stay, stayTxt, tl, b, total: Math.round(total), check, warn, timeKnown };
+  return { c, v, pick, date: pick[0], opts, opt, local, stay, stayTxt, tl, b, total: Math.round(total), check, warn, timeKnown, visit, from: a.from };
 }
 function vAI() {
   const a = S.ai, f = S.fraud, list = UPCOMING(); if (!C(a.concert) || C(a.concert).last < todayTW()) a.concert = firstId();
-  const c = C(a.concert), v = VENUES[c.venue], dest = v.city === '台北' ? 'TPE' : 'KHH';
+  const c = C(a.concert), v = V(c.venue), dest = CITY_REGION[v.city] || '';
   if (a.dateIdx >= c.d.length) a.dateIdx = 0;
-  const copts = list.map(x => '<option value="' + x.id + '"' + (a.concert === x.id ? ' selected' : '') + '>' + dinfo(x.date).md + ' ' + esc(x.artist) + '・' + esc(x.venue) + '</option>').join('');
+  const copts = [['concert', '演唱會'], ['show', '表演'], ['expo', '展覽']].map(([k, l]) => { const xs = list.filter(x => (x.k || 'concert') === k || x.id === a.concert && (x.k || 'concert') === k); return xs.length ? '<optgroup label="' + l + '">' + xs.slice(0, 400).map(x => '<option value="' + x.id + '"' + (a.concert === x.id ? ' selected' : '') + '>' + (x.r ? rangeLabel(x) : dinfo(x.date).md) + ' ' + esc(str(x.noArtist ? x.title : x.artist, 30)) + '・' + esc(x.venue) + '</option>').join('') + '</optgroup>' : ''; }).join('');
   const dopts = c.d.map((x, i) => '<option value="' + i + '"' + (a.dateIdx === i ? ' selected' : '') + '>' + dinfo(x[0]).full + ' ' + esc(tm(x[1])) + '</option>').join('');
-  const local = !REGIONS[a.from][dest], rail = REGIONS[a.from].rail;
+  const local = !tripBase(a.from, dest), rail = a.from === '宜蘭花東' || dest === '宜蘭花東';
   const modes = MODES.filter(m => !(rail && m === '高鐵'));
   if (!modes.includes(a.mode)) a.mode = modes[0];
   return '<h2 class="vt">追星小幫手</h2><p class="vsub">行程規劃與讓票防詐檢查</p>' +
@@ -1042,10 +1412,11 @@ function vAI() {
     (c.d.length > 1 ? '<label class="f" for="aiDate">哪一場</label><select class="in" id="aiDate">' + dopts + '</select>' : '') +
     '<div class="grid2"><div><label class="f" for="aiFrom">出發地區</label><select class="in" id="aiFrom">' + Object.keys(REGIONS).map(r => '<option' + (a.from === r ? ' selected' : '') + '>' + r + '</option>').join('') + '</select></div>' +
     '<div><label class="f" for="aiB">預算</label><select class="in" id="aiB">' + ['省錢', '適中', '享受'].map(x => '<option' + (a.budget === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></div></div>' +
-    (local ? '<p class="d small" style="margin-top:8px">你和場館在同一個生活圈，搭捷運或公車就能到。</p>' :
+    (local ? '<p class="d small" style="margin-top:8px">' + (dest === '離島' ? '離島活動請先訂機票或船票，以下只排當地行程。' : '你和場館在同一個生活圈，搭捷運或公車就能到。') + '</p>' :
       '<div class="grid2"><div><label class="f" for="aiMode">交通方式</label><select class="in" id="aiMode">' + modes.map(x => '<option' + (a.mode === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></div>' +
       '<div><label class="f" for="aiStay">過夜</label><select class="in" id="aiStay">' + ['自動判斷', '當天來回', '住一晚'].map(x => '<option' + (a.stay === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></div></div>') +
-    '<button class="btn pink full" style="margin-top:14px" data-act="plan">產生追星行程</button>' + (a.out ? renderPlan(a.out) : '') + '</div>' +
+    '<button class="btn pink full" style="margin-top:14px" data-act="plan">產生追星行程</button>' + (isPlus() ? '' : '<p class="small muted" style="margin:6px 0 0;text-align:center">免費版每天 ' + FREE_LIMIT.plan + ' 次，今天還剩 ' + Math.max(0, FREE_LIMIT.plan - planQuota()) + ' 次・<button class="lnk" data-act="goPlus">Plus 不限次數</button></p>') + (a.out ? renderPlan(a.out) : '') + '</div>' +
+    '<div class="aicard"><h3><span class="ai-tag">PLUS</span> 多人分帳計算機</h3><p class="d">一起包車、住宿時，記下誰先付了什麼，自動算出誰該轉給誰多少。</p>' + splitHtml('solo', S.profile ? [S.profile.nickname] : ['我']) + '</div>' +
     '<div class="aicard"><h3><span class="ai-tag">SAFE</span> 讓票防詐檢查</h3><p class="d">把在社群看到的讓票、周邊交易訊息貼上來，檢查常見詐騙跡象。</p>' +
     '<textarea class="in" id="frText" maxlength="1200" placeholder="例：大巨蛋 2 張連號，急售！先付訂金 1000 保留，加 LINE 私聊">' + esc(f.text) + '</textarea>' +
     '<div class="actions"><button class="btn line" data-act="frSample">放一則範例</button><button class="btn pink" style="flex:1" data-act="fraud">檢查風險</button></div>' +
@@ -1079,16 +1450,16 @@ function drawPlan(ctx, o) {
   const head = draw => {
     let hy = 56; const t2 = draw ? text : () => { }, p2 = (t, x, yy, w, c, fw, s, lh) => { f(fw, s); const n = imgWrap(ctx, t, w).length; if (draw) para(t, x, yy, w, c, fw, s, lh); return n * lh; };
     t2('FANVERSE', P, hy, IMG.pink, 700, 26); t2('追星行程規劃', W - P, hy, IMG.sub, 500, 24, 'right'); hy += 52;
-    hy += p2(o.c.artist, P, hy, W - 2 * P, '#FFFFFF', 900, 52, 66) + 8;
+    hy += p2(o.c.noArtist ? kindName(o.c) : o.c.artist, P, hy, W - 2 * P, '#FFFFFF', 900, 52, 66) + 8;
     hy += p2(o.c.title, P, hy, W - 2 * P, IMG.sub, 500, 28, 40) + 24;
     let cx = P;
-    [dinfo(o.pick[0]).full, '開演 ' + tm(o.pick[1]), o.c.venue].forEach(c => { f(700, 26); const w = ctx.measureText(c).width + 40; if (cx + w > W - P) { cx = P; hy += 60; } if (draw) { rect(cx, hy, w, 48, 'rgba(255,79,154,0.25)', 24); text(c, cx + 20, hy + 9, '#FFD3E6', 700, 26); } cx += w + 14; });
+    [dinfo(o.pick[0]).full, o.visit ? '開放 ' + (o.c.hours || '見活動頁') : '開演 ' + tm(o.pick[1]), o.c.venue].forEach(c => { f(700, 26); const w = ctx.measureText(c).width + 40; if (cx + w > W - P) { cx = P; hy += 60; } if (draw) { rect(cx, hy, w, 48, 'rgba(255,79,154,0.25)', 24); text(c, cx + 20, hy + 9, '#FFD3E6', 700, 26); } cx += w + 14; });
     return hy + 48 + 48;
   };
   const hh = head(false); rect(0, 0, W, hh, IMG.ink); head(true); y = hh;
   y += 40;
   // 2. 重點摘要（四格）
-  const cells = [['出發地', o.local ? o.c.venue.slice(0, 2) + '在地' : S.ai.from], ['交通方式', o.local ? '市區大眾運輸' : o.opt.mode], ['過夜', o.local ? '當天來回' : (o.stay ? '住一晚' : '當天來回')], ['預估花費（不含門票）', money(o.total)]];
+  const cells = [['出發地', o.local ? (o.v.city || o.c.venue.slice(0, 2)) + '在地' : o.from], ['交通方式', o.local ? '市區大眾運輸' : o.opt.mode], ['過夜', o.local ? '當天來回' : (o.stay ? '住一晚' : '當天來回')], ['預估花費（不含門票）', money(o.total)]];
   const cw = (W - 2 * P - 24) / 2;
   cells.forEach((c, i) => { const x = P + (i % 2) * (cw + 24), yy = y + Math.floor(i / 2) * 136; rect(x, yy, cw, 116, IMG.card, 20); text(c[0], x + 28, yy + 22, IMG.muted, 500, 24); text(c[1], x + 28, yy + 56, IMG.ink, 900, 34); });
   y += 272 + 28;
@@ -1140,7 +1511,7 @@ function drawPlan(ctx, o) {
   y += 30;
   // 9. 頁尾
   rect(P, y, W - 2 * P, 2, IMG.line); y += 24;
-  y += para('規則式估算：演出長度以 3 小時計，車程與費用為概略值。班次、票價與末班車請以官方公告為準。場次資料日期 ' + DATA_ASOF + '。', P, y, W - 2 * P, IMG.muted, 400, 22, 32) + 10;
+  y += para('規則式估算：' + (o.visit ? '參觀以 2.5 小時計，' : '演出長度以 ' + (o.c.k === 'show' ? 2 : 3) + ' 小時計，') + '車程與費用為概略值。班次、票價與末班車請以官方公告為準。場次資料日期 ' + DATA_ASOF + '。', P, y, W - 2 * P, IMG.muted, 400, 22, 32) + 10;
   text('fanverse-team.github.io', P, y, IMG.pinkd, 700, 24); y += 64;
   return y;
 }
@@ -1172,8 +1543,8 @@ function renderPlan(o, act) {
   const optRows = o.opts.map(x => '<div class="rowline" style="align-items:flex-start"><span><b style="color:var(--ink)">' + esc(x.mode) + (o.opt && x.mode === o.opt.mode ? '（你選的）' : '') + '</b><br><span class="small muted">' + esc(x.note) + '</span></span><span style="text-align:right;white-space:nowrap">約' + esc(dur(x.min)) + '<br>' + money(x.cost) + '</span></div>').join('');
   const tl = o.tl.map(x => '<li><span class="t">' + esc(x.t) + '</span><b>' + esc(x.h) + '</b><br>' + esc(x.d) + '</li>').join('');
   const v = o.v;
-  return '<div class="result"><div style="font-weight:700;color:var(--ink)">' + esc(o.c.artist) + '・' + dinfo(o.pick[0]).full + ' ' + esc(tm(o.pick[1])) + '・' + esc(o.c.venue) + '</div>' +
-    '<div class="small muted">' + (o.local ? '同生活圈，當天來回' : (o.stay ? '建議住一晚' : '當天來回')) + '</div>' +
+  return '<div class="result"><div style="font-weight:700;color:var(--ink)">' + esc(o.c.noArtist ? str(o.c.title, 30) : o.c.artist) + '・' + dinfo(o.pick[0]).full + ' ' + esc(o.visit ? (o.c.hours ? '開放 ' + o.c.hours : '') : tm(o.pick[1])) + '・' + esc(o.c.venue) + '</div>' +
+    '<div class="small muted">' + (o.local ? (CITY_REGION[o.v.city] === '離島' ? '離島活動，請先訂好機票或船票' : '同生活圈，當天來回') : (o.stay ? '建議住一晚' : '當天來回')) + '</div>' +
     o.warn.map(w => '<div class="err" style="margin-top:8px">⚠️ ' + esc(w) + '</div>').join('') +
     (o.opts.length ? '<div class="sec">交通方案比較（單程，估算）</div>' + optRows : '') +
     '<div class="sec">當天時間軸</div><ul class="tl">' + tl + '</ul>' +
@@ -1182,7 +1553,7 @@ function renderPlan(o, act) {
     (o.c.price ? '<div class="small muted" style="margin-top:6px">門票另計：' + esc(o.c.price) + '</div>' : '') +
     '<div class="sec">行前清單建議</div><ul class="list">' + o.check.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
     '<button class="btn pink full" style="margin-top:14px" data-act="' + (act || 'planImg') + '">下載行程規劃圖（PNG）</button>' +
-    '<div class="src">以上為規則式估算：演出長度以 3 小時計，車程與票價為概略值。實際班次、票價與末班車請查台灣高鐵、台鐵、客運與捷運官方資訊。</div></div>';
+    '<div class="src">以上為規則式估算：' + (o.visit ? '參觀以 2.5 小時計，' : '演出長度以 ' + (o.c.k === 'show' ? 2 : 3) + ' 小時計，') + '車程與票價為概略值。實際班次、票價與末班車請查台灣高鐵、台鐵、客運與捷運官方資訊。</div></div>';
 }
 function renderRisk(o) {
   const lv = o.level === '高' ? 'high' : o.level === '中' ? 'mid' : 'low';
@@ -1284,7 +1655,9 @@ function vAccount() {
     '<div class="rowline"><span class="muted">身分證字號</span><span>未儲存（只在註冊時檢查格式）</span></div>' +
     '<div class="rowline"><span class="muted">登入信箱</span><span>' + esc(S.user.email) + '</span></div>' +
     (p.minor ? '<div class="hint">你的帳號目前不公開姓名與年齡，也無法參與包車與住宿行程。滿 18 歲後重新登入會自動更新。</div>' : '') + '</div>' +
-    myGroupsCard() + (isAdmin() ? '<button class="btn pink full" style="margin-bottom:12px" data-act="tab" data-v="admin">🛠️ 管理員後台</button>' : '') +
+    (isPlus() ? '<div class="card plushero"><div class="rowline"><span><b>✦ FANVERSE Plus</b><br><span class="small muted">' + (S.plus.autoRenew ? fmtDay(S.plus.until) + ' 自動續訂' : fmtDay(S.plus.until) + ' 到期') + '</span></span><button class="btn line" data-act="tab" data-v="plus">管理</button></div></div>'
+      : '<div class="card plushero"><div class="rowline"><span><b>升級 FANVERSE Plus</b><br><span class="small muted">收藏不限量、新場次通知、分帳、應援色主題</span></span><button class="btn pink" data-act="tab" data-v="plus">NT$49／月</button></div></div>') +
+    favCard() + myGroupsCard() + (isAdmin() ? '<button class="btn pink full" style="margin-bottom:12px" data-act="tab" data-v="admin">🛠️ 管理員後台</button>' : '') +
     (Object.keys(S.blocks).length ? '<div class="card"><div class="sec" style="margin-top:0">已封鎖的人</div>' + Object.keys(S.blocks).map(b => (loadPubs([b]), '<div class="rowline"><span>' + esc(S.pub[b] ? str(S.pub[b].nickname, 20) : '會員') + '</span><button class="btn line" data-act="unblock" data-v="' + esc(b) + '">解除封鎖</button></div>')).join('') + '</div>' : '') +
     '<div class="card"><div class="sec" style="margin-top:0">我的申請</div>' + (items || '<div class="small muted">還沒有申請任何媒合或交易</div>') + '</div>' +
     '<div class="card"><div class="sec" style="margin-top:0">帳號與隱私</div>' +
@@ -1306,48 +1679,57 @@ function hotelList(name, date, n) {
     '<br><span class="small"><a href="' + esc(bookLink(h, date)) + '" target="_blank" rel="noopener">查 ' + md + ' 入住的即時房價</a>・<a href="' + esc(hotelMap(h)) + '" target="_blank" rel="noopener">地圖</a></span></li>').join('') + '</ul>' +
     '<p class="small muted" style="margin:6px 0 0">住宿名單每週自動從 OpenStreetMap 更新' + (HOTELS_ASOF ? '（' + HOTELS_ASOF + '）' : '') + '，依離場館距離排序；房價隨日期與空房變動很大，演唱會當晚常比平日貴很多，點連結看訂房網當天的價格。名單不代表推薦或品質保證。</p>';
 }
-function venueBlock(v, name, date) {
+function dirLink(v, name) { return 'https://www.google.com/maps/dir/?api=1&travelmode=transit&destination=' + encodeURIComponent(v.at ? v.at.join(',') : name + ' ' + (v.addr || '')); }
+function venueBlock(v, name, date, visit) {
   return '<div class="sec">怎麼去</div><ul class="list">' + v.transit.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>' +
-    '<p class="small" style="margin:6px 0 0"><a href="' + mapLink(name + ' ' + v.addr) + '" target="_blank" rel="noopener">在 Google 地圖開啟場館位置</a></p>' +
-    '<div class="sec">散場怎麼走</div><ul class="list">' + v.exit.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>' +
+    '<p class="small" style="margin:6px 0 0"><a href="' + mapLink(name + ' ' + (v.addr || '')) + '" target="_blank" rel="noopener">在 Google 地圖開啟場館位置</a>・<a href="' + esc(dirLink(v, name)) + '" target="_blank" rel="noopener">查大眾運輸路線</a></p>' +
+    (v.auto && v.st.length ? '<p class="small muted" style="margin:4px 0 0">最近車站由 OpenStreetMap 依場館座標自動計算，距離為直線距離，實際路線以 Google 地圖為準。</p>' : '') +
+    (visit ? (date && hotelList(name, date) ? '<div class="sec">附近的住宿</div>' + hotelList(name, date, 5) : '') :
+    ('<div class="sec">散場怎麼走</div><ul class="list">' + v.exit.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>' +
     (date && hotelList(name, date) ? '<div class="sec">場館附近的住宿</div>' + hotelList(name, date) : '') +
     '<div class="sec">住哪個區域</div><ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul>' +
-    '<p class="small muted" style="margin:6px 0 0">平日雙人房約 NT$' + v.price.hotel[0].toLocaleString() + '–' + v.price.hotel[1].toLocaleString() + '、青年旅館床位約 NT$' + v.price.hostel[0].toLocaleString() + '–' + v.price.hostel[1].toLocaleString() + '（估算）。演唱會當晚常漲到 1.5–2 倍以上，越早訂越好。 <a href="' + mapLink(name + ' 附近 住宿') + '" target="_blank" rel="noopener">查附近住宿</a></p>' +
-    '<div class="sec">吃什麼</div><p style="margin:0;font-size:14px;line-height:1.7">' + esc(v.food) + '</p>';
+    '<p class="small muted" style="margin:6px 0 0">平日雙人房約 NT$' + v.price.hotel[0].toLocaleString() + '–' + v.price.hotel[1].toLocaleString() + '、青年旅館床位約 NT$' + v.price.hostel[0].toLocaleString() + '–' + v.price.hostel[1].toLocaleString() + '（' + (v.auto ? '依縣市行情估算' : '估算') + '）。大型演出當晚常漲到 1.5–2 倍以上，越早訂越好。 <a href="' + mapLink(name + ' 附近 住宿') + '" target="_blank" rel="noopener">查附近住宿</a></p>' +
+    '<div class="sec">吃什麼</div><p style="margin:0;font-size:14px;line-height:1.7">' + esc(v.food) + '</p>'));
 }
 function openConcert(id, keep) {
   const c = C(id); if (!c) return;
-  const v = VENUES[c.venue], left = daysLeft(c.date), rem = S.reminders.includes(c.id);
+  const v = V(c.venue), left = daysLeft(c.date), rem = S.reminders.includes(c.id);
   S.fixOpen = null;
   const keepY = keep && S.openCid === id ? $('#sheet').scrollTop : 0;
-  const dates = c.d.map(x => {
+  const dates = c.r ? '<li>' + dinfo(c.r[0]).full + ' – ' + dinfo(c.r[1]).full + (c.hours ? '<br><span class="small muted">開放時間 ' + esc(c.hours) + '（休館日請看活動頁）</span>' : '') + '</li>' : c.d.map(x => {
     const ct = crowd(id, 'time', x[0]);
     const t = x[1] ? esc(x[1]) + (ct && ct.v !== x[1] ? '<br><span class="small muted">另有 ' + ct.n + ' 位會員回報是 ' + esc(ct.v) + '，請以主辦公告為準</span>' : '') : ct ? '<b>' + esc(ct.v) + '</b> ' + crowdTag(ct.n) : '時間未公布';
     return '<li>' + dinfo(x[0]).full + '　' + t + '</li>';
   }).join('');
+  const arts = c.id[0] === 'k', open = c.r && c.r[0] <= todayTW();
   const stWarn = c.d.map(x => { const s = crowd(id, 'status', x[0]); return s && s.v !== '照常' ? '<div class="err" style="margin-bottom:10px">⚠️ 有 ' + s.n + ' 位會員回報 ' + dinfo(x[0]).full + ' 這場已<b>' + esc(s.v) + '</b>，尚未經官方確認，請到主辦或售票網站查證。</div>' : ''; }).join('');
   const cp = !c.price && crowd(id, 'price'), cf = !c.platform && !c.ticketUrl && crowd(id, 'platform');
   const pf = c.platform && PLATFORMS[c.platform] ? '<a href="' + esc(c.ticketUrl || PLATFORMS[c.platform]) + '" target="_blank" rel="noopener">' + esc(c.platform) + (c.ticketUrl ? '（這場的售票頁）' : '') + '</a>' : (c.ticketUrl ? '<a href="' + esc(c.ticketUrl) + '" target="_blank" rel="noopener">這場的售票頁</a>' : '');
   const extra = (c.prices || []).map(p => '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>').join('');
-  const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).map(s => '<li><a href="' + esc(s[1]) + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a></li>').join('');
-  openSheet(c.artist,
-    '<div class="hero"><div class="artist">' + esc(c.artist) + '・' + esc(c.genre) + '</div><div class="ctitle">' + esc(c.title) + '</div>' +
-    '<div style="display:flex;align-items:baseline;gap:8px;margin-top:8px"><span class="count">' + Math.max(0, left) + '</span><span>天後' + (c.d.length > 1 ? '（下一場）' : '開演') + '</span></div></div>' +
-    stWarn + '<div class="sec" style="margin-top:0">演出日期</div><ul class="list">' + dates + '</ul>' +
-    '<dl class="kv" style="margin-top:10px"><dt>場館</dt><dd>' + esc(c.venue) + '<br><span class="small muted">' + esc(v.addr) + '</span></dd>' +
-    (c.price ? '<dt>' + (/–/.test(c.price) ? '票價區間' : '票價') + '</dt><dd>' + esc(c.price) + '<br><span class="small muted">' + (c.autoPrice ? '系統從新聞自動擷取，可能有誤，' : '') + (/–/.test(c.price) ? '依座位區不同，' : '') + '以售票頁為準</span></dd>' : '') + extra +
+  const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).concat(arts ? [['文化部藝文活動開放資料' + (c.sn ? '（提供：' + c.sn + '）' : ''), 'https://cloud.culture.tw/']] : []).map(s => '<li><a href="' + esc(s[1]) + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a></li>').join('');
+  const host = c.url ? new URL(c.url).hostname.replace(/^www\./, '') : '';
+  const countdown = c.r ? (open ? '<span class="count">' + Math.max(0, daysLeft(c.r[1])) + '</span><span>天後閉展' + (isLong(c) ? '（常設展）' : '') + '</span>' : '<span class="count">' + Math.max(0, left) + '</span><span>天後開展</span>')
+    : '<span class="count">' + Math.max(0, left) + '</span><span>天後' + (c.d.length > 1 ? '（下一場）' : '開演') + '</span>';
+  openSheet(c.noArtist ? c.title.slice(0, 20) : c.artist,
+    '<div class="hero"><div class="artist">' + esc(c.noArtist ? (c.k === 'expo' ? '展覽' : kindName(c) + '・' + c.genre) : c.artist + '・' + c.genre) + '</div><div class="ctitle">' + esc(c.title) + '</div>' +
+    '<div style="display:flex;align-items:baseline;gap:8px;margin-top:8px">' + countdown + '</div></div>' +
+    stWarn + '<div class="sec" style="margin-top:0">' + (c.r ? '展期' : c.k === 'show' ? '演出場次' : '演出日期') + '</div><ul class="list">' + dates + '</ul>' +
+    (c.desc ? '<p class="small" style="line-height:1.7;margin:8px 0 0">' + esc(c.desc) + (c.desc.length >= 160 ? '…' : '') + '</p>' : '') +
+    '<dl class="kv" style="margin-top:10px"><dt>場館</dt><dd>' + esc(c.venue) + (c.hall ? '・' + esc(c.hall) : '') + '<br><span class="small muted">' + esc(v.addr || v.city) + '</span></dd>' +
+    (c.price ? '<dt>' + (c.free ? '費用' : /–/.test(c.price) ? '票價區間' : '票價') + '</dt><dd>' + esc(c.price) + (c.free ? '' : '<br><span class="small muted">' + (c.autoPrice ? '系統從新聞自動擷取，可能有誤，' : '') + (/–/.test(c.price) ? '依座位區不同，' : '') + '以售票頁為準</span>') + '</dd>' : '') + extra +
+    (c.url ? '<dt>' + (/ticket|tix|kktix|opentix|kham|ibon|accupass/i.test(host) ? '售票／報名' : '活動頁面') + '</dt><dd><a href="' + esc(c.url) + '" target="_blank" rel="noopener">' + esc(host) + '</a></dd>' : '') +
     (cp ? '<dt>票價區間</dt><dd>' + esc(priceTxt(cp.v)) + '<br>' + crowdTag(cp.n) + '</dd>' : '') +
     (pf ? '<dt>售票平台</dt><dd>' + pf + '</dd>' : cf ? '<dt>售票平台</dt><dd><a href="' + PLATFORMS[cf.v] + '" target="_blank" rel="noopener">' + esc(cf.v) + '</a><br>' + crowdTag(cf.n) + '</dd>' : '') +
     (c.sale ? '<dt>開賣資訊</dt><dd>' + esc(c.sale) + '</dd>' : '') + (c.note ? '<dt>注意事項</dt><dd>' + esc(c.note) + '</dd>' : '') + '</dl>' +
-    '<div class="safe" style="margin-top:12px">本站不顯示剩餘票數或是否完售：熱門場次常在開賣幾分鐘內售完，之後也可能釋出退票或加開座位，只有售票頁上的狀態是準的。' + (pf ? '請點上方售票平台查看。' : '') + '購票只走官方售票平台，不要向來路不明的賣家買票。</div>' +
+    (arts && c.k !== 'concert' ? '' : '<div class="safe" style="margin-top:12px">本站不顯示剩餘票數或是否完售：熱門場次常在開賣幾分鐘內售完，之後也可能釋出退票或加開座位，只有售票頁上的狀態是準的。' + (pf ? '請點上方售票平台查看。' : '') + '購票只走官方售票平台，不要向來路不明的賣家買票。</div>') +
     (c.auto ? '<p class="src">這一場是系統從場館公開列表自動帶入的，目前沒有票價與售票平台資料。</p>' : '') +
-    venueBlock(v, c.venue, c.date) +
+    venueBlock(v, c.venue, c.date, !!c.r) +
     '<div class="actions" style="margin-top:10px"><button class="btn line" style="flex:1" data-act="ics" data-id="' + c.id + '">📅 加入行事曆</button><button class="btn line" style="flex:1" data-act="share" data-id="' + c.id + '">🔗 分享這場</button></div>' +
-    '<div class="actions" style="margin-top:10px"><button class="btn ' + (rem ? 'ghost' : 'line') + '" data-act="remind" data-id="' + c.id + '">' + (rem ? '★ 已收藏' : '☆ 收藏這場') + '</button>' +
+    '<div class="actions" style="margin-top:10px"><button class="btn ' + (rem ? 'ghost' : 'line') + '" data-act="remind" data-id="' + c.id + '">' + (rem ? '★ 已收藏' : c.r ? '☆ 收藏這個展' : '☆ 收藏這場') + '</button>' +
     '<button class="btn pink" style="flex:1" id="frBtn" data-act="findRide" data-id="' + c.id + '">' + rideBtnLabel(c.id) + '</button></div>' +
-    '<button class="btn full" style="margin-top:8px" data-act="planFor" data-id="' + c.id + '">排這場的行程</button>' +
-    '<div class="sec">資料來源（更新至 ' + DATA_ASOF + '）</div><ul class="list small">' + srcs + '</ul>' +
-    '<div class="fixbox"><span>開演時間、票價或售票平台有誤或缺漏？</span><button class="btn line" data-act="fixForm" data-id="' + c.id + '">協助回報</button></div>');
+    '<button class="btn full" style="margin-top:8px" data-act="planFor" data-id="' + c.id + '">' + (c.r ? '排去看展的行程' : '排這場的行程') + '</button>' +
+    '<div class="sec">資料來源（更新至 ' + (arts ? ARTS_ASOF || DATA_ASOF : DATA_ASOF) + '）</div><ul class="list small">' + srcs + '</ul>' +
+    (c.r ? '<p class="small muted">展覽資訊由主辦單位提供給文化部，有誤請向主辦單位反映。</p>' : '<div class="fixbox"><span>開演時間、票價或售票平台有誤或缺漏？</span><button class="btn line" data-act="fixForm" data-id="' + c.id + '">協助回報</button></div>'));
   S.openCid = id; if (keepY) $('#sheet').scrollTop = keepY;
   if (!keep) { loadFixes(id); countRides(id); }
 }
@@ -1531,7 +1913,7 @@ function stopListeners() {
 }
 async function onUser(u) {
   stopListeners();
-  Object.assign(S, { ownRides: [], rideCache: {}, seats: {}, fixes: {}, rideCount: {}, blocks: {}, rep: {}, admin: null, banned: false, user: u, profile: null, priv: null, rides: [], trades: [], ridesReady: false, tradesReady: false, pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {}, note: '' });
+  Object.assign(S, { ownRides: [], rideCache: {}, seats: {}, fixes: {}, rideCount: {}, blocks: {}, rep: {}, admin: null, banned: false, plus: null, plusPub: {}, newShows: null, user: u, profile: null, priv: null, rides: [], trades: [], ridesReady: false, tradesReady: false, pub: {}, myItems: {}, myStatus: {}, revealedToMe: {}, myReveals: {}, note: '' });
   if (!u) { S.mode = 'out'; render(); return; }
   if (!u.emailVerified) {
     // 使用者可能剛在另一個分頁點了驗證連結，先安靜地重新整理一次狀態
@@ -1588,6 +1970,9 @@ function startListeners() {
   }, () => { }));
   S.unsubs.push(F.onSnapshot(F.collection(db, 'blocks', u, 'u'), snap => {
     S.blocks = {}; snap.docs.forEach(d => { S.blocks[d.id] = true; }); renderData(); if (S.group) renderMsgs();
+  }, () => { }));
+  S.unsubs.push(F.onSnapshot(F.doc(db, 'subs', u), snap => {
+    S.plus = snap.exists() ? cleanSub(snap.data()) : null; applyTheme(); plusAutoRenew(); checkNewShows(); render();
   }, () => { }));
   S.unsubs.push(F.onSnapshot(F.doc(db, 'bans', u), snap => {
     S.banned = snap.exists(); S.note = S.banned ? '你的帳號因違反社群規範已被停權：可以瀏覽，但暫時不能發文、申請、聊天或回報。如有疑問請聯繫 FANVERSE 團隊。' : (S.note && S.note.startsWith('你的帳號因違反') ? '' : S.note); render();
@@ -1773,7 +2158,7 @@ function rideIdx(r) { const c = C(r.concertId); if (!c) return null; if (typeof 
 function rideSlot(r) {
   const c = r && C(r.concertId); if (!c) return null;
   const i = rideIdx(r), day = i === null ? null : c.d[i];
-  return { id: r.id, c, title: r.title, date: day ? day[0] : null, time: day ? day[1] : '', city: VENUES[c.venue].city };
+  return { id: r.id, c, title: r.title, date: day ? day[0] : null, time: day ? day[1] : '', city: V(c.venue).city };
 }
 function rideDay(r) { const s = rideSlot(r); return s && s.date ? s.date : (C(r.concertId) || {}).date; }
 function seatKey(r) { return SEAT_KIND[r.kind] ? r.concertId + '_' + (typeof r.day === 'string' && r.day ? r.day : 'x') + '_' + SEAT_KIND[r.kind] : ''; }
@@ -1889,9 +2274,9 @@ function renderGroup() {
   const g = S.group, r = groupRide(); if (!g) return;
   if (!r) { closeSheet(); return toast('這個媒合已經刪除'); }
   const c = C(r.concertId) || { artist: '', venue: '', date: '' };
-  const tabs = '<div class="seg" style="margin-bottom:12px">' + [['chat', '💬 聊天'], ['plan', '🗺️ 行程'], ['rev', '⭐ 互評']].map(t => '<button class="' + (g.tab === t[0] ? 'on' : '') + '" data-act="gTab" data-v="' + t[0] + '">' + t[1] + '</button>').join('') + '</div>';
+  const tabs = '<div class="seg" style="margin-bottom:12px">' + [['chat', '💬 聊天'], ['plan', '🗺️ 行程'], ['split', '💰 分帳'], ['rev', '⭐ 互評']].map(t => '<button class="' + (g.tab === t[0] ? 'on' : '') + '" data-act="gTab" data-v="' + t[0] + '">' + t[1] + '</button>').join('') + '</div>';
   const head = '<div class="psub" style="margin-bottom:10px">' + esc(str(r.title, 40)) + '・' + esc(c.artist) + (rideDay(r) ? ' ' + dinfo(rideDay(r)).md : '') + '・' + Math.min(num(r.capacity), 1 + num(r.memberCount)) + ' 人</div>';
-  openSheet('團體空間', head + tabs + (g.tab === 'chat' ? chatHtml() : g.tab === 'rev' ? revHtml(r) : planHtml(r)));
+  openSheet('團體空間', head + tabs + (g.tab === 'chat' ? chatHtml() : g.tab === 'rev' ? revHtml(r) : g.tab === 'split' ? splitHtml('g_' + r.id, [S.profile.nickname]) : planHtml(r)));
   if (g.tab === 'chat') { g.first = true; renderMsgs(); }
 }
 function chatHtml() {
@@ -1919,7 +2304,7 @@ function renderMsgs() {
     const ops = mine || amOwner ? '<button class="lnk" data-act="delMsg" data-id="' + esc(m.id) + '">刪除</button>' : '';
     const rep = !mine ? '<button class="lnk" data-act="repMsg" data-id="' + esc(m.id) + '">檢舉</button><button class="lnk" data-act="block" data-v="' + esc(m.uid) + '">封鎖</button>' : '';
     const warn = !mine && CHAT_WARN.test(String(m.text || '')) ? '<div class="mwarn">⚠️ 這則訊息提到金錢、連結或個資，請不要私下匯款，先用小幫手的防詐檢查看看</div>' : '';
-    return '<div class="msg' + (mine ? ' me' : '') + '"><div class="mh"><b>' + esc(nick) + '</b>' + (m.uid === owner ? '<span class="tag">發起人</span>' : '') + '<span>' + esc(msgTime(m)) + '</span></div>' +
+    return '<div class="msg' + (mine ? ' me' : '') + '"><div class="mh"><b' + nameStyle(m.uid) + '>' + esc(nick) + '</b>' + plusBadge(m.uid) + (m.uid === owner ? '<span class="tag">發起人</span>' : '') + '<span>' + esc(msgTime(m)) + '</span></div>' +
       '<div class="mb">' + esc(str(m.text, 300)) + '</div>' + warn + (ops || rep ? '<div class="mo">' + ops + rep + '</div>' : '') + '</div>';
   }).filter(Boolean).join('');
   const near = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
@@ -2155,7 +2540,7 @@ async function deleteAccount(form) {
     await del(refs);
     const fx = await F.getDocs(F.collection(db, 'myFixes', u, 'k'));
     await del(fx.docs.map(d => { const i = d.id.indexOf('_'); return F.doc(db, 'fixes', d.id.slice(0, i), 'r', u + '_' + d.id.slice(i + 1)); }).concat(fx.docs.map(d => d.ref)));
-    await del([F.doc(db, 'cool', u)]);
+    await del([F.doc(db, 'cool', u), F.doc(db, 'subs', u)]);
     // 我寫的評價、別人給我的評價、我的封鎖名單
     const mr = await F.getDocs(F.collection(db, 'myRevs', u, 'k'));
     await del(mr.docs.map(d => { const i = d.id.indexOf('_'); return F.doc(db, 'reviews', d.id.slice(0, i), 'r', d.id.slice(i + 1) + '_' + u); }).concat(mr.docs.map(d => d.ref)));
@@ -2175,17 +2560,19 @@ async function deleteAccount(form) {
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el) return;
   const act = el.dataset.act, v = el.dataset.v, id = el.dataset.id;
-  if (act === 'follow') { e.stopPropagation(); const a = el.dataset.artist; S.follows = S.follows.includes(a) ? S.follows.filter(x => x !== a) : S.follows.concat(a); saveLS('fv_follows2', S.follows); toast(S.follows.includes(a) ? '已追蹤 ' + a : '已取消追蹤'); render(); return; }
+  if (act === 'follow') { e.stopPropagation(); const a = el.dataset.artist; if (!S.follows.includes(a) && overLimit('follow')) return; S.follows = S.follows.includes(a) ? S.follows.filter(x => x !== a) : S.follows.concat(a); saveLS('fv_follows2', S.follows); toast(S.follows.includes(a) ? '已追蹤 ' + a : '已取消追蹤'); render(); return; }
   switch (act) {
     case 'tab': closeSheet(); go(v); break;
-    case 'city': S.city = v; render(); break;
+    case 'city': S.city = S.city === v && !AREAS[v] ? (Object.keys(AREAS).find(a => AREAS[a].includes(v)) || '全部') : v; S.homeLimit = 0; render(); break;
+    case 'kind': if (KINDS.some(k => k[0] === v)) { S.kind = v; S.genre = '全部'; S.homeLimit = 0; if (v !== 'concert') S.onlyFollow = false; render(); } break;
+    case 'more': S.homeLimit = (S.homeLimit || PAGE) + PAGE; updateHome(); break;
     case 'clearQ': S.q = ''; S.sugOpen = false; render(); { const q = $('#q'); if (q) q.focus(); } break;
     case 'clearFilters': S.city = '全部'; S.genre = '全部'; S.onlyFollow = false; render(); break;
-    case 'genre': S.genre = v; render(); break;
+    case 'genre': S.genre = v; S.homeLimit = 0; render(); break;
     case 'onlyFollow': S.onlyFollow = !S.onlyFollow; render(); break;
     case 'concert': openConcert(id); break;
     case 'close': closeSheet(); break;
-    case 'remind': S.reminders = S.reminders.includes(id) ? S.reminders.filter(x => x !== id) : S.reminders.concat(id); saveLS('fv_rem', S.reminders); toast(S.reminders.includes(id) ? '已收藏這場' : '已取消收藏'); openConcert(id); break;
+    case 'remind': if (!S.reminders.includes(id) && overLimit('rem')) break; S.reminders = S.reminders.includes(id) ? S.reminders.filter(x => x !== id) : S.reminders.concat(id); saveLS('fv_rem', S.reminders); toast(S.reminders.includes(id) ? '已收藏' : '已取消收藏'); openConcert(id); break;
     case 'findRide': closeSheet(); S.matchKind = '全部'; S.matchConcert = id; go('match'); break;
     case 'pkClear': if (v === 'mConcert') setMatchConcert(''); break;
     case 'planFor': closeSheet(); S.ai.concert = id; S.ai.dateIdx = Math.max(0, C(id).d.findIndex(x => x[0] === C(id).date)); S.ai.out = null; go('ai'); break;
@@ -2208,10 +2595,20 @@ document.addEventListener('click', e => {
     case 'removeMember': removeMember(el.dataset.who); break;
     case 'delPost': openSheet('確定刪除？', '<p style="font-size:14px">刪除後，這則貼文和所有申請紀錄都會一起刪除。</p><div class="actions"><button class="btn line" data-act="close" style="flex:1">取消</button><button class="btn danger" style="flex:1" data-act="doDelPost" data-type="' + esc(el.dataset.type) + '" data-id="' + esc(id) + '">刪除</button></div>'); break;
     case 'doDelPost': deletePost(el.dataset.type, id); break;
-    case 'plan': S.ai.out = makePlan(S.ai); render(); break;
+    case 'plan': if (!usePlan()) break; S.ai.out = makePlan(S.ai); render(); break;
+    case 'goPlus': closeSheet(); go('plus'); break;
+    case 'plusBuy': plusCheckout(v); break;
+    case 'plusColor': if (isPlus()) { S.plus.color = v; applyTheme(); render(); plusUpdate({ color: v }); } break;
+    case 'plusRenew': plusUpdate({ autoRenew: v === '1' }).then(() => toast(v === '1' ? '已恢復自動續訂' : '已取消自動續訂，到期前仍可使用')); break;
+    case 'plusEnd': if (confirm('立即結束 Plus（測試用）？')) F.deleteDoc(F.doc(db, 'subs', uid())).then(() => toast('已結束 Plus'), e2 => toast(errMsg(e2))); break;
+    case 'newSeen': S.newShows = null; render(); break;
+    case 'notifyOn': if ('Notification' in window) Notification.requestPermission().then(() => render()); break;
+    case 'spAddP': case 'spDelP': case 'spAddI': case 'spDelI': splitAct(act, el, v); break;
+    case 'favIcs': if (!isPlus()) { plusSheet('一次把收藏全部匯出到行事曆'); break; } saveIcs(myFavs().flatMap(c => icsEvents(c, true)), 'fanverse-收藏.ics'); toast('已下載，打開就能一次加入行事曆'); break;
+    case 'favImg': if (!isPlus()) { plusSheet('把收藏做成追星月曆圖'); break; } favImage(); break;
     case 'planImg': downloadPlan(); break;
     case 'group': openGroup(id); break;
-    case 'gTab': if (S.group) { S.group.tab = ['plan', 'rev'].includes(v) ? v : 'chat'; S.group.editing = false; if (v === 'rev') { S.group.revReady = false; const r = groupRide(); if (r && rideDay(r) < todayTW()) loadRevState(r); } renderGroup(); } break;
+    case 'gTab': if (S.group) { S.group.tab = ['plan', 'rev', 'split'].includes(v) ? v : 'chat'; S.group.editing = false; if (v === 'rev') { S.group.revReady = false; const r = groupRide(); if (r && rideDay(r) < todayTW()) loadRevState(r); } renderGroup(); } break;
     case 'revGood': sendRev(v, true); break;
     case 'revBad': sendRev(v, false); break;
     case 'revDel': delRev(v); break;
@@ -2284,6 +2681,7 @@ document.addEventListener('submit', e => {
   else if (f.id === 'chatF') sendChat();
   else if (f.id === 'fixF') submitFix(f);
   else if (f.id === 'gPlanF') savePlan(f);
+  else if (f.id === 'plusF') submitPlus(f);
 });
 document.addEventListener('focusin', e => { if (e.target.id === 'q') { S.sugOpen = true; S.sugIdx = -1; renderSug(); } });
 document.addEventListener('focusout', e => { if (e.target.id === 'q') setTimeout(() => { if (document.activeElement && document.activeElement.id === 'q') return; S.sugOpen = false; renderSug(); }, 120); });
@@ -2305,7 +2703,7 @@ async function boot() {
   // 防止別的網站把 FANVERSE 嵌進框架裡誘騙點擊（GitHub Pages 無法設定 frame-ancestors，所以用程式擋）
   if (window.top !== window.self) { document.body.innerHTML = '<p style="padding:24px;font:16px sans-serif">為了安全，請直接開啟 <a href="https://fanverse-team.github.io/" target="_top">fanverse-team.github.io</a></p>'; return; }
   route();
-  loadConcerts(); loadHotels();
+  loadConcerts(); loadHotels(); loadArts();
   if (!firebaseConfig || !firebaseConfig.apiKey || /^YOUR_/.test(firebaseConfig.apiKey)) { S.mode = 'off'; S.note = '尚未設定 Firebase，帳號功能暫停'; render(); return; }
   try {
     const [appM, authM, fsM, acM] = await Promise.all([import(FB + 'firebase-app.js'), import(FB + 'firebase-auth.js'), import(FB + 'firebase-firestore.js'), import(FB + 'firebase-app-check.js').catch(() => null)]);
