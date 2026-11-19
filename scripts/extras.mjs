@@ -13,7 +13,7 @@ async function get(url, init = {}) {
   for (let i = 0; i < 3; i++) {
     try {
       const r = await fetch(url, Object.assign({ signal: AbortSignal.timeout(90000) }, init, { headers: Object.assign({ 'User-Agent': UA }, init.headers || {}) }));
-      if (r.status === 429) { err = new Error('HTTP 429'); await sleep(20000 * (i + 1)); continue; }
+      if (r.status === 429) { err = new Error('HTTP 429'); if (i >= 1) break; await sleep(15000); continue; }
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return await r.json();
     } catch (e) { err = e; if (/HTTP 4\d\d/.test(e.message)) break; await sleep(4000 * (i + 1)); }
@@ -156,7 +156,8 @@ async function transit(auth) {
   const stations = [], exits = [], firstLast = [];
   // 每次最多更新 35 個場館（先補沒有資料的、再更新最舊的），分幾次跑完，避免超過 TDX 免費方案的呼叫頻率
   let old = {}; try { old = JSON.parse(await readFile(new URL('transit.json', ROOT), 'utf8')).venues || {}; } catch { }
-  const todo = venues.filter(([n]) => !old[n] || !old[n].t || (Date.parse(TODAY) - Date.parse(old[n].t)) / 864e5 >= 7).sort((a, b) => ((old[a[0]] || {}).t || '') < ((old[b[0]] || {}).t || '') ? -1 : 1).slice(0, 35);
+  const todo0 = venues.filter(([n]) => !old[n] || !old[n].t || (Date.parse(TODAY) - Date.parse(old[n].t)) / 864e5 >= 7).sort((a, b) => ((old[a[0]] || {}).t || '') < ((old[b[0]] || {}).t || '') ? -1 : 1).slice(0, 25);
+  const todo = todo0;
   if (!todo.length) return console.log('周邊交通都是 7 天內的資料，略過');
   const step = async (label, fn) => { try { await fn(); } catch (e) { console.log(label + ' 略過：' + e.message); } await sleep(3500); };
   for (const sys of Object.keys(METRO)) {
@@ -166,12 +167,14 @@ async function transit(auth) {
   }
   console.log('捷運：' + stations.length + ' 站、' + exits.length + ' 個出口');
   const out = Object.fromEntries(Object.entries(old).filter(([n]) => venues.some(x => x[0] === n)));
+  let done = 0;
   for (const [name, v] of todo) {
-    const o = { t: TODAY, mrt: buildMetro(stations, exits, firstLast, v.at), bus: [], bike: [] };
+    const o = { t: TODAY, mrt: buildMetro(stations, exits, firstLast, v.at), bus: [], bike: [] }; let ok = !TDXCITY[v.city];
     for (const city of TDXCITY[v.city] || []) {
       const sf = '?%24spatialFilter=nearby(' + v.at[0] + ',' + v.at[1] + ',400)&%24format=JSON';
       try {
-        for (const st of await get(TDX + 'v2/Bus/Station/City/' + city + sf, auth)) {
+        const list = await get(TDX + 'v2/Bus/Station/City/' + city + sf, auth); ok = true;
+        for (const st of list) {
           const p = pos(st.StationPosition), routes = [...new Set((st.Stops || []).map(x => zr(x.RouteName)).filter(Boolean))];
           if (p && routes.length) o.bus.push([zr(st.StationName), dist(v.at, p), routes.slice(0, 12)]);
         }
@@ -187,10 +190,13 @@ async function transit(auth) {
     const bus = {}; for (const [n, d, r] of o.bus) { if (!bus[n]) bus[n] = [n, d, []]; bus[n][1] = Math.min(bus[n][1], d); bus[n][2] = [...new Set(bus[n][2].concat(r))].slice(0, 14); }
     o.bus = Object.values(bus).sort((a, b) => a[1] - b[1]).slice(0, 4);
     o.bike = o.bike.sort((a, b) => a[1] - b[1]).slice(0, 3);
-    out[name] = o;
+    if (!ok) { console.log('略過 ' + name + '（公車資料沒抓到，下次再試）'); continue; }
+    out[name] = o; done++;
+    // 每做完一個場館就存檔，就算這一步超時，已經抓到的也會保留
+    await writeFile(new URL('transit.json', ROOT), JSON.stringify({ updated: TODAY, source: '交通部 TDX 運輸資料流通服務（捷運、市區公車、公共自行車）', venues: out }) + '\n');
   }
-  console.log('本次更新 ' + todo.length + ' 個場館');
-  if (!todo.some(([n]) => out[n].mrt.length || out[n].bus.length)) throw new Error('這一批場館都沒抓到資料（可能是呼叫太頻繁），下次再試');
+  console.log('本次更新 ' + done + ' 個場館');
+  if (!todo.some(([n]) => out[n] && (out[n].mrt.length || out[n].bus.length))) throw new Error('這一批場館都沒抓到資料（可能是呼叫太頻繁），下次再試');
   await writeFile(new URL('transit.json', ROOT), JSON.stringify({ updated: TODAY, source: '交通部 TDX 運輸資料流通服務（捷運、市區公車、公共自行車）', venues: out }) + '\n');
   console.log('✔ 周邊交通：' + Object.keys(out).length + ' 個場館');
 }
