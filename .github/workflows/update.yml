@@ -31,7 +31,7 @@ jobs:
       - name: 天氣（氣象署）與高鐵、台鐵時刻表（TDX）
         run: node scripts/extras.mjs
         continue-on-error: true
-        timeout-minutes: 12
+        timeout-minutes: 18
         env:
           CWA_KEY: ${{ secrets.CWA_KEY }}
           TDX_ID: ${{ secrets.TDX_ID }}
