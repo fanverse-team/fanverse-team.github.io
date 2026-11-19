@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-SPK3L2FVLZjxkKUaiO5FMeaEbkL+X8TGSsFVT8lXUy0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-wWspvjm55mbeNUokNtvhtL0a+1Jp5uvxai9rUNp7Dqg='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -387,7 +387,7 @@ const S = {
   unsubs: [], itemUnsubs: {}, revealUnsubs: {}, manage: null, manageUnsub: null, group: null, busy: {},
   ownRides: [], rideCache: {}, seats: {}, lastAt: {}, lastUnsubs: {}, seen: loadLS('fv_seen2', {}), fixes: {}, openCid: '', fixOpen: null, sugOpen: false, sugIdx: -1, sugItems: [], pk: null, cRides: { cid: '', list: [], ready: true, unsub: null }, rideCount: {}, blocks: {}, rep: {}, admin: null, banned: false, recentQ: loadLS('fv_recentq', []), plus: null, plusPub: {}, newShows: null, homeLimit: 0,
   follows: loadLS('fv_follows2', []), reminders: loadLS('fv_rem', []),
-  ai: { concert: '', dateIdx: 0, from: '台中彰化', mode: '高鐵', stay: '自動判斷', budget: '適中', out: null },
+  ai: { concert: '', dateIdx: 0, from: '台中彰化', mode: '高鐵', go: '當天', goTime: '', back: '自動判斷', backBy: '', budget: '適中', out: null },
   fraud: { text: '', out: null }, lastVerifySend: 0
 };
 const uid = () => (S.user ? S.user.uid : '');
@@ -980,7 +980,7 @@ const fmtDay = ms => { const d = new Date(ms + 8 * 3600e3); return d.getUTCFullY
 function applyTheme() {
   const c = isPlus() ? cheer(S.plus.color) : CHEER[0], r = document.documentElement.style;
   r.setProperty('--pink', c[1]); r.setProperty('--pinkd', c[2]); r.setProperty('--pinkbg', c[3]);
-  IMG.pink = c[1]; IMG.pinkd = c[2];
+  IMG.pink = c[1]; IMG.pinkd = c[2]; IMG.pinkbg = c[3];
 }
 function cleanSub(x) {
   if (!x || !['month', 'year'].includes(x.plan) || !x.until || typeof x.until.toMillis !== 'function') return null;
@@ -1324,81 +1324,167 @@ function travelOptions(reg, dest) {
   out.push({ mode: '自行開車', min: (rail ? m * 1.2 : m * 2.5), cost: r50((rail ? f * 0.9 : f * 0.55)), note: '油資與過路費以 2 人分攤估算；場館周邊停車位很少，散場會塞車' });
   return out;
 }
+// 出發與回程：可以前一天先到、看完隔天或後天再回，也可以指定出發時間和最晚幾點到家
+const GO_DAYS = ['當天', '前一天'], BACK_DAYS = ['自動判斷', '當天', '隔天', '後天'];
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const toH = t => TIME_RE.test(t || '') ? Number(t.slice(0, 2)) + Number(t.slice(3)) / 60 : null;
+function prevDay(d) { return new Date(Date.parse(d + 'T00:00:00Z') - 864e5).toISOString().slice(0, 10); }
+function tripOpts(a) {
+  const back = BACK_DAYS.includes(a.back) ? a.back : a.stay === '住一晚' ? '隔天' : a.stay === '當天來回' ? '當天' : '自動判斷';
+  return { go: GO_DAYS.includes(a.go) ? a.go : '當天', goTime: TIME_RE.test(a.goTime || '') ? a.goTime : '', back, backBy: TIME_RE.test(a.backBy || '') ? a.backBy : '' };
+}
 function makePlan(a) {
   const c = C(a.concert); if (!c) return null;
+  const T = tripOpts(a);
   const v = V(c.venue), dest = CITY_REGION[v.city] || '', island = dest === '離島', visit = !!c.r;
-  const pick = c.d[Math.min(a.dateIdx, c.d.length - 1)] || c.d[0];
-  const open = visit && c.hours ? Number(c.hours.slice(0, 2)) + Number(c.hours.slice(3, 5)) / 60 : 10;
-  const timeKnown = visit || !!pick[1], start = visit ? Math.max(open, 10.5) : pick[1] ? Number(pick[1].slice(0, 2)) + Number(pick[1].slice(3)) / 60 : 19;
+  const pick = c.d[Math.min(a.dateIdx, c.d.length - 1)] || c.d[0], day = pick[0];
+  const open = visit && c.hours ? toH(c.hours.slice(0, 5)) || 10 : 10;
+  const timeKnown = visit || !!pick[1], start = visit ? Math.max(open, 10.5) : pick[1] ? toH(pick[1]) : 19;
   const big = /大巨蛋|國家體育場/.test(c.venue), early = visit ? 0 : c.k === 'show' ? 0.75 : big ? 2.5 : 2, end = start + (visit ? 2.5 : c.k === 'show' ? 2 : 3);
   const opts = travelOptions(a.from, dest), local = !opts.length;
   const opt = local ? null : (opts.find(o => o.mode === a.mode) || opts[0]);
+  const localMin = 35, travel = local ? localMin / 60 : (opt.min + localMin) / 60;
+  const how = local ? '搭捷運或公車' : '搭' + opt.mode;
   const warn = [];
   if (!dest) warn.push('這個場館還沒有縣市資料，交通先用同生活圈估算，請用活動頁的 Google 地圖連結確認。');
   if (island) warn.push('離島活動需要先訂機票或船票，班次少、假日常客滿；以下只排當地行程。');
   if (!timeKnown) warn.push('這場的開演時間還沒公布，以下先用 19:00 估算，公布後請重新排一次。');
   if (visit) warn.push('展覽以上午 10:30 入場、參觀約 2.5 小時估算；請先查好休館日（很多館週一休館）。');
-  // 是否過夜
-  let stay = false, tight = false;
-  if (!local) {
-    const atStation = end + 1; // 散場疏散＋到車站約 1 小時
-    if (opt.mode === '高鐵' || opt.mode === '台鐵') { if (atStation > 22) stay = true; else if (atStation > 21.25) tight = true; }
-    if (opt.mode === '自行開車' && opt.min > 180) stay = true;
-    if (a.stay === '住一晚') stay = true;
-    if (a.stay === '當天來回') stay = false;
-    if (!stay && (opt.mode === '高鐵' || opt.mode === '台鐵') && atStation > 22) warn.push('散場後到車站大約 ' + hm(atStation) + '，' + opt.mode + '末班車多半已經開走（末班時間請查官方時刻表）。當天來回建議改搭深夜客運或包車。');
-    else if (tight && !stay) warn.push('散場後到車站大約 ' + hm(atStation) + '，離' + opt.mode + '末班車很近。請先查好末班時間，並考慮安可前先往出口移動。');
-    if (!stay && opt.mode === '自行開車' && !visit) warn.push('回到家會是深夜，疲勞駕駛很危險，至少兩個人輪流開。');
-  }
-  // 時間軸
-  const tl = [], localMin = 35;
-  const arriveVenue = start - early, mealAt = visit ? end : arriveVenue - 1.25;
-  const goAt = visit ? start - 0.75 : mealAt - 0.75;
-  if (local) {
-    tl.push({ t: hm(goAt), h: '出門', d: (island ? '' : '搭捷運或公車前往場館周邊。') + v.transit[0] });
-  } else {
-    const dep = (visit ? start - 0.25 : mealAt - 0.5) - (stay && !visit ? 0.75 : 0) - (opt.min + localMin) / 60;
-    tl.push({ t: hm(dep), h: '從' + a.from + '出發', d: '搭' + opt.mode + '，車程約' + dur(opt.min) + '。' + opt.note });
-    tl.push({ t: hm(dep + opt.min / 60), h: '抵達' + v.city, d: (ARRIVE[dest] ? '到' + ARRIVE[dest] + '後轉市區交通。' : '') + v.transit[0] });
-    if (stay && !visit) tl.push({ t: hm(mealAt - 0.6), h: '放行李', d: '先到住宿辦入住或寄放行李，輕裝進場。場館多半禁止攜帶大型行李。' });
-  }
-  if (visit) {
-    tl.push({ t: hm(start), h: '入場參觀', d: c.title + (c.hall ? '（' + c.hall + '）' : '') + (c.free ? '・免費參觀' : c.price ? '・' + c.price : '') });
-    tl.push({ t: hm(end), h: '午餐、逛周邊', d: v.food + '。' });
-  } else {
-    tl.push({ t: hm(mealAt), h: '吃飯', d: v.food + '。開演前 1 小時場館周邊最擠，提早吃。' });
-    if (c.k === 'show') tl.push({ t: hm(arriveVenue), h: '到場館、取票', d: '多數劇場開演前 30 分鐘開放入場，遲到要等中場或適當段落才能進場。' });
-    else {
-      tl.push({ t: hm(arriveVenue), h: '到場館', d: (big ? '大型場館驗票和安檢要排比較久。' : '') + '想買官方周邊的話要再提早，熱門場次常在中午前就開始排隊。' });
-      tl.push({ t: hm(start - 1), h: '排隊入場', d: '準備好票券和證件' + (/實名/.test(c.note || '') ? '（這場是實名制，一定要帶身分證件正本）' : '') + '，先上廁所、裝水。' });
+
+  // 回程哪一天：自動判斷時，散場後趕不上末班車或車程太長就住一晚
+  let back = T.back;
+  if (back === '自動判斷') {
+    back = '當天';
+    if (!local && !visit) {
+      const atStation = end + 1;
+      if ((opt.mode === '高鐵' || opt.mode === '台鐵') && atStation > 22) back = '隔天';
+      if (opt.mode === '自行開車' && opt.min > 180) back = '隔天';
     }
-    tl.push({ t: hm(start), h: '開演', d: c.title });
-    tl.push({ t: hm(end), h: '散場（估計）', d: v.exit[0] });
+    const by = toH(T.backBy);
+    if (back === '當天' && by !== null) { const home = end + 1 + travel, byN = by < 12 ? by + 24 : by; if (home > byN) back = '隔天'; }
   }
-  if (local) tl.push({ t: hm(end + 1), h: '回家', d: visit ? '回程可以順路逛附近景點。' : '錯開第一波人潮再搭車，或先吃宵夜。' });
-  else if (stay) {
-    tl.push({ t: hm(end + 0.75), h: '回住宿', d: '住得近可以直接走回去；想吃宵夜可以去' + v.food.split('、')[0] + '。' });
-    tl.push({ t: '隔天', h: '回程', d: '搭' + opt.mode + '回' + a.from + '，車程約' + dur(opt.min) + '。演唱會隔天上午的班次也很搶手，回程票一起先訂。' });
+  const mealAt = visit ? end : start - early - 1.25;               // 演出前吃飯；看展是看完再吃
+  const needAt = visit ? start - 0.25 : mealAt - 0.5;               // 當天最晚要在這個時間到場館周邊
+  const tl = [], days = [];
+  const label = (d, tag) => tag + '・' + dinfo(d).md + '（' + dinfo(d).wd.slice(1) + '）';
+  const push = (d, t, h, txt, keep) => tl.push({ day: d, n: typeof t === 'number' ? t : 23.9, t: typeof t === 'number' ? hm(Math.round(t * 12) / 12) : t, h, d: txt, keep });
+  let arrivedAt = null; // 當天才出發時，抵達前的行程（吃飯、排隊）就不排了
+  let nights = 0, nightBus = false;
+
+  // ---- 出發 ----
+  if (T.go === '前一天') {
+    const d0 = prevDay(day), dep = toH(T.goTime) !== null ? toH(T.goTime) : 18.5, arr = dep + travel;
+    days.push([d0, '前一天']);
+    push(d0, dep, '從' + (local ? '家裡' : a.from) + '出發', how + '，車程約' + dur(local ? localMin : opt.min) + '。' + (local ? '' : opt.note), true);
+    if (!local && opt.mode === '客運' && arr >= 24 + 3) {
+      nightBus = true;
+      push(d0, '夜間', '搭夜車', '夜車在車上過夜，省一晚住宿；帶頸枕、眼罩和外套，車上冷氣很強。');
+      push(day, arr - 24, '清晨抵達' + v.city, '可以先找早餐店或24小時咖啡廳休息，再寄放行李。' + (ARRIVE[dest] ? '到站：' + ARRIVE[dest] + '。' : ''), true);
+    } else {
+      if (arr >= 24) warn.push('前一天 ' + hm(dep) + ' 出發，抵達時已經過了午夜，記得先跟住宿確認可以晚到入住。');
+      push(d0, arr >= 24 ? arr - 24 : arr, '抵達' + (v.city || '當地') + '、入住', (ARRIVE[dest] && !local ? '到' + ARRIVE[dest] + '後轉市區交通。' : '') + '先到住宿辦入住，早點休息。', true);
+      nights++;
+    }
+    days.push([day, '演出當天']);
+    const freeFrom = nightBus ? 9 : 10;
+    if (needAt - freeFrom >= 1.5) push(day, freeFrom, '自由活動', visit ? '睡飽一點、吃早餐，慢慢走去場館。' : '睡飽一點，可以在附近逛逛、吃個早午餐；想買官方周邊的話，這時候就可以去排隊。');
+    if (!visit) push(day, mealAt - 0.6, nightBus ? '寄放行李' : '回住宿整理、出發', nightBus ? '大型行李寄放在車站置物櫃或寄物店，輕裝進場（場館多半禁止攜帶大型行李）。' : '輕裝進場，大型行李留在住宿（場館多半禁止攜帶大型行李）。');
   } else {
-    tl.push({ t: hm(end + 1), h: '回程', d: (opt.mode === '包車共乘' ? '到約定地點上車。' : opt.mode === '客運' ? '到客運站搭車，請先確認末班與深夜班次。' : opt.mode === '自行開車' ? '散場車潮多，可以晚 30 分鐘再離開。' : v.exit[1]) + ' 車程約' + dur(opt.min) + '，到' + a.from + '大約 ' + hm(end + 1 + (opt.min + localMin) / 60) + '。' });
+    days.push([day, '演出當天']);
+    const auto = needAt - (back !== '當天' && !visit && !local ? 0.75 : 0) - travel;
+    const dep = toH(T.goTime) !== null ? toH(T.goTime) : auto, arr = dep + travel;
+    push(day, dep, local ? '出門' : '從' + a.from + '出發', how + '，車程約' + dur(local ? localMin : opt.min) + '。' + (local ? v.transit[0] : opt.note), true);
+    if (!local) push(day, arr, '抵達' + (v.city || '當地'), (ARRIVE[dest] ? '到' + ARRIVE[dest] + '後轉市區交通。' : '') + v.transit[0], true);
+    arrivedAt = arr;
+    if (arr > (visit ? start + 0.5 : start - 0.25)) warn.push('依你設定的 ' + hm(dep) + ' 出發，大約 ' + hm(arr) + ' 才到，會趕不上' + (visit ? '預計的參觀時間' : '開演') + '。建議提早出發，或改成前一天出發。');
+    else if (!visit && arr > mealAt) warn.push('依你設定的出發時間，到了就要直接進場，沒時間好好吃飯，記得先帶點吃的。');
+    if (arr + 1.5 <= mealAt && !visit) push(day, arr + 0.25, '自由活動', '時間還早，可以先在附近逛逛，或去排官方周邊。');
+    if (back !== '當天' && !visit && !local) push(day, Math.max(arr + 0.1, mealAt - 0.6), '放行李', '先到住宿辦入住或寄放行李，輕裝進場。');
   }
-  // 預算（不含門票）
-  const b = [];
-  if (local) b.push(['市區交通', 80]);
-  else { b.push([opt.mode + '來回', opt.cost * 2]); b.push(['市區交通', 100]); }
-  b.push(['餐飲', { '省錢': 300, '適中': 600, '享受': 1200 }[a.budget] * (stay ? 1.6 : 1)]);
+
+  // ---- 活動本身 ----
+  if (visit) {
+    push(day, Math.max(start, arrivedAt !== null ? arrivedAt + 0.25 : start), '入場參觀', c.title + (c.hall ? '（' + c.hall + '）' : '') + (c.free ? '・免費參觀' : c.price ? '・' + c.price : ''), true);
+    push(day, end, '吃飯、逛周邊', v.food + '。');
+  } else {
+    push(day, mealAt, '吃飯', v.food + '。開演前 1 小時場館周邊最擠，提早吃。');
+    if (c.k === 'show') push(day, start - early, '到場館、取票', '多數劇場開演前 30 分鐘開放入場，遲到要等中場或適當段落才能進場。');
+    else {
+      push(day, start - early, '到場館', (big ? '大型場館驗票和安檢要排比較久。' : '') + '想買官方周邊的話要再提早，熱門場次常在中午前就開始排隊。');
+      push(day, start - 1, '排隊入場', '準備好票券和證件' + (/實名/.test(c.note || '') ? '（這場是實名制，一定要帶身分證件正本）' : '') + '，先上廁所、裝水。');
+    }
+    push(day, start, '開演', c.title, true);
+    push(day, end, '散場（估計）', v.exit[0], true);
+  }
+
+  // ---- 回程 ----
+  const by = toH(T.backBy);
+  if (back === '當天') {
+    const dep = visit ? end + 1 : end + (local ? 0.5 : 1);
+    let depart = dep;
+    if (by !== null && visit) { const want = by - travel; if (want > dep) depart = want; }
+    const home = depart + travel, byN = by !== null ? (by < 12 && !visit ? by + 24 : by) : null;
+    const nightRide = !local && home >= 24.5 && opt.mode === '客運';
+    push(day, depart, local ? '回家' : nightRide ? '搭夜車回程' : '回程', (local ? '錯開第一波人潮再搭車。' : (opt.mode === '包車共乘' ? '到約定地點上車。' : opt.mode === '客運' ? '到客運站搭車，請先確認末班與深夜班次。' : opt.mode === '自行開車' ? '散場車潮多，可以晚 30 分鐘再離開。' : v.exit[1] || '')) + ' 大約 ' + hm(home) + ' 到家。');
+    if (visit && depart - dep >= 1) push(day, dep, '在地逛逛', '離回程還有時間，可以逛逛附近景點或老街。');
+    if (byN !== null && home > byN + 0.05) warn.push('你設定 ' + T.backBy + ' 前到家，但看完大約 ' + hm(home) + ' 才到得了家。建議改成隔天回程，或選車程更短的交通方式。');
+    if (!local && !visit) {
+      const atStation = end + 1;
+      if ((opt.mode === '高鐵' || opt.mode === '台鐵') && atStation > 22) warn.push('散場後到車站大約 ' + hm(atStation) + '，' + opt.mode + '末班車多半已經開走（末班時間請查官方時刻表）。當天來回建議改搭深夜客運或包車，或改成隔天回程。');
+      else if ((opt.mode === '高鐵' || opt.mode === '台鐵') && atStation > 21.25) warn.push('散場後到車站大約 ' + hm(atStation) + '，離' + opt.mode + '末班車很近。請先查好末班時間，並考慮安可前先往出口移動。');
+      if (opt.mode === '自行開車') warn.push('回到家會是深夜，疲勞駕駛很危險，至少兩個人輪流開。');
+    }
+  } else {
+    if (!visit) push(day, end + 0.75, '回住宿', '住得近可以直接走回去；想吃宵夜可以去' + v.food.split('、')[0] + '。');
+    nights += back === '後天' ? 2 : 1;
+    let d = nextDay(day);
+    if (back === '後天') {
+      days.push([d, '隔天']);
+      push(d, 10, '在地玩一天', '睡飽之後在' + (v.city || '當地') + '走走：可以用 Google 地圖搜尋「' + (v.city || '') + ' 景點」「' + (v.city || '') + ' 美食」，或和同團的人一起排行程。');
+      push(d, 19, '晚餐、回住宿', '第二晚也住同一間，可以省下換住宿的時間。');
+      d = nextDay(d);
+    }
+    days.push([d, back === '後天' ? '後天回程' : '隔天回程']);
+    const auto = 13.5, depart = by !== null ? by - travel : auto, home = depart + travel;
+    if (by !== null && depart < 7) warn.push('你設定 ' + T.backBy + ' 前到家，要在 ' + hm(depart) + ' 就出發，很早；可以把到家時間往後調。');
+    push(d, Math.min(11, Math.max(7, depart - 1)), '退房', '多數住宿 11:00 前退房，可以先寄放行李再去走走。');
+    if (depart - 11 >= 1.5) push(d, 11.5, '逛逛、吃午餐', '回程前還有時間，可以去附近景點或買伴手禮。');
+    push(d, depart, '回程', how + '回' + (local ? '家' : a.from) + '，車程約' + dur(local ? localMin : opt.min) + '。熱門場次隔天的班次也很搶手，回程票一起先訂。');
+    push(d, home, '到家', '');
+  }
+
+  // 當天才出發又晚到：抵達前的吃飯、排隊等項目拿掉；每一天依時間排序
+  const dayOrder = days.map(x => x[0]);
+  for (let i = tl.length - 1; i >= 0; i--) if (arrivedAt !== null && tl[i].day === day && !tl[i].keep && tl[i].n < arrivedAt) tl.splice(i, 1);
+  tl.sort((x, y) => dayOrder.indexOf(x.day) - dayOrder.indexOf(y.day) || x.n - y.n);
+  // ---- 預算（不含門票） ----
+  const b = [], dayCount = days.length;
+  if (local) b.push(['市區交通', 80 * dayCount]);
+  else { b.push([opt.mode + '來回', opt.cost * 2]); b.push(['市區交通', 100 * dayCount]); }
+  b.push(['餐飲' + (dayCount > 1 ? '（' + dayCount + ' 天）' : ''), r50({ '省錢': 300, '適中': 600, '享受': 1200 }[a.budget] * (dayCount > 1 ? dayCount * 0.8 : 1))]);
   let stayTxt = '';
-  if (stay) {
+  if (nights) {
     const h = v.price.hotel, s = v.price.hostel;
     const night = a.budget === '省錢' ? (s[0] + s[1]) / 2 * 1.5 : a.budget === '適中' ? (h[0] + h[1]) / 2 * 1.5 / 2 : (h[0] + h[1]) / 2 * 1.5;
-    b.push(['住宿一晚', r50(night)]);
+    b.push(['住宿 ' + nights + ' 晚', r50(night * nights)]);
     stayTxt = a.budget === '省錢' ? '青年旅館床位' : a.budget === '適中' ? '雙人房和同場粉絲分攤' : '雙人房一人住';
   }
   const total = b.reduce((x, y) => x + y[1], 0);
   const check = visit ? ['門票或預約紀錄（有些展要先線上預約時段）', '學生證、敬老卡等優待證件', '行動電源', '悠遊卡或一卡通', '水壺（展區內多半不能飲食）', '舒適好走的鞋子'] : c.k === 'show' ? ['票券和優待票證件', '行動電源', '悠遊卡或一卡通', '薄外套（劇場冷氣通常很強）'] : ['票券（電子票先截圖）和身分證件', '行動電源、充電線', '手燈和備用電池', '悠遊卡或一卡通，先儲值好', '輕便雨衣（多數場館不能帶長傘）', '耳塞、口罩、小包衛生紙'];
-  if (stay) check.push('訂房確認信、換洗衣物');
-  if (!local) check.push('回程車票先訂好');
-  return { c, v, pick, date: pick[0], opts, opt, local, stay, stayTxt, tl, b, total: Math.round(total), check, warn, timeKnown, visit, from: a.from };
+  if (nights) check.push('訂房確認信、換洗衣物（' + nights + ' 晚）');
+  if (nightBus) check.push('夜車用的頸枕、眼罩、外套');
+  if (!local) check.push('去程和回程車票先訂好');
+  const dayLabels = Object.fromEntries(days.map(([d, tag]) => [d, label(d, tag)]));
+  return { c, v, pick, date: T.go === '前一天' ? prevDay(day) : day, opts, opt, local, stay: nights > 0, nights, nightBus, stayTxt, tl, dayLabels, multi: days.length > 1, b, total: Math.round(total), check, warn, timeKnown, visit, from: a.from, trip: T, back };
+}
+// 出發日、出發時間、回程日、最晚到家時間（小幫手和團體共用行程都用這一組）
+function tripFields(p, a) {
+  const T = tripOpts(a), sel = (id, list, v) => '<select class="in" id="' + p + id + '">' + list.map(x => '<option' + (x === v ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>';
+  return '<div class="grid2"><div><label class="f" for="' + p + 'Go">哪天出發</label>' + sel('Go', GO_DAYS, T.go) + '</div>' +
+    '<div><label class="f" for="' + p + 'GoT">出發時間</label><input class="in" type="time" id="' + p + 'GoT" value="' + esc(T.goTime) + '"></div></div>' +
+    '<div class="grid2"><div><label class="f" for="' + p + 'Back">哪天回來</label>' + sel('Back', BACK_DAYS, T.back) + '</div>' +
+    '<div><label class="f" for="' + p + 'BackBy">最晚幾點到家</label><input class="in" type="time" id="' + p + 'BackBy" value="' + esc(T.backBy) + '"></div></div>' +
+    '<p class="small muted" style="margin:4px 0 0">時間不填就自動排。例如下班後搭夜車：選「前一天」、出發 22:30、交通選客運；想在當地多玩一天就選「後天」。</p>';
 }
 function vAI() {
   const a = S.ai, f = S.fraud, list = UPCOMING(); if (!C(a.concert) || C(a.concert).last < todayTW()) a.concert = firstId();
@@ -1416,8 +1502,8 @@ function vAI() {
     '<div class="grid2"><div><label class="f" for="aiFrom">出發地區</label><select class="in" id="aiFrom">' + Object.keys(REGIONS).map(r => '<option' + (a.from === r ? ' selected' : '') + '>' + r + '</option>').join('') + '</select></div>' +
     '<div><label class="f" for="aiB">預算</label><select class="in" id="aiB">' + ['省錢', '適中', '享受'].map(x => '<option' + (a.budget === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></div></div>' +
     (local ? '<p class="d small" style="margin-top:8px">' + (dest === '離島' ? '離島活動請先訂機票或船票，以下只排當地行程。' : '你和場館在同一個生活圈，搭捷運或公車就能到。') + '</p>' :
-      '<div class="grid2"><div><label class="f" for="aiMode">交通方式</label><select class="in" id="aiMode">' + modes.map(x => '<option' + (a.mode === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></div>' +
-      '<div><label class="f" for="aiStay">過夜</label><select class="in" id="aiStay">' + ['自動判斷', '當天來回', '住一晚'].map(x => '<option' + (a.stay === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select></div></div>') +
+      '<label class="f" for="aiMode">交通方式</label><select class="in" id="aiMode">' + modes.map(x => '<option' + (a.mode === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>' +
+      tripFields('ai', a)) +
     '<button class="btn pink full" style="margin-top:14px" data-act="plan">產生追星行程</button>' + (isPlus() ? '' : '<p class="small muted" style="margin:6px 0 0;text-align:center">免費版每天 ' + FREE_LIMIT.plan + ' 次，今天還剩 ' + Math.max(0, FREE_LIMIT.plan - planQuota()) + ' 次・<button class="lnk" data-act="goPlus">Plus 不限次數</button></p>') + (a.out ? renderPlan(a.out) : '') + '</div>' +
     '<div class="aicard"><h3><span class="ai-tag">PLUS</span> 多人分帳計算機</h3><p class="d">一起包車、住宿時，記下誰先付了什麼，自動算出誰該轉給誰多少。</p>' + splitHtml('solo', S.profile ? [S.profile.nickname] : ['我']) + '</div>' +
     '<div class="aicard"><h3><span class="ai-tag">SAFE</span> 讓票防詐檢查</h3><p class="d">把在社群看到的讓票、周邊交易訊息貼上來，檢查常見詐騙跡象。</p>' +
@@ -1462,7 +1548,7 @@ function drawPlan(ctx, o) {
   const hh = head(false); rect(0, 0, W, hh, IMG.ink); head(true); y = hh;
   y += 40;
   // 2. 重點摘要（四格）
-  const cells = [['出發地', o.local ? (o.v.city || o.c.venue.slice(0, 2)) + '在地' : o.from], ['交通方式', o.local ? '市區大眾運輸' : o.opt.mode], ['過夜', o.local ? '當天來回' : (o.stay ? '住一晚' : '當天來回')], ['預估花費（不含門票）', money(o.total)]];
+  const cells = [['出發地', o.local ? (o.v.city || o.c.venue.slice(0, 2)) + '在地' : o.from], ['交通方式', o.local ? '市區大眾運輸' : o.opt.mode], ['行程', o.nights ? (o.multi ? o.nights + ' 晚・' + Object.keys(o.dayLabels).length + ' 天' : '住 ' + o.nights + ' 晚') : o.nightBus ? '夜車＋當天回' : '當天來回'], ['預估花費（不含門票）', money(o.total)]];
   const cw = (W - 2 * P - 24) / 2;
   cells.forEach((c, i) => { const x = P + (i % 2) * (cw + 24), yy = y + Math.floor(i / 2) * 136; rect(x, yy, cw, 116, IMG.card, 20); text(c[0], x + 28, yy + 22, IMG.muted, 500, 24); text(c[1], x + 28, yy + 56, IMG.ink, 900, 34); });
   y += 272 + 28;
@@ -1470,13 +1556,15 @@ function drawPlan(ctx, o) {
   o.warn.forEach(w => { f(500, 26); const ls = imgWrap(ctx, '⚠ ' + w, W - 2 * P - 56), h = ls.length * 38 + 40; rect(P, y, W - 2 * P, h, IMG.warnbg, 18); ls.forEach((l, i) => text(l, P + 28, y + 20 + i * 38, IMG.warn, 500, 26)); y += h + 16; });
   y += 16;
   // 4. 當天時間軸
-  y = section(y, '當天時間軸');
+  y = section(y, o.multi ? '行程時間軸' : '當天時間軸');
   const tx = P + 170, tw = W - P - tx;
+  let lastDay = '';
   o.tl.forEach((s, i) => {
+    if (o.multi && s.day !== lastDay) { lastDay = s.day; rect(P, y, W - 2 * P, 52, IMG.pinkbg || '#FFE3EF', 14); text(o.dayLabels[s.day] || s.day, P + 20, y + 10, IMG.pinkd, 900, 28); y += 72; }
     const top = y;
     text(s.t, P, y + 2, IMG.pinkd, 700, 30);
     text(s.h, tx, y, IMG.ink, 700, 30); y += 44;
-    y += para(s.d, tx, y, tw, IMG.body, 400, 25, 37);
+    if (s.d) y += para(s.d, tx, y, tw, IMG.body, 400, 25, 37);
     rect(P + 140, top + 10, 4, Math.max(20, y - top - 4), i === o.tl.length - 1 ? 'rgba(0,0,0,0)' : IMG.line);
     ctx.fillStyle = IMG.pink; ctx.beginPath(); ctx.arc(P + 142, top + 18, 9, 0, Math.PI * 2); ctx.fill();
     y += 26;
@@ -1501,8 +1589,8 @@ function drawPlan(ctx, o) {
   if (o.c.price) { y += para('門票另計：' + o.c.price, P, y, W - 2 * P, IMG.muted, 400, 24, 34); }
   y += 34;
   // 7. 住宿
-  if (o.stay) {
-    y = section(y, '住宿參考');
+  if (o.nights) {
+    y = section(y, '住宿參考（' + o.nights + ' 晚）');
     const hs = (HOTELS && HOTELS[o.c.venue] || []).slice(0, 5);
     if (hs.length) hs.forEach(h => { text(h.n, P, y, IMG.ink, 700, 28); text('約 ' + h.d.toLocaleString('en-US') + ' 公尺', W - P, y, IMG.muted, 500, 24, 'right'); y += 46; });
     o.v.stay.slice(0, 3).forEach(s => { y += para('・' + s[0] + '：' + s[1], P, y, W - 2 * P, IMG.body, 400, 25, 37) + 6; });
@@ -1541,17 +1629,26 @@ async function downloadPlan(o) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   toast('已下載行程圖');
 }
+function tripSummary(o) {
+  if (CITY_REGION[o.v.city] === '離島') return '離島活動，請先訂好機票或船票';
+  const parts = [o.trip.go === '前一天' ? '前一天出發' : '當天出發'];
+  parts.push(o.nights ? '住 ' + o.nights + ' 晚' + (o.nightBus ? '（去程搭夜車）' : '') : o.nightBus ? '去程搭夜車' : '當天來回');
+  if (o.back !== '當天') parts.push(o.back === '後天' ? '多玩一天，後天回' : '隔天回');
+  if (o.trip.back === '自動判斷' && o.back !== '當天') parts.push('（自動判斷：散場後回不了家）');
+  return parts.join('・');
+}
 function renderPlan(o, act) {
   const money = n => 'NT$' + Math.round(n).toLocaleString();
   const optRows = o.opts.map(x => '<div class="rowline" style="align-items:flex-start"><span><b style="color:var(--ink)">' + esc(x.mode) + (o.opt && x.mode === o.opt.mode ? '（你選的）' : '') + '</b><br><span class="small muted">' + esc(x.note) + '</span></span><span style="text-align:right;white-space:nowrap">約' + esc(dur(x.min)) + '<br>' + money(x.cost) + '</span></div>').join('');
-  const tl = o.tl.map(x => '<li><span class="t">' + esc(x.t) + '</span><b>' + esc(x.h) + '</b><br>' + esc(x.d) + '</li>').join('');
+  let lastDay = '';
+  const tl = o.tl.map(x => { const head = o.multi && x.day !== lastDay ? '<li class="tlday">' + esc(o.dayLabels[x.day] || x.day) + '</li>' : ''; lastDay = x.day; return head + '<li><span class="t">' + esc(x.t) + '</span><b>' + esc(x.h) + '</b>' + (x.d ? '<br>' + esc(x.d) : '') + '</li>'; }).join('');
   const v = o.v;
   return '<div class="result"><div style="font-weight:700;color:var(--ink)">' + esc(o.c.noArtist ? str(o.c.title, 30) : o.c.artist) + '・' + dinfo(o.pick[0]).full + ' ' + esc(o.visit ? (o.c.hours ? '開放 ' + o.c.hours : '') : tm(o.pick[1])) + '・' + esc(o.c.venue) + '</div>' +
-    '<div class="small muted">' + (o.local ? (CITY_REGION[o.v.city] === '離島' ? '離島活動，請先訂好機票或船票' : '同生活圈，當天來回') : (o.stay ? '建議住一晚' : '當天來回')) + '</div>' +
+    '<div class="small muted">' + tripSummary(o) + '</div>' +
     o.warn.map(w => '<div class="err" style="margin-top:8px">⚠️ ' + esc(w) + '</div>').join('') +
     (o.opts.length ? '<div class="sec">交通方案比較（單程，估算）</div>' + optRows : '') +
-    '<div class="sec">當天時間軸</div><ul class="tl">' + tl + '</ul>' +
-    (o.stay ? '<div class="sec">住宿建議</div>' + (hotelList(o.c.venue, o.date, 5) ? '<p class="small" style="margin:0 0 6px">離場館最近的 5 間（點連結看 ' + dinfo(o.date).md + ' 當晚房價）：</p>' + hotelList(o.c.venue, o.date, 5) : '') + '<ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul><p class="small muted" style="margin:6px 0 0">住宿花費以「' + esc(o.stayTxt) + '」的區域行情估算，並已算進演唱會當晚約 1.5 倍的漲幅，實際以訂房網為準。可以到「同行媒合」找同場粉絲分攤房費。</p>' : '') +
+    '<div class="sec">' + (o.multi ? '行程時間軸' : '當天時間軸') + '</div><ul class="tl">' + tl + '</ul>' +
+    (o.nights ? '<div class="sec">住宿建議（' + o.nights + ' 晚）</div>' + (hotelList(o.c.venue, o.date, 5) ? '<p class="small" style="margin:0 0 6px">離場館最近的 5 間（點連結看 ' + dinfo(o.date).md + ' 當晚房價）：</p>' + hotelList(o.c.venue, o.date, 5) : '') + '<ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul><p class="small muted" style="margin:6px 0 0">住宿花費以「' + esc(o.stayTxt) + '」的區域行情估算，並已算進演出期間約 1.5 倍的漲幅，實際以訂房網為準。可以到「同行媒合」找同場粉絲分攤房費。</p>' : '') +
     '<div class="sec">預估花費（不含門票）：' + money(o.total) + '</div>' + o.b.map(x => '<div class="rowline"><span>' + esc(x[0]) + '</span><span>' + money(x[1]) + '</span></div>').join('') +
     (o.c.price ? '<div class="small muted" style="margin-top:6px">門票另計：' + esc(o.c.price) + '</div>' : '') +
     '<div class="sec">行前清單建議</div><ul class="list">' + o.check.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
@@ -2253,6 +2350,7 @@ function cleanGroupPlan(p, r) {
   return {
     from: REGIONS[p.from] ? p.from : d.from, mode: MODES.includes(p.mode) ? p.mode : d.mode,
     stay: STAYS.includes(p.stay) ? p.stay : d.stay, budget: BUDGETS.includes(p.budget) ? p.budget : d.budget,
+    go: GO_DAYS.includes(p.go) ? p.go : '當天', goTime: TIME_RE.test(p.goTime || '') ? p.goTime : '', back: BACK_DAYS.includes(p.back) ? p.back : undefined, backBy: TIME_RE.test(p.backBy || '') ? p.backBy : '',
     dateIdx: rideIdx(r) !== null ? rideIdx(r) : Number.isInteger(p.dateIdx) && p.dateIdx >= 0 && p.dateIdx < 40 ? p.dateIdx : 0
   };
 }
@@ -2354,7 +2452,7 @@ function planHtml(r) {
       '<form id="gPlanF">' + (c.d.length > 1 && rideIdx(r) === null ? '<label class="f" for="gDate">場次</label><select class="in" id="gDate">' + dates + '</select>' : '') +
       '<label class="f" for="gFrom">集合出發地區</label>' + sel('gFrom', Object.keys(REGIONS), p.from) +
       '<label class="f" for="gMode">交通方式</label>' + sel('gMode', MODES, p.mode) +
-      '<label class="f" for="gStay">過夜</label>' + sel('gStay', STAYS, p.stay) +
+      tripFields('g', p) +
       '<label class="f" for="gBudget">預算</label>' + sel('gBudget', BUDGETS, p.budget) +
       '<div id="sheetErr"></div><div class="actions" style="margin-top:14px">' + (g.plan ? '<button class="btn line" type="button" data-act="gEditCancel" style="flex:1">取消</button>' : '') + '<button class="btn pink" type="submit" style="flex:2">儲存並分享給全團</button></div></form>';
   }
@@ -2369,10 +2467,12 @@ function planHtml(r) {
 async function savePlan(form) {
   const g = S.group, r = groupRide(); if (!g || !r || r.owner !== uid()) return;
   const p = {
-    from: $('#gFrom').value, mode: $('#gMode').value, stay: $('#gStay').value, budget: $('#gBudget').value,
+    from: $('#gFrom').value, mode: $('#gMode').value, budget: $('#gBudget').value,
+    go: $('#gGo').value, goTime: TIME_RE.test($('#gGoT').value) ? $('#gGoT').value : '', back: $('#gBack').value, backBy: TIME_RE.test($('#gBackBy').value) ? $('#gBackBy').value : '',
     dateIdx: $('#gDate') ? Number($('#gDate').value) || 0 : (rideIdx(r) || 0)
   };
-  if (!REGIONS[p.from] || !MODES.includes(p.mode) || !STAYS.includes(p.stay) || !BUDGETS.includes(p.budget)) return sheetErr('選項不正確，請重新選擇');
+  p.stay = p.back === '當天' ? '當天來回' : p.back === '自動判斷' ? '自動判斷' : '住一晚'; // 舊版欄位，保留相容
+  if (!REGIONS[p.from] || !MODES.includes(p.mode) || !GO_DAYS.includes(p.go) || !BACK_DAYS.includes(p.back) || !BUDGETS.includes(p.budget)) return sheetErr('選項不正確，請重新選擇');
   busyBtn(form, true, '儲存中…');
   try {
     await F.setDoc(F.doc(db, 'rides', g.id, 'meta', 'plan'), Object.assign(p, { updatedAt: F.serverTimestamp() }));
@@ -2657,7 +2757,10 @@ document.addEventListener('change', async e => {
   else if (t.id === 'aiDate') { S.ai.dateIdx = Number(t.value) || 0; S.ai.out = null; render(); }
   else if (t.id === 'aiFrom') { if (REGIONS[t.value]) S.ai.from = t.value; S.ai.out = null; render(); }
   else if (t.id === 'aiMode') { if (MODES.includes(t.value)) S.ai.mode = t.value; S.ai.out = null; render(); }
-  else if (t.id === 'aiStay') { S.ai.stay = t.value; S.ai.out = null; render(); }
+  else if (t.id === 'aiGo') { if (GO_DAYS.includes(t.value)) S.ai.go = t.value; S.ai.out = null; render(); }
+  else if (t.id === 'aiBack') { if (BACK_DAYS.includes(t.value)) S.ai.back = t.value; S.ai.out = null; render(); }
+  else if (t.id === 'aiGoT') { S.ai.goTime = TIME_RE.test(t.value) ? t.value : ''; S.ai.out = null; }
+  else if (t.id === 'aiBackBy') { S.ai.backBy = TIME_RE.test(t.value) ? t.value : ''; S.ai.out = null; }
   else if (t.id === 'aiB') { S.ai.budget = t.value; S.ai.out = null; render(); }
   else if (t.id === 'pfBirth') { const bd = parseBirthday(t.value); const g = $('#guardianBox'); if (g) g.hidden = !(bd && !isAdult(bd)); }
   else if (t.id === 'tFile' && t.files && t.files[0]) {
