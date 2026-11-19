@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-PfjVJkUuqcfBTp40KMB0kCouir8C457pF/IVsHyuYPw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-TOePO4bDhZqWNwaofisC0tugSe+gaTj0Z5dzTXY+oFw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -445,10 +445,10 @@ function render() {
 function concertCard(c) {
   const d = dinfo(c.date), left = daysLeft(c.date), fol = S.follows.includes(c.artist), multi = !c.r && c.d.length > 1, open = c.r && c.r[0] <= todayTW();
   const city = V(c.venue).city, where = c.venue + (c.hall ? '・' + c.hall : '') + (city && !c.venue.startsWith(city) && !VENUES[c.venue] ? '（' + city + '）' : '');
-  const pills = c.r ? (isLong(c) ? '<span class="pill">常設展</span>' : '<span class="pill hot">' + (open ? '展出中・到 ' + dinfo(c.r[1]).md : rangeLabel(c)) + '</span>') + (c.free ? '<span class="pill ok">免費</span>' : c.price ? '<span class="pill">' + esc(str(c.price, 24)) + '</span>' : '') + (!open && left >= 0 ? '<span class="pill">' + left + ' 天後開展</span>' : '')
+  const pills = c.r ? (isLong(c) ? '<span class="pill">常設展</span>' : '<span class="pill hot">' + (open ? (c.k === 'expo' ? '展出中' : '檔期中') + '・到 ' + dinfo(c.r[1]).md : rangeLabel(c)) + '</span>') + (c.free ? '<span class="pill ok">免費</span>' : c.price ? '<span class="pill">' + esc(str(c.price, 24)) + '</span>' : '') + (!open && left >= 0 ? '<span class="pill">' + left + ' 天後開展</span>' : '')
     : (multi ? '<span class="pill hot">共 ' + c.d.length + ' 場</span>' : '') + (c.free ? '<span class="pill ok">免費</span>' : c.price ? '<span class="pill">' + esc(str(c.price, 24)) + '</span>' : '') + (left >= 0 ? '<span class="pill">倒數 ' + left + ' 天</span>' : '');
   return '<div class="card concert" data-act="concert" data-id="' + c.id + '">' +
-    '<div class="date' + (open ? ' open' : '') + '"><div class="md">' + (open ? '展出中' : d.md) + '</div><div class="wd">' + (open ? '到 ' + dinfo(c.r[1]).md : d.wd) + '</div></div>' +
+    '<div class="date' + (open ? ' open' : '') + '"><div class="md">' + (open ? (c.k === 'expo' ? '展出中' : '檔期中') : d.md) + '</div><div class="wd">' + (open ? '到 ' + dinfo(c.r[1]).md : d.wd) + '</div></div>' +
     '<div class="cinfo"><div class="artist">' + esc(c.noArtist ? (c.k === 'expo' ? '展覽' : kindName(c) + '・' + c.genre) : c.artist + '・' + c.genre) + '</div>' +
     '<div class="ctitle">' + esc(c.title) + '</div>' +
     '<div class="meta"><span>📍 ' + esc(where) + '</span><span>🕖 ' + esc(c.r ? (c.hours || '開放時間見活動頁') : tm(c.time)) + '</span></div>' +
