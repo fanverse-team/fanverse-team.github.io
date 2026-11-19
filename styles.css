@@ -286,3 +286,18 @@
   @media (min-width:700px){ .plans{max-width:560px} }
   .tl li.tlday{list-style:none;margin:14px 0 6px -2px;padding:6px 12px;border-radius:10px;background:var(--pinkbg);color:var(--pinkd);font-weight:900;font-size:14px}
   .tl li.tlday::before,.tl li.tlday::after{display:none}
+
+/* 數據分析、交通導覽、推薦、團體準備 */
+.bar{display:grid;grid-template-columns:minmax(80px,38%) 1fr auto;align-items:center;gap:8px;font-size:13px;margin:5px 0}
+.bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar i{display:block;height:10px;border-radius:5px;background:var(--pink)}
+.bar b{font-variant-numeric:tabular-nums}
+.kpi{background:var(--pinkbg);border-radius:12px;padding:10px 12px;margin:4px 0}
+.kpi b{display:block;font-size:22px;color:var(--ink)}
+.kpi span{font-size:12px;color:var(--muted)}
+.route{list-style:none;margin:0 0 10px;padding:0 0 0 18px;border-left:4px solid var(--line)}
+.route li{position:relative;padding:4px 0 10px 10px;font-size:14px;line-height:1.6}
+.route li::before{content:'';position:absolute;left:-29px;top:8px;width:14px;height:14px;border-radius:50%;background:#8A82A8;border:3px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.route li.go::before{background:#F28C28}.route li.arr::before,.route li.metro::before{background:#2E7BD6}.route li.venue::before{background:var(--pink)}
+.route .t{display:inline-block;min-width:48px;font-weight:700;color:var(--ink)}
+.rec .rowline{cursor:pointer}
