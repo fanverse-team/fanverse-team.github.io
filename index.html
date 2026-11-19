@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-WgVBVQityA3lgdUsjWFZvg1O6y8sLoLzf0FXBIb0ya4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-SPK3L2FVLZjxkKUaiO5FMeaEbkL+X8TGSsFVT8lXUy0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -610,7 +610,10 @@ function homeList() {
   const byDate = (a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
   const res = searchConcerts(S.q, pool);
   if (!res) {
-    const list = pool.filter(c => kindOk(c) && base(c)).sort(byDate), lim = S.homeLimit || PAGE;
+    // 表演：有固定場次的排前面；展覽：快閉展的排前面、常設展排最後
+    const rank = c => S.kind === 'concert' ? 0 : S.kind === 'show' ? (c.r ? 1 : 0) : isLong(c) ? 2 : c.r && c.r[0] > todayTW() ? 1 : 0;
+    const key = c => S.kind === 'expo' && c.r && c.r[0] <= todayTW() ? c.r[1] : c.date;
+    const list = pool.filter(c => kindOk(c) && base(c)).sort((a, b) => rank(a) - rank(b) || (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0)), lim = S.homeLimit || PAGE;
     if (!list.length) return '<div class="empty">' + (S.kind === 'concert' ? '沒有符合的場次' : '沒有符合的活動') + (S.city !== '全部' ? '，試試看其他地區' : '') + '</div>';
     return '<div class="cgrid">' + withPromo(list.slice(0, lim).map(concertCard)).join('') + '</div>' + (list.length > lim ? '<button class="btn line full" data-act="more">再看 ' + Math.min(PAGE, list.length - lim) + ' 筆（共 ' + list.length + ' 筆）</button>' : '');
   }
