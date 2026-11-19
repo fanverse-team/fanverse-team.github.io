@@ -13,9 +13,10 @@ async function get(url, init = {}) {
   for (let i = 0; i < 3; i++) {
     try {
       const r = await fetch(url, Object.assign({ signal: AbortSignal.timeout(90000) }, init, { headers: Object.assign({ 'User-Agent': UA }, init.headers || {}) }));
+      if (r.status === 429) { err = new Error('HTTP 429'); await sleep(20000 * (i + 1)); continue; }
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return await r.json();
-    } catch (e) { err = e; await sleep(4000 * (i + 1)); }
+    } catch (e) { err = e; if (/HTTP 4\d\d/.test(e.message)) break; await sleep(4000 * (i + 1)); }
   }
   throw err;
 }
@@ -127,6 +128,7 @@ const TDX = 'https://tdx.transportdata.tw/api/basic/';
 // 縣市代碼 → 網站用的縣市簡稱；縣市簡稱 → TDX 的 City 參數
 export const CODE = { TPE: '台北', NWT: '新北', KEE: '基隆', TAO: '桃園', HSZ: '新竹', HSQ: '新竹', MIA: '苗栗', TXG: '台中', CHA: '彰化', NAN: '南投', YUN: '雲林', CYI: '嘉義', CYQ: '嘉義', TNN: '台南', KHH: '高雄', PIF: '屏東', ILA: '宜蘭', HUA: '花蓮', TTT: '台東', PEN: '澎湖', KIN: '金門', LIE: '連江' };
 const TDXCITY = { 台北: ['Taipei'], 新北: ['NewTaipei'], 基隆: ['Keelung'], 桃園: ['Taoyuan'], 新竹: ['Hsinchu', 'HsinchuCounty'], 苗栗: ['MiaoliCounty'], 台中: ['Taichung'], 彰化: ['ChanghuaCounty'], 南投: ['NantouCounty'], 雲林: ['YunlinCounty'], 嘉義: ['Chiayi', 'ChiayiCounty'], 台南: ['Tainan'], 高雄: ['Kaohsiung'], 屏東: ['PingtungCounty'], 宜蘭: ['YilanCounty'], 花蓮: ['HualienCounty'], 台東: ['TaitungCounty'], 澎湖: ['PenghuCounty'], 金門: ['KinmenCounty'], 連江: ['LienchiangCounty'] };
+const BIKE = new Set(['Taipei', 'NewTaipei', 'Taoyuan', 'Hsinchu', 'HsinchuCounty', 'MiaoliCounty', 'Taichung', 'Chiayi', 'Tainan', 'Kaohsiung', 'PingtungCounty']);
 const METRO = { TRTC: '台北捷運', NTMC: '新北捷運', NTDLRT: '淡海輕軌', NTALRT: '安坑輕軌', TYMC: '桃園捷運', TMRT: '台中捷運', KRTC: '高雄捷運', KLRT: '高雄輕軌' };
 // 需要周邊交通資料的場館：有座標、近期有活動
 async function venueList() {
@@ -152,19 +154,20 @@ export function buildMetro(stations, exits, firstLast, at) {
 async function transit(auth) {
   const venues = await venueList(); if (!venues.length) return console.log('沒有場館座標，跳過周邊交通');
   const stations = [], exits = [], firstLast = [];
+  // 每次最多更新 35 個場館（先補沒有資料的、再更新最舊的），分幾次跑完，避免超過 TDX 免費方案的呼叫頻率
+  let old = {}; try { old = JSON.parse(await readFile(new URL('transit.json', ROOT), 'utf8')).venues || {}; } catch { }
+  const todo = venues.filter(([n]) => !old[n] || !old[n].t || (Date.parse(TODAY) - Date.parse(old[n].t)) / 864e5 >= 7).sort((a, b) => ((old[a[0]] || {}).t || '') < ((old[b[0]] || {}).t || '') ? -1 : 1).slice(0, 35);
+  if (!todo.length) return console.log('周邊交通都是 7 天內的資料，略過');
+  const step = async (label, fn) => { try { await fn(); } catch (e) { console.log(label + ' 略過：' + e.message); } await sleep(3500); };
   for (const sys of Object.keys(METRO)) {
-    try {
-      for (const x of await get(TDX + 'v2/Rail/Metro/Station/' + sys + '?%24format=JSON', auth)) { const p = pos(x.StationPosition); if (p) stations.push({ sys, id: x.StationID, name: zh(x.StationName) + '站', p }); }
-      await sleep(400);
-      for (const x of await get(TDX + 'v2/Rail/Metro/StationExit/' + sys + '?%24format=JSON', auth)) { const p = pos(x.ExitPosition); if (p) exits.push({ sys, id: x.StationID, no: String(x.ExitID || '').slice(0, 6), p, lift: !!x.Elevator }); }
-      await sleep(400);
-      for (const x of await get(TDX + 'v2/Rail/Metro/FirstLastTimetable/' + sys + '?%24format=JSON', auth)) if (x.ServiceDay ? x.ServiceDay.Saturday !== false : true) firstLast.push({ sys, id: x.StationID, head: String(x.TripHeadSign || ('往' + zh(x.DestinationStationName))).slice(0, 14), first: String(x.FirstTrainTime || '').slice(0, 5), last: String(x.LastTrainTime || '').slice(0, 5) });
-      await sleep(400);
-    } catch (e) { console.log('捷運 ' + sys + ' 略過：' + e.message); }
+    await step('捷運站 ' + sys, async () => { for (const x of await get(TDX + 'v2/Rail/Metro/Station/' + sys + '?%24format=JSON', auth)) { const p = pos(x.StationPosition); if (p) stations.push({ sys, id: x.StationID, name: zh(x.StationName) + '站', p }); } });
+    await step('捷運出口 ' + sys, async () => { for (const x of await get(TDX + 'v2/Rail/Metro/StationExit/' + sys + '?%24format=JSON', auth)) { const p = pos(x.ExitPosition); if (p) exits.push({ sys, id: x.StationID, no: String(x.ExitID || '').slice(0, 6), p, lift: !!x.Elevator }); } });
+    await step('捷運首末班 ' + sys, async () => { for (const x of await get(TDX + 'v2/Rail/Metro/FirstLastTimetable/' + sys + '?%24format=JSON', auth)) if (x.ServiceDay ? x.ServiceDay.Saturday !== false : true) firstLast.push({ sys, id: x.StationID, head: String(x.TripHeadSign || ('往' + zh(x.DestinationStationName))).slice(0, 14), first: String(x.FirstTrainTime || '').slice(0, 5), last: String(x.LastTrainTime || '').slice(0, 5) }); });
   }
-  const out = {};
-  for (const [name, v] of venues) {
-    const o = { mrt: buildMetro(stations, exits, firstLast, v.at), bus: [], bike: [] };
+  console.log('捷運：' + stations.length + ' 站、' + exits.length + ' 個出口');
+  const out = Object.fromEntries(Object.entries(old).filter(([n]) => venues.some(x => x[0] === n)));
+  for (const [name, v] of todo) {
+    const o = { t: TODAY, mrt: buildMetro(stations, exits, firstLast, v.at), bus: [], bike: [] };
     for (const city of TDXCITY[v.city] || []) {
       const sf = '?%24spatialFilter=nearby(' + v.at[0] + ',' + v.at[1] + ',400)&%24format=JSON';
       try {
@@ -173,19 +176,21 @@ async function transit(auth) {
           if (p && routes.length) o.bus.push([zr(st.StationName), dist(v.at, p), routes.slice(0, 12)]);
         }
       } catch (e) { }
-      await sleep(250);
+      await sleep(3500);
+      if (!BIKE.has(city)) continue;
       try {
         for (const b of await get(TDX + 'v2/Bike/Station/City/' + city + sf.replace(',400)', ',600)'), auth)) { const p = pos(b.StationPosition); if (p) o.bike.push([zr(b.StationName).replace(/^YouBike\d\.\d_/, ''), dist(v.at, p), +b.BikesCapacity || 0]); }
       } catch (e) { }
-      await sleep(250);
+      await sleep(3500);
     }
     // 同名站牌合併，留最近的；路線合併
     const bus = {}; for (const [n, d, r] of o.bus) { if (!bus[n]) bus[n] = [n, d, []]; bus[n][1] = Math.min(bus[n][1], d); bus[n][2] = [...new Set(bus[n][2].concat(r))].slice(0, 14); }
     o.bus = Object.values(bus).sort((a, b) => a[1] - b[1]).slice(0, 4);
     o.bike = o.bike.sort((a, b) => a[1] - b[1]).slice(0, 3);
-    if (o.mrt.length || o.bus.length || o.bike.length) out[name] = o;
+    out[name] = o;
   }
-  if (Object.keys(out).length < 5) throw new Error('周邊交通只有 ' + Object.keys(out).length + ' 個場館');
+  console.log('本次更新 ' + todo.length + ' 個場館');
+  if (!todo.some(([n]) => out[n].mrt.length || out[n].bus.length)) throw new Error('這一批場館都沒抓到資料（可能是呼叫太頻繁），下次再試');
   await writeFile(new URL('transit.json', ROOT), JSON.stringify({ updated: TODAY, source: '交通部 TDX 運輸資料流通服務（捷運、市區公車、公共自行車）', venues: out }) + '\n');
   console.log('✔ 周邊交通：' + Object.keys(out).length + ' 個場館');
 }
@@ -226,9 +231,13 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
   await weather(); await rail();
   try {
     const auth = await tdxAuth();
+    // 周邊交通與國道客運變動不大：每 7 天更新一次，省下 TDX 的呼叫次數
+    const age = async f => { try { const j = JSON.parse(await readFile(new URL(f, ROOT), 'utf8')); return (Date.parse(TODAY) - Date.parse(j.updated)) / 864e5; } catch { return 99; } };
+    if (auth && await age('bus.json') >= 7) {
+      try { await intercity(auth); } catch (e) { console.log('✘ 國道客運失敗，沿用舊資料：' + e.message); }
+    }
     if (auth) {
       try { await transit(auth); } catch (e) { console.log('✘ 周邊交通失敗，沿用舊資料：' + e.message); }
-      try { await intercity(auth); } catch (e) { console.log('✘ 國道客運失敗，沿用舊資料：' + e.message); }
     }
   } catch (e) { console.log('✘ TDX 登入失敗：' + String(e.message).replace(process.env.TDX_SECRET || '\u0000', '***')); }
 }
