@@ -392,6 +392,7 @@ export async function updateHotels(today, force) {
   if (!force && old.updated && daysBetween(old.updated, today) < 7) { console.log('住宿資料 ' + old.updated + ' 更新過，本次略過'); return false; }
   let changed = false;
   for (const [v, cfg] of Object.entries(VENUE_GEO)) {
+    if (old.venues[v] && old.venues[v].m3) continue; // 已由 culture.mjs 依場館加捷運站周邊更新
     try {
       let at = (old.venues[v] && old.venues[v].at) || null;
       if (!at) {
