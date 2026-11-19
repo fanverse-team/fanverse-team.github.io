@@ -245,23 +245,39 @@ export async function run() {
     } catch (e) { console.log('✘ 車站資料抓取失敗，沿用舊資料：' + e.message); }
   }
 
-  // 4. 住宿：每週一次，替有演唱會或表演的場館找附近 10 間（原本五大場館由 update.mjs 處理）
+  // 4. 住宿：每週一次，替有演出的場館（含五大場館）找住宿：場館周邊 800 公尺內，加上離場館最近 3 個捷運／輕軌站各 500 公尺內
   const hj = await readJson('hotels.json', { venues: {} });
-  if (!hj.artsAt || daysBetween(hj.artsAt, TODAY) >= 7) {
-    const want = [...new Set(events.filter(e => e.k !== 'expo' && !e.r).map(e => e.venue))].filter(v => V[v] && V[v].at && !['台北大巨蛋', '台北小巨蛋', '台北流行音樂中心', '高雄巨蛋', '高雄國家體育場'].includes(v)).slice(0, 120);
+  if (!hj.m3At || daysBetween(hj.m3At, TODAY) >= 7) {
+    let big = {}; try { big = (await import('./update.mjs')).VENUE_GEO || {}; } catch { }
+    for (const [n, g] of Object.entries(big)) if (!V[n]) V[n] = { at: (hj.venues[n] && hj.venues[n].at) || g.at, city: n.startsWith('高雄') ? '高雄' : '台北' }; else if (!V[n].at) V[n].at = g.at;
+    const want = [...new Set(events.filter(e => e.k !== 'expo' && !e.r).map(e => e.venue).concat(Object.keys(big)))].filter(v => V[v] && V[v].at).slice(0, 160);
     if (want.length) {
       try {
-        const j = await overpass('[out:json][timeout:180];area["ISO3166-1"="TW"][admin_level=2]->.tw;nwr["tourism"~"^(hotel|hostel|guest_house|motel)$"]["name"](area.tw);out center tags;');
-        const all = (j.elements || []).map(el => { const t = el.tags || {}, p = [el.lat || (el.center && el.center.lat), el.lon || (el.center && el.center.lon)]; return p[0] && t.name ? { n: t.name.slice(0, 60), en: (t['name:en'] || '').slice(0, 60), t: HTYPE[t.tourism] || '住宿', s: /^[1-5]$/.test(t.stars || '') ? +t.stars : 0, p: [+(+p[0]).toFixed(5), +(+p[1]).toFixed(5)] } : null; }).filter(Boolean);
+        const j = await overpass('[out:json][timeout:180];area["ISO3166-1"="TW"][admin_level=2]->.tw;(nwr["tourism"~"^(hotel|hostel|guest_house|motel)$"]["name"](area.tw);node["public_transport"="station"]["station"~"subway|light_rail"](area.tw);node["railway"="station"]["station"~"subway|light_rail"](area.tw););out center tags;');
+        const all = [], metro = [], seenM = new Set();
+        for (const el of j.elements || []) {
+          const t = el.tags || {}, p = [el.lat || (el.center && el.center.lat), el.lon || (el.center && el.center.lon)]; if (!p[0]) continue;
+          if (t.tourism && t.name) all.push({ n: t.name.slice(0, 60), en: (t['name:en'] || '').slice(0, 60), t: HTYPE[t.tourism] || '住宿', s: /^[1-5]$/.test(t.stars || '') ? +t.stars : 0, p: [+(+p[0]).toFixed(5), +(+p[1]).toFixed(5)] });
+          else if (t.station) { let n = (t['name:zh'] || t.name || '').replace(/\s*\(.*\)$/, ''); if (!n) continue; if (!/站$/.test(n)) n += '站'; if (seenM.has(n)) continue; seenM.add(n); metro.push({ n, p: [+p[0], +p[1]] }); }
+        }
         if (all.length > 500) {
           for (const v of want) {
             const at = V[v].at, seen = new Set();
-            const list = all.map(h => Object.assign({}, h, { d: distM(at, h.p) })).filter(h => h.d <= 2500).sort((a, b) => a.d - b.d).filter(h => !seen.has(h.n) && seen.add(h.n)).slice(0, 10);
-            if (list.length) hj.venues[v] = { at, list, auto: true }; else delete hj.venues[v];
+            const sts = metro.map(m => Object.assign({ d: distM(at, m.p) }, m)).filter(m => m.d <= 6000).sort((a, b) => a.d - b.d).slice(0, 3);
+            const pick = [];
+            for (const h of all) {
+              const d = distM(at, h.p); let m = null;
+              for (const st of sts) { const sd = distM(st.p, h.p); if (sd <= 500 && (!m || sd < m[1])) m = [st.n, sd]; }
+              if (d <= 800 || m) pick.push(Object.assign({}, h, { d }, d > 800 && m ? { m } : {}));
+            }
+            // 場館周邊最多 10 間，每個捷運站周邊最多 5 間
+            pick.sort((a, b) => a.d - b.d);
+            const per = {}, list = pick.filter(h => !seen.has(h.n) && seen.add(h.n)).filter(h => { const k = h.m ? h.m[0] : ''; per[k] = (per[k] || 0) + 1; return per[k] <= (k ? 5 : 10); }).slice(0, 25);
+            if (list.length) hj.venues[v] = { at, list, st: sts.map(m => [m.n, m.d]), auto: !big[v], m3: true }; else delete hj.venues[v];
           }
-          hj.artsAt = TODAY; hj.updated = hj.updated || TODAY; hj.source = 'OpenStreetMap（© OpenStreetMap contributors，ODbL）';
+          hj.m3At = TODAY; hj.artsAt = TODAY; hj.updated = TODAY; hj.source = 'OpenStreetMap（© OpenStreetMap contributors，ODbL）';
           await writeFile(new URL('hotels.json', ROOT), JSON.stringify(hj, null, 1) + '\n');
-          console.log('✔ 住宿：' + want.length + ' 個場館，全台住宿 ' + all.length + ' 筆');
+          console.log('✔ 住宿：' + want.length + ' 個場館（含最近 3 個捷運站周邊），全台住宿 ' + all.length + ' 筆、捷運站 ' + metro.length + ' 個');
         } else console.log('✘ 住宿資料太少，沿用舊資料');
       } catch (e) { console.log('✘ 住宿資料抓取失敗，沿用舊資料：' + e.message); }
     }
