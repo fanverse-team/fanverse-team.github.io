@@ -21,7 +21,7 @@ function knownArtist(text) {
   for (const [g, list] of KNOWN) for (const n of list) if (hasName(text, n)) return { name: n, genre: g };
   return null;
 }
-function classify(artist, title, hint) {
+export function classify(artist, title, hint) {
   const all = artist + ' ' + title + ' ' + (hint || '');
   if (/頒獎|Awards|音樂節|Festival|FESTIVAL|民歌|慈善|超過\d+組|跨年|主持人|拼盤|群星/.test(all)) return '綜合';
   if ((artist.match(/、/g) || []).length >= 2) return '綜合';
@@ -35,7 +35,7 @@ function classify(artist, title, hint) {
   if (/[一-鿿]/.test(artist)) return '華語';
   return '其他';
 }
-function guessArtist(title) {
+export function guessArtist(title) {
   const k = knownArtist(title); if (k) return k.name;
   const br = title.match(/^\s*[《「『【][^》」』】]{1,20}[》」』】]\s*([\s\S]+)$/);
   if (br && /^[\u4e00-\u9fff]{2}/.test(br[1])) title = br[1];
