@@ -18,6 +18,11 @@ service cloud.firestore {
     function str(v, lo, hi) { return v is string && v.size() >= lo && v.size() <= hi; }
     function concertOk(c) { return c is string && c.matches('^e[0-9]{2,4}$'); }
     function unchanged(field) { return request.resource.data[field] == resource.data[field]; }
+    // 管理員名單：要增減管理員，這裡和網站程式裡的 ADMINS 一起改
+    function isAdmin() { return verified() && request.auth.uid in ['BOC3QdBfSccDfNR3LjNRrLNjGMK2']; }
+    // 被管理員停權的帳號不能新增任何內容
+    function notBanned() { return !exists(/databases/$(database)/documents/bans/$(request.auth.uid)); }
+    function blockedBy(owner) { return exists(/databases/$(database)/documents/blocks/$(owner)/u/$(request.auth.uid)); }
 
     // 年齡判斷採保守算法：18 年 = 6575 天（含最多 5 個閏日），寧可多算一天未成年
     function adultBy(birthday) { return request.time >= birthday + duration.value(6575, 'd'); }
@@ -134,19 +139,20 @@ service cloud.firestore {
         && request.resource.data.owner == me()
         && request.resource.data.createdAt == request.time
         && request.resource.data.memberCount == 0
-        && (request.resource.data.kind != '住宿' || !isMinor())
-        && coolOk();
+        && (!(request.resource.data.kind in ['住宿', '包車']) || !isMinor())
+        && notBanned() && coolOk();
       allow update: if verified() && resource.data.owner == me()
         && validRide(request.resource.data)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount', 'title', 'note']);
-      allow delete: if verified() && resource.data.owner == me();
+      allow delete: if verified() && (resource.data.owner == me() || isAdmin());
 
       // 申請：只有申請者本人與發起人看得到，其他人看不到誰申請了哪一團
       match /requests/{uid} {
         allow read: if verified() && (me() == uid || ride(rideId).owner == me());
         allow create: if verified() && hasProfile() && me() == uid
           && ride(rideId).owner != me()
-          && (ride(rideId).kind != '住宿' || !isMinor())
+          && (!(ride(rideId).kind in ['住宿', '包車']) || !isMinor())
+          && notBanned() && !blockedBy(ride(rideId).owner)
           && request.resource.data.keys().hasOnly(['uid', 'status', 'createdAt'])
           && request.resource.data.uid == me()
           && request.resource.data.status == 'pending'
@@ -167,7 +173,7 @@ service cloud.firestore {
       // 聊天訊息：每則最多 300 字；同一人兩則訊息至少間隔 2 秒（靠 chatLast 檢查）
       match /chat/{msgId} {
         allow read: if verified() && (isMember() || resource.data.uid == me());
-        allow create: if verified() && hasProfile() && isMember()
+        allow create: if verified() && hasProfile() && isMember() && notBanned()
           && request.resource.data.keys().hasOnly(['uid', 'text', 'createdAt'])
           && request.resource.data.keys().hasAll(['uid', 'text', 'createdAt'])
           && request.resource.data.uid == me()
@@ -175,7 +181,7 @@ service cloud.firestore {
           && request.resource.data.createdAt == request.time
           && getAfter(lastRef()).data.at == request.time
           && (!exists(lastRef()) || get(lastRef()).data.at < request.time - duration.value(2, 's'));
-        allow delete: if verified() && (resource.data.uid == me() || ride(rideId).owner == me());
+        allow delete: if verified() && (resource.data.uid == me() || isAdmin() || ride(rideId).owner == me());
       }
       match /chatLast/{uid} {
         allow read: if verified() && me() == uid;
@@ -237,7 +243,7 @@ service cloud.firestore {
     }
     match /fixes/{cid}/r/{rid} {
       allow read: if true;
-      allow create, update: if verified() && hasProfile() && fixOk(cid, rid, request.resource.data);
+      allow create, update: if verified() && hasProfile() && notBanned() && fixOk(cid, rid, request.resource.data);
       allow delete: if signedIn() && rid.split('_')[0] == me();
     }
     match /myFixes/{uid}/k/{key} {
@@ -257,6 +263,7 @@ service cloud.firestore {
 
     // ---------- 檢舉：只能新增，任何人都讀不到（管理員在 Firebase 後台查看） ----------
     match /reports/{reportId} {
+      allow read, delete: if isAdmin();
       allow create: if verified() && hasProfile()
         && reportId == me() + '_' + request.resource.data.msgId
         && request.resource.data.keys().hasOnly(['by', 'rideId', 'msgId', 'who', 'text', 'reason', 'createdAt'])
@@ -264,7 +271,7 @@ service cloud.firestore {
         && request.resource.data.by == me()
         && str(request.resource.data.rideId, 1, 64) && str(request.resource.data.msgId, 1, 64)
         && str(request.resource.data.who, 0, 128) && str(request.resource.data.text, 0, 300)
-        && request.resource.data.reason == '聊天室訊息'
+        && request.resource.data.reason in ['聊天室訊息', '媒合貼文', '交換貼文']
         && request.resource.data.createdAt == request.time;
     }
 
@@ -293,13 +300,14 @@ service cloud.firestore {
         && validTrade(request.resource.data)
         && request.resource.data.owner == me()
         && request.resource.data.createdAt == request.time
-        && coolOk();
-      allow delete: if verified() && resource.data.owner == me();
+        && notBanned() && coolOk();
+      allow delete: if verified() && (resource.data.owner == me() || isAdmin());
 
       match /interests/{uid} {
         allow read: if verified() && (me() == uid || trade(tradeId).owner == me());
         allow create: if verified() && hasProfile() && me() == uid
           && trade(tradeId).owner != me()
+          && notBanned() && !blockedBy(trade(tradeId).owner)
           && request.resource.data.keys().hasOnly(['uid', 'status', 'createdAt'])
           && request.resource.data.uid == me()
           && request.resource.data.status == 'pending'
@@ -309,6 +317,54 @@ service cloud.firestore {
           && request.resource.data.status in ['accepted', 'declined'];
         allow delete: if verified() && (me() == uid || trade(tradeId).owner == me());
       }
+    }
+
+    // ---------- 封鎖：只有自己看得到自己的封鎖名單 ----------
+    match /blocks/{uid}/u/{other} {
+      allow read, delete: if signedIn() && me() == uid;
+      allow create: if verified() && me() == uid && other != uid
+        && request.resource.data.keys().hasOnly(['at'])
+        && request.resource.data.at == request.time;
+    }
+
+    // ---------- 停權：只有管理員能設定 ----------
+    match /bans/{uid} {
+      allow get: if signedIn() && (me() == uid || isAdmin());
+      allow list, delete: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['reason', 'at'])
+        && str(request.resource.data.reason, 1, 60)
+        && request.resource.data.at == request.time;
+    }
+
+    // ---------- 使用統計：每天一筆，只能一次加 1，只有管理員看得到 ----------
+    match /stats/{day} {
+      allow read: if isAdmin();
+      allow create: if day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['v']) && request.resource.data.v == 1;
+      allow update: if request.resource.data.keys().hasOnly(['v']) && request.resource.data.v == resource.data.v + 1;
+    }
+
+    // ---------- 互評：成員評發起人、發起人評已接受的成員；每人每團每對象一筆 ----------
+    function revOk(target, rid, d) {
+      return d.keys().hasOnly(['by', 'rideId', 'good', 'tags', 'at']) && d.keys().hasAll(['by', 'rideId', 'good', 'tags', 'at'])
+        && d.by == me() && target != me() && d.rideId is string && rid == d.rideId + '_' + me()
+        && d.good is bool && d.tags is list && d.tags.size() <= 3
+        && d.tags.hasOnly(['準時', '好溝通', '分攤爽快', '守約', '遲到', '放鳥', '溝通不良', '金錢糾紛'])
+        && d.at == request.time
+        && ((ride(d.rideId).owner == me() && get(/databases/$(database)/documents/rides/$(d.rideId)/requests/$(target)).data.status == 'accepted')
+          || (ride(d.rideId).owner == target && get(/databases/$(database)/documents/rides/$(d.rideId)/requests/$(me())).data.status == 'accepted'));
+    }
+    match /reviews/{target}/r/{rid} {
+      allow read: if verified();
+      allow create: if verified() && hasProfile() && notBanned() && revOk(target, rid, request.resource.data);
+      allow delete: if signedIn() && (resource.data.by == me() || me() == target);
+    }
+    match /myRevs/{uid}/k/{key} {
+      allow read, delete: if signedIn() && me() == uid;
+      allow create: if verified() && me() == uid
+        && request.resource.data.keys().hasOnly(['at'])
+        && request.resource.data.at == request.time;
     }
 
     // 其他所有路徑一律拒絕
