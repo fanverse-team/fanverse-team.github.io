@@ -1,7 +1,7 @@
 {
   "name": "FANVERSE 追星人的第二個家",
   "short_name": "FANVERSE",
-  "description": "台北、高雄演唱會情報、同行媒合、周邊交換與行程規劃",
+  "description": "全台演唱會、表演與展覽情報，同行媒合、周邊交換與行程規劃",
   "lang": "zh-Hant-TW",
   "start_url": "./#home",
   "scope": "./",
