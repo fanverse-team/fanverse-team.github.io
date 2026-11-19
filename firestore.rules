@@ -16,7 +16,8 @@ service cloud.firestore {
     function hasProfile() { return exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
     function isMinor() { return myProfile().minor == true; }
     function str(v, lo, hi) { return v is string && v.size() >= lo && v.size() <= hi; }
-    function concertOk(c) { return c is string && c.matches('^e[0-9]{2,4}$'); }
+    // 場次編號：e 開頭是五大場館演唱會，k 開頭是文化部開放資料的全台演出與展覽
+    function concertOk(c) { return c is string && c.matches('^(e[0-9]{2,4}|k[0-9a-f]{12})$'); }
     function unchanged(field) { return request.resource.data[field] == resource.data[field]; }
     // 管理員名單：要增減管理員，這裡和網站程式裡的 ADMINS 一起改
     function isAdmin() { return verified() && request.auth.uid in ['L1e5CBOsFdSDUCd69QA6nKxha9d2']; }
@@ -359,6 +360,24 @@ service cloud.firestore {
       allow read: if verified();
       allow create: if verified() && hasProfile() && notBanned() && revOk(target, rid, request.resource.data);
       allow delete: if signedIn() && (resource.data.by == me() || me() == target);
+    }
+    // ---------- FANVERSE Plus（模擬訂閱）：本人建立與修改，任何登入會員可讀（顯示徽章），管理員可看統計 ----------
+    function subOk(d) {
+      return d.keys().hasOnly(['plan', 'autoRenew', 'color', 'guardian', 'mock', 'since', 'until'])
+        && d.keys().hasAll(['plan', 'autoRenew', 'color', 'guardian', 'mock', 'since', 'until'])
+        && d.plan in ['month', 'year'] && d.autoRenew is bool && d.guardian is bool && d.mock == true
+        && d.color in ['應援粉', '夢幻紫', '天空藍', '薄荷綠', '活力橘', '閃耀黃', '熱情紅', '深海藍']
+        && d.until is timestamp && d.until > request.time && d.until <= request.time + duration.value(370, 'd')
+        && (!isMinor() || d.guardian == true);
+    }
+    match /subs/{uid} {
+      allow get: if signedIn();
+      allow list: if isAdmin();
+      allow create: if verified() && me() == uid && hasProfile() && subOk(request.resource.data) && request.resource.data.since == request.time;
+      allow update: if verified() && me() == uid && subOk(request.resource.data)
+        && (request.resource.data.since == request.time
+          || (request.resource.data.since == resource.data.since && request.resource.data.until == resource.data.until && request.resource.data.plan == resource.data.plan));
+      allow delete: if signedIn() && me() == uid;
     }
     match /myRevs/{uid}/k/{key} {
       allow read, delete: if signedIn() && me() == uid;
