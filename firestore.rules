@@ -214,6 +214,35 @@ service cloud.firestore {
           && request.resource.data.updatedAt == request.time;
         allow delete: if verified() && ride(rideId).owner == me();
       }
+      // 集合投票：發起人開題目（meta/poll），成員每人一票
+      match /meta/poll {
+        allow create, update: if verified() && ride(rideId).owner == me()
+          && request.resource.data.keys().hasOnly(['q', 'opts', 'updatedAt'])
+          && str(request.resource.data.q, 1, 30) && request.resource.data.opts is list
+          && request.resource.data.opts.size() >= 2 && request.resource.data.opts.size() <= 4
+          && request.resource.data.updatedAt == request.time;
+      }
+      match /votes/{uid} {
+        allow read: if verified() && isMember();
+        allow create, update: if verified() && isMember() && me() == uid
+          && request.resource.data.keys().hasOnly(['o', 'at'])
+          && request.resource.data.o is int && request.resource.data.o >= 0 && request.resource.data.o < 4
+          && request.resource.data.at == request.time;
+        allow delete: if verified() && (me() == uid || ride(rideId).owner == me());
+      }
+      // 行前清單：成員都能新增、打勾；建立者或發起人可以刪
+      match /todo/{tid} {
+        allow read: if verified() && isMember();
+        allow create: if verified() && isMember() && notBanned()
+          && request.resource.data.keys().hasOnly(['text', 'who', 'done', 'by', 'at'])
+          && str(request.resource.data.text, 1, 40) && str(request.resource.data.who, 0, 12)
+          && request.resource.data.done == false && request.resource.data.by == me()
+          && request.resource.data.at == request.time;
+        allow update: if verified() && isMember()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done'])
+          && request.resource.data.done is bool;
+        allow delete: if verified() && (resource.data.by == me() || ride(rideId).owner == me());
+      }
     }
 
     // ---------- 同場次佔位：同一場演出的同一天，包車和住宿各只能確認一團 ----------
@@ -242,6 +271,7 @@ service cloud.firestore {
         && d.at == request.time && d.v is string && d.day is string
         && rid == me() + '_' + d.f + (d.day == '' ? '' : '_' + d.day)
         && ((d.f == 'time' && d.day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$') && d.v.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'))
+          || (d.f == 'end' && d.day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$') && d.v.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'))
           || (d.f == 'status' && d.day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$') && d.v in ['延期', '取消', '照常'])
           || (d.f == 'price' && d.day == '' && d.v.matches('^[0-9]{2,6}-[0-9]{2,6}$'))
           || (d.f == 'platform' && d.day == '' && d.v in ['拓元售票', 'KKTIX', '遠大售票 Ticket Plus', 'ibon 售票', '寬宏售票', '年代售票']));
@@ -276,22 +306,30 @@ service cloud.firestore {
         && request.resource.data.by == me()
         && str(request.resource.data.rideId, 1, 64) && str(request.resource.data.msgId, 1, 64)
         && str(request.resource.data.who, 0, 128) && str(request.resource.data.text, 0, 300)
-        && request.resource.data.reason in ['聊天室訊息', '媒合貼文', '交換貼文']
+        && request.resource.data.reason in ['聊天室訊息', '媒合貼文', '交換貼文', '私訊訊息']
         && request.resource.data.createdAt == request.time;
     }
 
     // ---------- 周邊交換 ----------
+    // 我有／想要：最多 6 個標籤，每個 1–30 字
+    function itemsOk(l) {
+      return l is list && l.size() <= 6
+        && (l.size() < 1 || str(l[0], 1, 30)) && (l.size() < 2 || str(l[1], 1, 30)) && (l.size() < 3 || str(l[2], 1, 30))
+        && (l.size() < 4 || str(l[3], 1, 30)) && (l.size() < 5 || str(l[4], 1, 30)) && (l.size() < 6 || str(l[5], 1, 30));
+    }
     function validTrade(d) {
-      return d.keys().hasOnly(['mode', 'category', 'have', 'want', 'price', 'condition', 'concertId', 'tags', 'note', 'img', 'owner', 'createdAt'])
-        && d.keys().hasAll(['mode', 'category', 'have', 'want', 'price', 'condition', 'concertId', 'tags', 'note', 'img', 'owner', 'createdAt'])
-        && d.mode in ['交換', '出售', '徵求']
+      return d.keys().hasOnly(['mode', 'category', 'have', 'want', 'price', 'condition', 'concertId', 'day', 'spot', 'tags', 'note', 'img', 'owner', 'createdAt'])
+        && d.keys().hasAll(['mode', 'category', 'have', 'want', 'price', 'condition', 'concertId', 'day', 'spot', 'tags', 'note', 'img', 'owner', 'createdAt'])
+        && d.mode in ['交換', '送出', '收取']
         && d.category in ['小卡', '專輯', '應援物', '其他']
-        && str(d.have, 0, 50) && str(d.want, 0, 50)
-        && (d.mode == '徵求' || d.have.size() > 0)
-        && (d.mode == '出售' || d.want.size() > 0)
-        && d.price is int && d.price >= 0 && d.price <= 100000
+        && itemsOk(d.have) && itemsOk(d.want)
+        && (d.mode == '收取' || d.have.size() > 0)
+        && (d.mode == '送出' || d.want.size() > 0)
+        && d.price == 0
         && d.condition in ['全新', '近全新', '有使用痕跡', '']
-        && (d.concertId == '' || concertOk(d.concertId))
+        && concertOk(d.concertId)
+        && d.day is string && (d.day == '' || d.day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$'))
+        && str(d.spot, 0, 30)
         && d.tags is list && d.tags.size() <= 5
         && str(d.note, 0, 100)
         && d.img is string
@@ -321,6 +359,68 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
           && request.resource.data.status in ['accepted', 'declined'];
         allow delete: if verified() && (me() == uid || trade(tradeId).owner == me());
+      }
+    }
+
+    // ---------- 私訊：一對一，只限有交換關係的兩人；對方接受後才能傳訊息 ----------
+    match /dms/{pid} {
+      function peer(d) { return d.users[0] == me() ? d.users[1] : d.users[0]; }
+      function tr(id) { return get(/databases/$(database)/documents/trades/$(id)).data; }
+      function interestOk(tid, who) { return get(/databases/$(database)/documents/trades/$(tid)/interests/$(who)).data.status == 'accepted'; }
+      function tradeOk(d) {
+        return str(d.a, 0, 40) && str(d.b, 0, 40) && (
+          (d.a != '' && d.b != '' && tr(d.a).owner == me() && tr(d.b).owner == peer(d))
+          || (d.b != '' && tr(d.b).owner == peer(d) && interestOk(d.b, me()))
+          || (d.a != '' && tr(d.a).owner == me() && interestOk(d.a, peer(d))));
+      }
+      function dm() { return get(/databases/$(database)/documents/dms/$(pid)).data; }
+      function dmLast() { return /databases/$(database)/documents/dms/$(pid)/last/$(me()); }
+      allow read: if verified() && me() in resource.data.users;
+      allow create: if verified() && hasProfile() && notBanned()
+        && request.resource.data.keys().hasOnly(['users', 'by', 'status', 'a', 'b', 'cid', 'createdAt'])
+        && request.resource.data.keys().hasAll(['users', 'by', 'status', 'a', 'b', 'cid', 'createdAt'])
+        && request.resource.data.users is list && request.resource.data.users.size() == 2
+        && me() in request.resource.data.users
+        && request.resource.data.users[0] < request.resource.data.users[1]
+        && pid == request.resource.data.users[0] + '_' + request.resource.data.users[1]
+        && request.resource.data.by == me() && request.resource.data.status == 'pending'
+        && (request.resource.data.cid == '' || concertOk(request.resource.data.cid))
+        && request.resource.data.createdAt == request.time
+        && !blockedBy(peer(request.resource.data))
+        && tradeOk(request.resource.data);
+      allow update: if verified() && me() in resource.data.users && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) && request.resource.data.status == 'closed')
+        || (notBanned() && resource.data.status == 'pending' && resource.data.by != me()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status == 'open' && !blockedBy(peer(resource.data)))
+        || (notBanned() && resource.data.status == 'open'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastAt', 'lastBy'])
+          && request.resource.data.lastAt == request.time && request.resource.data.lastBy == me())
+        || (notBanned() && resource.data.status == 'closed'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'by', 'a', 'b', 'cid'])
+          && request.resource.data.status == 'pending' && request.resource.data.by == me()
+          && (request.resource.data.cid == '' || concertOk(request.resource.data.cid))
+          && !blockedBy(peer(resource.data)) && tradeOk(request.resource.data)));
+      allow delete: if isAdmin();
+
+      match /m/{msgId} {
+        allow read: if verified() && me() in dm().users;
+        allow create: if verified() && hasProfile() && notBanned()
+          && dm().status == 'open' && me() in dm().users && !blockedBy(peer(dm()))
+          && request.resource.data.keys().hasOnly(['uid', 'text', 'createdAt'])
+          && request.resource.data.keys().hasAll(['uid', 'text', 'createdAt'])
+          && request.resource.data.uid == me()
+          && str(request.resource.data.text, 1, 300)
+          && request.resource.data.createdAt == request.time
+          && getAfter(dmLast()).data.at == request.time
+          && (!exists(dmLast()) || get(dmLast()).data.at < request.time - duration.value(2, 's'));
+        allow delete: if verified() && (resource.data.uid == me() || isAdmin());
+      }
+      match /last/{uid} {
+        allow read, delete: if verified() && me() == uid;
+        allow create, update: if verified() && me() == uid && me() in dm().users
+          && request.resource.data.keys().hasOnly(['at'])
+          && request.resource.data.at == request.time;
       }
     }
 
@@ -388,6 +488,33 @@ service cloud.firestore {
       allow create: if verified() && me() == uid
         && request.resource.data.keys().hasOnly(['at'])
         && request.resource.data.at == request.time;
+    }
+
+    // ---------- 交通方式（選填，含是否需要無障礙）：只有本人能讀寫 ----------
+    match /prefs/{uid} {
+      allow read, delete: if signedIn() && me() == uid;
+      allow create, update: if verified() && me() == uid
+        && request.resource.data.keys().hasOnly(['mobility', 'updatedAt'])
+        && request.resource.data.mobility is list && request.resource.data.mobility.size() <= 4
+        && request.resource.data.mobility.hasOnly(['腳踏車', '機車', '汽車', '身障'])
+        && request.resource.data.updatedAt == request.time;
+    }
+    // ---------- 推播：本人寫入自己的裝置代碼與要通知的藝人、活動；只有伺服器（服務帳戶）會讀 ----------
+    match /push/{uid} {
+      allow read, delete: if signedIn() && me() == uid;
+      allow create, update: if verified() && me() == uid
+        && request.resource.data.keys().hasOnly(['token', 'artists', 'cids', 'updatedAt'])
+        && str(request.resource.data.token, 20, 500)
+        && request.resource.data.artists is list && request.resource.data.artists.size() <= 50
+        && request.resource.data.cids is list && request.resource.data.cids.size() <= 50
+        && request.resource.data.updatedAt == request.time;
+    }
+    // ---------- 匿名計數（數據分析）：只能一次加 1，只有管理員看得到 ----------
+    match /counts/{key} {
+      allow read: if isAdmin();
+      allow create: if key.matches('^[a-z]{2,8}_.{1,50}$')
+        && request.resource.data.keys().hasOnly(['v']) && request.resource.data.v == 1;
+      allow update: if request.resource.data.keys().hasOnly(['v']) && request.resource.data.v == resource.data.v + 1;
     }
 
     // 其他所有路徑一律拒絕
