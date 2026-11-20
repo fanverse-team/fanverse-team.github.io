@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-tWHjwZILFDCMBc/sbgGBnbVcpg1ydgnVUx5iUKnZpSQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-mHNCWxbjW46Bn2K2KyhzEBz1wP6GKXktwk7zV/52lGg='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -1255,7 +1255,7 @@ function rideCard(r) {
   let actions;
   if (r.demo) actions = '<button class="btn" disabled>登入實名會員後才能申請</button>';
   else if (mine) actions = '<button class="btn" data-act="manage" data-type="ride" data-id="' + esc(r.id) + '">管理申請</button><button class="btn line" data-act="delPost" data-type="ride" data-id="' + esc(r.id) + '">刪除</button>';
-  else if (!st || st === 'gone') actions = minorBlocked ? '<button class="btn" disabled>未成年會員無法參加</button>' : full ? '<button class="btn" disabled>已額滿</button>' : '<button class="btn pink" data-act="apply" data-type="ride" data-id="' + esc(r.id) + '">申請加入</button>';
+  else if (!st || st === 'gone') actions = minorBlocked ? '<button class="btn" disabled>此用戶無法參與行程</button>' : full ? '<button class="btn" disabled>已額滿</button>' : '<button class="btn pink" data-act="apply" data-type="ride" data-id="' + esc(r.id) + '">申請加入</button>';
   else if (st === 'pending') actions = '<span class="pill">等待發起人確認</span><button class="btn line" data-act="cancelReq" data-type="ride" data-id="' + esc(r.id) + '">取消申請</button>';
   else if (st === 'declined') actions = '<span class="pill">發起人婉拒了</span><button class="btn line" data-act="cancelReq" data-type="ride" data-id="' + esc(r.id) + '">移除</button>';
   else actions = acceptedBlock('ride', r);
@@ -1456,8 +1456,8 @@ function modCheck(text) { const b = DM_BLOCK.find(x => x[0].test(text)); return 
 async function sendDm() {
   const dm = S.dm, inp = $('#dmIn'); if (!dm || !inp) return;
   const text = cleanText(inp.value, 300); if (!text) return;
-  const bad = modCheck(text); if (bad) return toast('為了大家的安全，私訊裡不能出現' + bad + '，請修改後再送出');
-  if (Date.now() - dm.last < 2500) return toast('訊息送得有點快，請稍等幾秒再傳');
+  const bad = modCheck(text); if (bad) return toast('為保安全，私訊中不能包含' + bad + '，請修改後再送出');
+  if (Date.now() - dm.last < 2500) return toast('傳太快了，稍等一下再送');
   dm.last = Date.now();
   const mid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), b = F.writeBatch(db);
   b.set(F.doc(db, 'dms', dm.id, 'm', mid), { uid: uid(), text, createdAt: F.serverTimestamp() });
@@ -2856,7 +2856,7 @@ function apply(type, id, force) {
   return withLock(type + id, async () => {
     if (type === 'ride') {
       const r = rideById(id); if (!r) return toast('找不到這個媒合');
-      if ((r.kind === '住宿' || r.kind === '包車') && S.profile.minor) return toast('未成年會員無法參加包車和住宿分攤');
+      if ((r.kind === '住宿' || r.kind === '包車') && S.profile.minor) return toast('此用戶無法參與行程');
       const pend = Object.keys(S.myStatus).filter(k => k.startsWith('ride_') && S.myStatus[k] === 'pending').length;
       if (pend >= MAX_PENDING) return openSheet('先等一下', '<p style="font-size:14px;line-height:1.8">你已經有 ' + pend + ' 筆同行申請在等發起人確認，最多同時 ' + MAX_PENDING + ' 筆。可以先取消不需要的申請，或等對方回覆。</p><button class="btn line full" data-act="close">知道了</button>');
       const chk = await checkConflicts(r);
@@ -3141,7 +3141,7 @@ function renderMsgs() {
 async function sendChat() {
   const g = S.group, inp = $('#chatIn'); if (!g || !inp) return;
   const text = inp.value.trim().slice(0, 300); if (!text) return;
-  if (Date.now() - g.lastSend < 2500) return toast('訊息送得有點快，請稍等幾秒再傳');
+  if (Date.now() - g.lastSend < 2500) return toast('傳太快了，稍等一下再送');
   g.lastSend = Date.now();
   const u = uid(), mid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), b = F.writeBatch(db);
   b.set(F.doc(db, 'rides', g.id, 'chat', mid), { uid: u, text, createdAt: F.serverTimestamp() });
@@ -3222,7 +3222,7 @@ function rideForm() {
   const minor = S.profile.minor;
   openSheet('發起同行媒合',
     '<form id="rideF" novalidate><label class="f">類型</label><div class="seg" id="rkSeg">' + ['包車', '住宿', '旅伴'].filter(k => !(minor && k !== '旅伴')).map((k, i) => '<button type="button" class="' + (i === 0 ? 'on' : '') + '" data-act="seg" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
-    (minor ? '<div class="hint">未成年會員無法參加包車和住宿分攤，可以發起或參加「旅伴」。</div>' : '') +
+    (minor ? '<div class="hint">此用戶無法參與行程（包車、住宿），可以發起或參加「旅伴」。</div>' : '') +
     '<label class="f" for="rCIn">場次</label>' + pickerHtml('rC', S.matchConcert || firstId(), PK_OPT.rC) +
     '<div id="rDBox">' + rideDateSel(S.matchConcert || firstId()) + '</div>' +
     '<label class="f" for="rT">標題</label><input class="in" id="rT" maxlength="40" required placeholder="例：台中出發・高雄巨蛋包車">' +
@@ -3295,7 +3295,7 @@ async function submitRide(form) {
   if (!title || !from) return sheetErr('請填標題和出發地');
   if (capacity < 2 || capacity > 50) return sheetErr('人數上限要在 2 到 50 之間');
   if (cost < 0 || cost > 20000) return sheetErr('費用要在 0 到 20,000 之間');
-  if ((kind === '住宿' || kind === '包車') && S.profile.minor) return sheetErr('未成年會員無法發起包車或住宿分攤，可以改發起「旅伴」');
+  if ((kind === '住宿' || kind === '包車') && S.profile.minor) return sheetErr('此用戶無法參與行程');
   const concertId = $('#rC').value, c = C(concertId); if (!c) return sheetErr('請選擇場次');
   const data = { kind, concertId, title, from, capacity, cost, note, owner: uid(), createdAt: F.serverTimestamp(), memberCount: 0 };
   const dv = $('#rD') ? $('#rD').value : ''; data.day = c.d.some(x => x[0] === dv) ? dv : c.d[0][0]; // 一律記日期：之後就算加開場次也不會對錯天
@@ -3325,7 +3325,7 @@ async function submitTrade(form) {
   const spot = cleanText($('#tSpot').value, 30), note = cleanText($('#tNote').value, 100);
   if (!spot) { const sp = $('#tSpot'); if (sp) sp.focus(); return sheetErr('請填現場交換地點，例如：場周販賣區旁邊'); }
   const bad = modCheck(have.join(' ') + ' ' + want.join(' ') + ' ' + spot + ' ' + note);
-  const category = S.tsel.cat.length ? CATS.filter(c => S.tsel.cat.includes(c)) : autoCats((mode === '收取' ? [] : have).concat(mode === '送出' ? [] : want)); if (bad) return sheetErr('內容裡不能出現' + bad + '，配對成功後可以用站內私訊聯絡');
+  const category = S.tsel.cat.length ? CATS.filter(c => S.tsel.cat.includes(c)) : autoCats((mode === '收取' ? [] : have).concat(mode === '送出' ? [] : want)); if (bad) return sheetErr('內容不能包含' + bad + '，配對成功後可用站內私訊聯絡');
   const tags = cleanText($('#tTags').value, 80).split(/\s+/).filter(Boolean).slice(0, 5).map(x => x.slice(0, 16));
   busyBtn(form, true, '上架中…');
   try {
