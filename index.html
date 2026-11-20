@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-O+cSLNrf6c2KMjRXeeAmLYBfRI14VLak/cSld+HusHA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-00YebMrEk1uCtXcXzqnmyuam7weTebym1EtZ4qLEKaw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -731,7 +731,7 @@ function vHome() {
   const up = UPCOMING(), count = k => up.filter(c => (c.k || 'concert') === k).length;
   const area = AREAS[S.city] ? S.city : Object.keys(AREAS).find(a => AREAS[a].includes(S.city)) || '';
   const genres = S.kind === 'concert' ? ['全部', '韓流', '日本', '華語', '歐美', '綜合'].concat(up.some(c => (c.k || 'concert') === 'concert' && c.genre === '其他') ? ['其他'] : []) : S.kind === 'show' ? ['全部'].concat(SHOW_CATS, ['免費']) : ['全部', '展出中', '免費'];
-  return '<h2 class="vt">全台演出與展覽情報站</h2><p class="vsub">演唱會、音樂、戲劇、舞蹈與展覽，點卡片看售票、交通與住宿</p>' +
+  return '<h2 class="vt">全台演出與展覽情報站</h2>' +
     newShowsBar() + recBox() + '<div class="seg kindseg" role="tablist">' + KINDS.map(([k, l]) => '<button role="tab" aria-selected="' + (S.kind === k) + '" class="' + (S.kind === k ? 'on' : '') + '" data-act="kind" data-v="' + k + '">' + l + (count(k) ? '<span class="cnt">' + count(k) + '</span>' : '') + '</button>').join('') + '</div>' +
     '<div class="sbox"><input class="search" id="q" type="search" enterkeyhint="search" placeholder="' + (S.kind === 'expo' ? '搜尋展覽、博物館、縣市（例：法老、奇美、台中）' : S.kind === 'show' ? '搜尋節目、團體、場館（例：交響、衛武營、親子）' : '搜尋藝人、場館、月份（例：防彈、大巨蛋、12月）') + '" value="' + esc(S.q) + '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="sugBox" aria-expanded="false">' +
     (S.q ? '<button class="sclear" data-act="clearQ" aria-label="清除搜尋">✕</button>' : '') + '<div id="sugBox" class="sug" role="listbox" hidden></div></div>' +
@@ -996,7 +996,6 @@ const FB_HINT = { '改善建議': '希望新增或改進什麼功能？', '問�
 function fbCard() {
   const t = FB_TYPES.includes(S.fbType) ? S.fbType : FB_TYPES[0];
   return '<div class="card" id="fbCard"><div class="sec" style="margin-top:0">意見回饋</div>' +
-    '<p class="small muted" style="margin:0 0 10px">發現 bug、翻譯怪怪的，或有想要的功能，都歡迎告訴我們。</p>' +
     '<div class="chips" style="margin-bottom:10px">' + FB_TYPES.map(x => '<button type="button" class="chip' + (x === t ? ' on' : '') + '" data-act="fbType" data-v="' + x + '">' + x + '</button>').join('') + '</div>' +
     '<textarea class="in" id="fbText" rows="4" maxlength="1000" placeholder="' + esc(FB_HINT[t]) + '">' + esc(S.fbDraft || '') + '</textarea>' +
     '<input class="in" id="fbWhere" maxlength="40" placeholder="在哪一頁或哪個功能（選填）" value="' + esc(S.fbWhere || '') + '" style="margin-top:8px">' +
@@ -1053,7 +1052,7 @@ function vAdmin() {
       '<button class="btn" data-act="admDismiss" data-id="' + esc(r.id) + '">處理完畢</button></div></div>';
   }).join('') : '<div class="empty">目前沒有檢舉 🎉</div>';
   const bans = a.bans.length ? a.bans.map(b => '<div class="rowline"><span>' + esc(nick(b.id)) + '<br><span class="small muted">' + esc(str(b.reason, 40)) + '</span></span><button class="btn line" data-act="admUnban" data-v="' + esc(b.id) + '">解除停權</button></div>').join('') : '<div class="small muted">沒有停權中的帳號</div>';
-  return '<h2 class="vt">管理員後台</h2><p class="vsub">處理檢舉、停權帳號、看使用人數</p>' +
+  return '<h2 class="vt">管理員後台</h2>' +
     '<div class="card"><div class="sec" style="margin-top:0">每日造訪（最近 14 天）</div>' + stats + '</div>' +
     (a.subs ? '<div class="card"><div class="sec" style="margin-top:0">Plus 訂閱（模擬）</div><div class="rowline"><span>有效訂閱</span><b>' + a.subs.n + ' 人</b></div><div class="rowline"><span>月繳／年繳</span><span>' + a.subs.month + '／' + a.subs.year + '</span></div><div class="rowline"><span>開著自動續訂</span><span>' + a.subs.renew + '</span></div><div class="rowline"><span>換算每月收入（模擬）</span><b>NT$' + Math.round(a.subs.month * 49 + a.subs.year * 490 / 12).toLocaleString() + '</b></div></div>' : '') +
     adminExtra() +
@@ -1168,7 +1167,7 @@ function vPlus() {
   }
   const plan = (k, label, sub) => '<div class="plan' + (k === 'year' ? ' best' : '') + '">' + (k === 'year' ? '<span class="tag">省 NT$98</span>' : '') + '<div class="pn">' + label + '</div><div class="pp">NT$' + PLUS_PRICE[k] + '<span>／' + (k === 'year' ? '年' : '月') + '</span></div><div class="small muted">' + sub + '</div>' +
     (me ? '<button class="btn ' + (k === 'year' ? 'pink' : 'line') + ' full" data-act="plusBuy" data-v="' + k + '"' + (on ? ' disabled' : '') + '>' + (on ? '使用中' : '選這個') + '</button>' : '') + '</div>';
-  return '<h2 class="vt">FANVERSE Plus</h2><p class="vsub">讓追星更省心的進階功能</p>' +
+  return '<h2 class="vt">FANVERSE Plus</h2>' +
     '<div class="mock">🧪 這是課堂專題的<b>模擬訂閱</b>：不會真的扣款，也不需要輸入任何卡號。</div>' + status +
     '<div class="plans">' + plan('month', '月繳', '每月自動續訂，可隨時取消') + plan('year', '年繳', '一次付一年，等於送兩個月') + '</div>' +
     (me ? '' : '<div class="empty">登入後才能訂閱 <button class="btn pink" data-act="tab" data-v="me">登入／註冊</button></div>') +
@@ -1359,7 +1358,7 @@ async function favImage() {
 
 function vMatch() {
   const guest = S.mode !== 'ready';
-  if (guest && (S.mode === 'off' || S.mode === 'loading')) return '<h2 class="vt">同行媒合</h2><p class="vsub">包車共乘、住宿分攤、找旅伴</p>' + gate('同行媒合');
+  if (guest && (S.mode === 'off' || S.mode === 'loading')) return '<h2 class="vt">同行媒合</h2>' + gate('同行媒合');
   if (S.matchConcert && !C(S.matchConcert)) S.matchConcert = '';
   const mc = S.matchConcert, byC = !guest && mc;
   if (byC) watchConcertRides();
@@ -1368,7 +1367,7 @@ function vMatch() {
   const c = C(mc);
   const head = c ? '<div class="mhead"><div><b>' + esc(c.artist) + '</b> 的同行團' + (guest ? '<div class="small muted">登入實名會員後，才看得到這場真實的同行團</div>' : ready ? '・' + all.length + ' 團' : '') + '<div class="small muted">' + c.d.map(x => dinfo(x[0]).md).join('、') + '・' + esc(c.venue) + '</div></div><button class="btn line" data-act="concert" data-id="' + c.id + '">場次資訊</button></div>' : '';
   const empty = c ? '<div class="empty">' + (all.length ? '這場目前沒有「' + esc(S.matchKind) + '」的團，換個類型看看，或' : '這場還沒有人發起同行，') + '<br><button class="btn pink" style="margin-top:10px" data-act="newRide">發起 ' + esc(c.artist) + ' 的同行</button></div>' : '<div class="empty">還沒有人發起，按右下角「發起媒合」當第一個！</div>';
-  return '<h2 class="vt">同行媒合</h2><p class="vsub">包車共乘、住宿分攤、找旅伴，一起出發更省</p>' +
+  return '<h2 class="vt">同行媒合</h2>' +
     '<div class="chips">' + ['全部', '包車', '住宿', '旅伴'].map(k => '<button class="chip' + (S.matchKind === k ? ' on' : '') + '" data-act="mkind" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
     pickerHtml('mConcert', mc, PK_OPT.mConcert) + head +
     (guest ? guestBanner('同行媒合') : '') +
@@ -1662,7 +1661,7 @@ function tradeTop() {
 
 function vMarket() {
   const guest = S.mode !== 'ready';
-  if (guest && (S.mode === 'off' || S.mode === 'loading')) return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物</p>' + gate('周邊交換');
+  if (guest && (S.mode === 'off' || S.mode === 'loading')) return '<h2 class="vt">周邊交換</h2>' + gate('周邊交換');
   const mc = C(S.marketC), td = todayTW();
   if (!guest && mc) watchPool(mc.id);
   const pool = !guest && mc ? S.pool[mc.id] : null;
@@ -1670,7 +1669,7 @@ function vMarket() {
   const list = base.filter(t => !blocked(t.owner) && (!mc || t.concertId === mc.id) && (S.marketMode === '全部' || t.mode === S.marketMode) && (S.marketCat === '全部' || catsOf(t).includes(S.marketCat)));
   if (!guest && S.newMatch) S.newMatch = 0;
   const today = guest ? [] : todaySessions();
-  return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物：只換不賣，散場後現場就能換</p>' + tradeTop() +
+  return '<h2 class="vt">周邊交換</h2>' + tradeTop() +
     (today.length ? '<div class="sec" style="margin:4px 0 6px">🔴 近 3 天場次專屬交換區</div><div class="chips">' + today.map(c => { const d = zoneDay(c); return '<button class="chip' + (S.marketC === c.id ? ' on' : '') + '" data-act="mc" data-v="' + esc(S.marketC === c.id ? '' : c.id) + '">' + (d === td ? '🔴 ' : '') + esc(zoneTag(d)) + '・' + esc(str(c.noArtist ? c.title : c.artist, 16)) + '・' + esc(str(c.venue, 10)) + '</button>'; }).join('') + '</div><p class="small muted" style="margin:-6px 0 10px">活動前 3 天開放，到活動當天為止</p>' : '') +
     (mc ? '<div class="safe" style="display:flex;align-items:center;gap:8px">📍 <span style="flex:1">正在看：<b>' + esc(sessLabel(mc, zoneDay(mc))) + '</b> 的交換</span><button class="btn line" data-act="mc" data-v="">看全部</button></div>' : '') +
     '<div class="chips">' + [['全部', '全部']].concat(TMODES).map(k => '<button class="chip' + (S.marketMode === k[0] ? ' on' : '') + '" data-act="mmode" data-v="' + k[0] + '">' + k[1] + '</button>').join('') + '</div>' +
@@ -1848,7 +1847,7 @@ function transitHtml(name, acc) {
     (m.last.length ? '<br><span class="small muted">末班車：' + m.last.map(l => esc(l[0]) + ' ' + l[2]).join('、') + '（週六時刻）</span>' : '') + '</li>').join('');
   const bus = t.bus.map(b => '<li>🚌 <b>' + esc(b[0]) + '</b>（約 ' + b[1] + ' 公尺）<br><span class="small">' + b[2].map(esc).join('、') + '</span></li>').join('');
   const bike = t.bike.map(b => '<li>🚲 YouBike「' + esc(b[0]) + '」（約 ' + b[1] + ' 公尺' + (b[2] ? '，' + b[2] + ' 個車柱' : '') + '）</li>').join('');
-  return '<div class="sec">場館周邊交通</div><ul class="list">' + mrt + bus + bike + '</ul><p class="small muted" style="margin:4px 0 0">交通部 TDX 開放資料' + (TRANSIT_ASOF ? '（' + TRANSIT_ASOF + ' 更新）' : '') + '。YouBike 剩幾台車會一直變，出發前請用 YouBike App 看即時車數。</p>';
+  return '<div class="sec">場館周邊交通</div><ul class="list">' + mrt + bus + bike + '</ul>';
 }
 // 到場館的最後一哩：捷運出口、公車、YouBike；依交通能力標籤調整
 function lastMile(name, mob, acc) {
@@ -1986,7 +1985,7 @@ function recommend(n) {
 }
 function recBox() {
   const xs = recommend(3); if (!xs.length) return '';
-  return '<div class="card rec"><div class="sec" style="margin-top:0">✨ 為你推薦<span class="small muted">（依你追蹤的藝人和收藏）</span></div>' +
+  return '<div class="card rec"><div class="sec" style="margin-top:0">✨ 為你推薦</div>' +
     xs.map(x => '<div class="rowline" data-act="concert" data-id="' + x.c.id + '" style="cursor:pointer"><span><b>' + esc(x.c.noArtist ? str(x.c.title, 26) : x.c.artist) + '</b><br><span class="small muted">' + esc(x.c.venue) + '・' + esc(x.why.join('、') || x.c.genre) + '</span></span><span class="small">' + (x.c.r ? rangeLabel(x.c) : dinfo(x.c.date).md) + '</span></div>').join('') + '</div>';
 }
 
@@ -2053,7 +2052,7 @@ function prepHtml(r) {
     (owner ? '<details style="margin-top:8px"><summary class="small">' + (poll ? '修改投票' : '開一個投票') + '</summary><input class="in" id="pollQ" maxlength="30" placeholder="例：散場後在哪裡集合？" value="' + esc(poll ? poll.q : '') + '">' + [0, 1, 2, 3].map(i => '<input class="in" id="pollO' + i + '" maxlength="30" style="margin-top:6px" placeholder="選項 ' + (i + 1) + '（例：18:30 南港站 2 號出口）" value="' + esc(poll && poll.opts[i] || '') + '">').join('') + '<button class="btn line" style="margin-top:8px" data-act="pollSave">儲存投票</button></details>' : '') + '</div>' +
     '<div class="card"><div class="sec" style="margin-top:0">✅ 行前清單</div>' + (todo || '<div class="small muted">還沒有項目，例如：手燈、應援毛巾、訂房、買車票。</div>') +
     '<div class="grid2" style="margin-top:8px"><input class="in" id="todoT" maxlength="40" placeholder="要準備什麼"><input class="in" id="todoW" maxlength="12" placeholder="誰負責（選填）"></div><button class="btn line" style="margin-top:6px" data-act="todoAdd">加入清單</button></div>' +
-    '<p class="small muted">清單和投票只有同團的人看得到。</p>';
+    '';
 }
 function watchPrep(g) {
   const id = g.id, re = () => { if (S.group === g && g.tab === 'prep') renderGroup(); };
@@ -2118,7 +2117,7 @@ function detailExtras(c) {
   const v = V(c.venue), days = c.r ? [todayTW() >= c.r[0] ? todayTW() : c.r[0]] : c.d.map(x => x[0]);
   const wx = days.map(d => [d, weatherOf(v.city, d)]).filter(x => x[1]);
   const near = c.r ? [] : nearbyArts(v.city, c.d[0][0], c.id, 9, 18).slice(0, 3);
-  return (wx.length ? '<div class="sec">天氣預報</div><ul class="list">' + wx.map(([d, w]) => '<li>🌦️ ' + dinfo(d).md + ' ' + esc(v.city) + '：' + esc(weatherTxt(w)) + '</li>').join('') + '</ul><p class="small muted" style="margin:4px 0 0">中央氣象署一週預報' + (WEATHER_ASOF ? '（' + WEATHER_ASOF + ' 更新）' : '') + '</p>' : '') +
+  return (wx.length ? '<div class="sec">天氣預報</div><ul class="list">' + wx.map(([d, w]) => '<li>🌦️ ' + dinfo(d).md + ' ' + esc(v.city) + '：' + esc(weatherTxt(w)) + '</li>').join('') + '</ul>' : '') +
     (near.length ? '<div class="sec">同一天在' + esc(v.city) + '也可以看</div><ul class="list">' + near.map(e => '<li><button class="lnk" data-act="concert" data-id="' + esc(e.id) + '">' + esc(e.title) + '</button>（' + esc(e.tag) + '）</li>').join('') + '</ul>' : '');
 }
 function endOf(c, day, start, visit) {
@@ -2330,7 +2329,7 @@ function vAI() {
   const modes = local ? MODES : fitOptions(travelOptions(a.from, dest), a.from, dest, myMob()).map(o => o.mode);
   if (!S.fixes[a.concert]) loadFixes(a.concert);
   if (!modes.includes(a.mode)) a.mode = modes[0];
-  return '<h2 class="vt">追星小幫手</h2><p class="vsub">行程規劃與讓票防詐檢查</p>' +
+  return '<h2 class="vt">追星小幫手</h2>' +
     '<div class="aicard"><h3><span class="ai-tag">PLAN</span> 追星行程規劃</h3><p class="d">依場次、出發地和預算，排出交通、時間軸、住宿與花費。時間與費用都是估算。</p>' +
     '<label class="f" for="aiC">場次</label><select class="in" id="aiC">' + copts + '</select>' +
     (c.d.length > 1 ? '<label class="f" for="aiDate">哪一場</label><select class="in" id="aiDate">' + dopts + '</select>' : '') +
@@ -2553,7 +2552,7 @@ function vAuth() {
     '<button type="button" class="linkbtn" data-act="authTab" data-v="reset">忘記密碼？</button></form>' + RC_NOTE;
 }
 function vVerify() {
-  return '<h2 class="vt">驗證你的信箱</h2><p class="vsub">完成驗證才能繼續填寫實名資料</p>' +
+  return '<h2 class="vt">驗證你的信箱</h2>' +
     '<div class="formcard"><p style="margin:0;font-size:14px;line-height:1.8">驗證信已寄到 <b>' + esc(S.user ? S.user.email : '') + '</b>。請打開信中的連結，再回到這裡按「我已完成驗證」。<br><span class="muted small">沒收到的話，請檢查垃圾郵件匣。</span></p>' +
     '<div id="authErr"></div><div class="actions"><button class="btn pink" style="flex:1" data-act="checkVerified">我已完成驗證</button><button class="btn line" data-act="resendVerify">重新寄送</button></div>' +
     '<button class="linkbtn" data-act="signOut">換一個帳號登入</button></div>';
@@ -2589,7 +2588,7 @@ function vAccount() {
     const label = st === 'accepted' ? '已確認' : st === 'pending' ? '等待確認' : st === 'declined' ? '被婉拒' : '已結束';
     return '<div class="rowline"><span>' + (it.type === 'ride' ? '🚐 ' : '🃏 ') + esc(target ? str(target.title || tTxt(target, 'have') || tTxt(target, 'want'), 30) : '（貼文已刪除）') + '</span><span class="pill">' + label + '</span></div>';
   }).join('');
-  return '<h2 class="vt">我的 FANVERSE</h2><p class="vsub">' + esc(p.nickname) + '，歡迎回來</p>' +
+  return '<h2 class="vt">我的 FANVERSE</h2>' +
     '<div class="card"><div class="sec" style="margin-top:0">其他會員看到的你</div><div class="pubcard">' + personBlock(uid()) + '</div>' +
     '<div class="actions"><button class="btn ghost" data-act="editNick">修改暱稱</button></div></div>' +
     '<div class="card"><div class="sec" style="margin-top:0">只有你看得到</div>' +
@@ -2625,19 +2624,18 @@ function hotelList(name, date, n, nights) {
     (h.m ? '<br><span class="small">🚇 離「' + esc(h.m[0]) + '」約 ' + h.m[1] + ' 公尺</span>' : '') +
     '<br><span class="small"><a href="' + esc(bookLink(h, date, nights)) + '" target="_blank" rel="noopener" data-out="booking">查 ' + md + ' 入住' + (nights > 1 ? '、' + nights + ' 晚' : '') + '的即時房價</a>・<a href="' + esc(hotelMap(h)) + '" target="_blank" rel="noopener">地圖</a></span></li>';
   return '<ul class="list">' + near.map(li).join('') + '</ul>' + Object.entries(groups).map(([s, hs]) => '<div class="small" style="margin:10px 0 2px"><b>捷運「' + esc(s) + '」周邊</b>：搭捷運到場館，房價通常比場館旁便宜</div><ul class="list">' + hs.slice(0, n ? 2 : 5).map(li).join('') + '</ul>').join('') +
-    '<p class="small muted" style="margin:6px 0 0">住宿名單每週自動從 OpenStreetMap 更新' + (HOTELS_ASOF ? '（' + HOTELS_ASOF + '）' : '') + '，依離場館距離排序；房價隨日期與空房變動很大，演唱會當晚常比平日貴很多，點連結看訂房網當天的價格。名單不代表推薦或品質保證。</p>';
+    '';
 }
 function dirLink(v, name) { return 'https://www.google.com/maps/dir/?api=1&travelmode=transit&destination=' + encodeURIComponent(v.at ? v.at.join(',') : name + ' ' + (v.addr || '')); }
 function venueBlock(v, name, date, visit) {
   return '<div class="sec">怎麼去</div><ul class="list">' + v.transit.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>' + transitHtml(name, myMob().includes('身障')) +
     '<p class="small" style="margin:6px 0 0"><a href="' + mapLink(name + ' ' + (v.addr || '')) + '" target="_blank" rel="noopener">在 Google 地圖開啟場館位置</a>・<a href="' + esc(dirLink(v, name)) + '" target="_blank" rel="noopener">查大眾運輸路線</a></p>' +
-    (v.auto && v.st.length ? '<p class="small muted" style="margin:4px 0 0">最近車站由 OpenStreetMap 依場館座標自動計算，距離為直線距離，實際路線以 Google 地圖為準。</p>' : '') +
     (visit ? (date && hotelList(name, date) ? '<div class="sec">附近的住宿</div>' + hotelList(name, date, 5) : '') :
     ('<div class="sec">散場怎麼走</div><ul class="list">' + v.exit.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>' +
     (date && hotelList(name, date) ? '<div class="sec">場館附近的住宿</div>' + hotelList(name, date) : '') +
     '<div class="sec">住哪個區域</div><ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul>' +
     '<p class="small muted" style="margin:6px 0 0">平日雙人房約 NT$' + v.price.hotel[0].toLocaleString() + '–' + v.price.hotel[1].toLocaleString() + '、青年旅館床位約 NT$' + v.price.hostel[0].toLocaleString() + '–' + v.price.hostel[1].toLocaleString() + '（' + (v.auto ? '依縣市行情估算' : '估算') + '）。大型演出當晚常漲到 1.5–2 倍以上，越早訂越好。 <a href="' + mapLink(name + ' 附近 住宿') + '" target="_blank" rel="noopener">查附近住宿</a></p>' +
-    '<div class="sec">吃什麼</div><p style="margin:0;font-size:14px;line-height:1.7">' + esc(v.food) + '</p>'));
+    '<div class="sec">附近美食</div><p style="margin:0;font-size:14px;line-height:1.7">' + (v.auto ? '' : esc(v.food) + '<br>') + '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('餐廳 near ' + (v.at ? v.at.join(',') : name)) + '" target="_blank" rel="noopener">在 Google 地圖看場館附近的餐廳</a></p>'));
 }
 function openConcert(id, keep) {
   const c = C(id); if (!c) return;
@@ -2654,7 +2652,7 @@ function openConcert(id, keep) {
   const cp = !c.price && crowd(id, 'price'), cf = !c.platform && !c.ticketUrl && crowd(id, 'platform');
   const pf = c.platform && PLATFORMS[c.platform] ? '<a href="' + esc(c.ticketUrl || PLATFORMS[c.platform]) + '" target="_blank" rel="noopener">' + esc(c.platform) + (c.ticketUrl ? '（這場的售票頁）' : '') + '</a>' : (c.ticketUrl ? '<a href="' + esc(c.ticketUrl) + '" target="_blank" rel="noopener">這場的售票頁</a>' : '');
   const extra = (c.prices || []).map(p => '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>').join('');
-  const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).concat(arts ? [['文化部藝文活動開放資料' + (c.sn ? '（提供：' + c.sn + '）' : ''), 'https://cloud.culture.tw/']] : []).map(s => '<li><a href="' + esc(s[1]) + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a></li>').join('');
+  const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).concat(arts ? [['文化部藝文活動開放資料' + (c.sn ? '（提供：' + c.sn + '）' : ''), 'https://cloud.culture.tw/']] : []).map(s => '<a href="' + esc(s[1]) + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a>').join('、');
   const host = c.url ? new URL(c.url).hostname.replace(/^www\./, '') : '';
   const countdown = c.r ? (open ? '<span class="count">' + Math.max(0, daysLeft(c.r[1])) + '</span><span>天後閉展' + (isLong(c) ? '（常設展）' : '') + '</span>' : '<span class="count">' + Math.max(0, left) + '</span><span>天後開展</span>')
     : '<span class="count">' + Math.max(0, left) + '</span><span>天後' + (c.d.length > 1 ? '（下一場）' : '開演') + '</span>';
@@ -2676,8 +2674,8 @@ function openConcert(id, keep) {
     '<div class="actions" style="margin-top:10px"><button class="btn ' + (rem ? 'ghost' : 'line') + '" data-act="remind" data-id="' + c.id + '">' + (rem ? '★ 已收藏' : c.r ? '☆ 收藏這個展' : '☆ 收藏這場') + '</button>' +
     '<button class="btn pink" style="flex:1" id="frBtn" data-act="findRide" data-id="' + c.id + '">' + rideBtnLabel(c.id) + '</button></div>' +
     '<button class="btn full" style="margin-top:8px" data-act="planFor" data-id="' + c.id + '">' + (c.r ? '排去看展的行程' : '排這場的行程') + '</button>' +
-    '<div class="sec">資料來源（更新至 ' + (arts ? ARTS_ASOF || DATA_ASOF : DATA_ASOF) + '）</div><ul class="list small" translate="no">' + srcs + '</ul>' +
-    (c.r ? '<p class="small muted">展覽資訊由主辦單位提供給文化部，有誤請向主辦單位反映。</p>' : '<div class="fixbox"><span>開演時間、票價有誤？看完了想回報幾點散場？</span><button class="btn line" data-act="fixForm" data-id="' + c.id + '">協助回報</button></div>'));
+    '<p class="src" style="margin-top:16px">資料來源：<span translate="no">' + srcs + '</span>・交通：交通部 TDX・天氣：中央氣象署・地圖與住宿：© OpenStreetMap（' + (arts ? ARTS_ASOF || DATA_ASOF : DATA_ASOF) + '）</p>' +
+    (c.r ? '' : '<div class="fixbox"><span>開演時間、票價有誤？看完了想回報幾點散場？</span><button class="btn line" data-act="fixForm" data-id="' + c.id + '">協助回報</button></div>'));
   S.openCid = id; if (keepY) $('#sheet').scrollTop = keepY;
   if (!keep) { loadFixes(id); countRides(id); }
 }
