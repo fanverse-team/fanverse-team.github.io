@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-tBJmm/ajmkDLPL4s1xdl2kuBwbllp3H2U5eFqcBJqTQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-VLzRL8sACWsf+PGevk+2k6uiOxHCwozEXCpwMw3pSG0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -1489,7 +1489,7 @@ function checkEnd() {
   if (S.view === 'market') render();
 }
 setInterval(checkEnd, 60000);
-function sessLabel(c, day) { return c ? c.artist + '・' + dinfo(day || c.date).md + ' ' + c.venue : ''; }
+function sessLabel(c, day) { return c ? (c.noArtist ? str(c.title, 24) : c.artist) + '・' + dinfo(day || c.date).md + ' ' + c.venue : ''; }
 function matchBtn(x) {
   const o = x.t.owner, d = dmOf(o);
   if (d && d.status === 'open') return '<button class="btn line" data-act="dmGo" data-id="' + esc(d.id) + '">打開私訊</button>';
@@ -1530,7 +1530,7 @@ function vMarket() {
   if (!guest && S.newMatch) S.newMatch = 0;
   const today = guest ? [] : todaySessions();
   return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物：只換不賣，散場後現場就能換</p>' + tradeTop() +
-    (today.length ? '<div class="sec" style="margin:4px 0 6px">🔴 近 3 天場次專屬交換區</div><div class="chips">' + today.map(c => { const d = zoneDay(c); return '<button class="chip' + (S.marketC === c.id ? ' on' : '') + '" data-act="mc" data-v="' + esc(S.marketC === c.id ? '' : c.id) + '">' + (d === td ? '🔴 ' : '') + esc(zoneTag(d)) + '・' + esc(str(c.artist, 16)) + '・' + esc(str(c.venue, 10)) + '</button>'; }).join('') + '</div><p class="small muted" style="margin:-6px 0 10px">活動前 3 天開放，到活動當天為止</p>' : '') +
+    (today.length ? '<div class="sec" style="margin:4px 0 6px">🔴 近 3 天場次專屬交換區</div><div class="chips">' + today.map(c => { const d = zoneDay(c); return '<button class="chip' + (S.marketC === c.id ? ' on' : '') + '" data-act="mc" data-v="' + esc(S.marketC === c.id ? '' : c.id) + '">' + (d === td ? '🔴 ' : '') + esc(zoneTag(d)) + '・' + esc(str(c.noArtist ? c.title : c.artist, 16)) + '・' + esc(str(c.venue, 10)) + '</button>'; }).join('') + '</div><p class="small muted" style="margin:-6px 0 10px">活動前 3 天開放，到活動當天為止</p>' : '') +
     (mc ? '<div class="safe" style="display:flex;align-items:center;gap:8px">📍 <span style="flex:1">正在看：<b>' + esc(sessLabel(mc, zoneDay(mc))) + '</b> 的交換</span><button class="btn line" data-act="mc" data-v="">看全部</button></div>' : '') +
     '<div class="chips">' + [['全部', '全部']].concat(TMODES).map(k => '<button class="chip' + (S.marketMode === k[0] ? ' on' : '') + '" data-act="mmode" data-v="' + k[0] + '">' + k[1] + '</button>').join('') + '</div>' +
     '<div class="chips">' + ['全部', '小卡', '專輯', '應援物', '其他'].map(k => '<button class="chip' + (S.marketCat === k ? ' on' : '') + '" data-act="mcat" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
