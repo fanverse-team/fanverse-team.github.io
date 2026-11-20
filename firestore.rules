@@ -315,20 +315,43 @@ service cloud.firestore {
       allow read: if verified() && hasProfile();
       allow create: if verified() && hasProfile() && notBanned() && !isMinor()
         && tid.matches('TK-[A-Za-z0-9]{12}')
-        && request.resource.data.keys().hasOnly(['owner', 'concertId', 'day', 'area', 'qty', 'face', 'price', 'named', 'via', 'note', 'createdAt'])
-        && request.resource.data.keys().hasAll(['owner', 'concertId', 'day', 'area', 'qty', 'face', 'price', 'named', 'via', 'note', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['owner', 'concertId', 'day', 'area', 'qty', 'face', 'price', 'named', 'via', 'note', 'status', 'proof', 'createdAt'])
+        && request.resource.data.keys().hasAll(['owner', 'concertId', 'day', 'area', 'qty', 'face', 'price', 'named', 'via', 'note', 'status', 'proof', 'createdAt'])
+        && request.resource.data.status == 'open' && request.resource.data.proof == true
         && request.resource.data.owner == me()
         && concertOk(request.resource.data.concertId)
         && request.resource.data.day is string && request.resource.data.day.matches('20[0-9]{2}-[0-9]{2}-[0-9]{2}')
         && str(request.resource.data.area, 1, 20)
         && request.resource.data.qty is int && request.resource.data.qty >= 1 && request.resource.data.qty <= 4
         && request.resource.data.face is int && request.resource.data.face >= 100 && request.resource.data.face <= 50000
-        && request.resource.data.price is int && request.resource.data.price >= 0 && request.resource.data.price <= request.resource.data.face
+        && request.resource.data.price is int && request.resource.data.price == request.resource.data.face
         && request.resource.data.named is bool
         && request.resource.data.via in ['面交', '官方轉讓']
         && str(request.resource.data.note, 0, 60)
         && request.resource.data.createdAt == request.time;
+      // 黃牛檢舉成立：檢舉人在同一批寫入裡附上檢舉紀錄，才能把狀態改成下架；管理員可以恢復
+      allow update: if verified() && (
+        (hasProfile() && notBanned() && !isMinor() && resource.data.owner != me() && resource.data.status == 'open'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'removedReason', 'removedAt'])
+          && request.resource.data.status == 'removed' && str(request.resource.data.removedReason, 1, 200)
+          && request.resource.data.removedAt == request.time
+          && existsAfter(/databases/$(database)/documents/tkReports/$(tid + '_' + me())))
+        || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'removedReason', 'removedAt'])
+          && request.resource.data.status == 'open'));
       allow delete: if verified() && (resource.data.owner == me() || isAdmin());
+    }
+    match /tkReports/{rid} {
+      allow read, delete: if isAdmin();
+      allow create: if verified() && hasProfile() && notBanned() && !isMinor()
+        && request.resource.data.keys().hasOnly(['by', 'ticketId', 'owner', 'face', 'found', 'reason', 'createdAt'])
+        && request.resource.data.keys().hasAll(['by', 'ticketId', 'owner', 'face', 'found', 'reason', 'createdAt'])
+        && request.resource.data.by == me() && rid == request.resource.data.ticketId + '_' + me()
+        && request.resource.data.ticketId.matches('TK-[A-Za-z0-9]{12}')
+        && get(/databases/$(database)/documents/tickets/$(request.resource.data.ticketId)).data.owner == request.resource.data.owner
+        && request.resource.data.owner != me()
+        && request.resource.data.face is int && request.resource.data.found is list && request.resource.data.found.size() <= 20
+        && str(request.resource.data.reason, 1, 200)
+        && request.resource.data.createdAt == request.time;
     }
 
     // ---------- 意見回饋：只能新增，只有管理員能讀、刪 ----------
@@ -405,7 +428,7 @@ service cloud.firestore {
       function tk(id) { return get(/databases/$(database)/documents/tickets/$(id)).data; }
       function tradeOk(d) {
         return str(d.a, 0, 40) && str(d.b, 0, 40) && (
-          (d.a == '' && d.b.matches('TK-[A-Za-z0-9]{12}') && tk(d.b).owner == peer(d) && !isMinor()) ||
+          (d.a == '' && d.b.matches('TK-[A-Za-z0-9]{12}') && tk(d.b).owner == peer(d) && tk(d.b).status == 'open' && !isMinor()) ||
           (d.a != '' && d.b != '' && tr(d.a).owner == me() && tr(d.b).owner == peer(d))
           || (d.b != '' && tr(d.b).owner == peer(d) && interestOk(d.b, me()))
           || (d.a != '' && tr(d.a).owner == me() && interestOk(d.a, peer(d))));
