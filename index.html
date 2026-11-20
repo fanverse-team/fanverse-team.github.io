@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-00YebMrEk1uCtXcXzqnmyuam7weTebym1EtZ4qLEKaw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-ETN/OFaujuYcWijcPJTqa4ZmPLgraNzO6O9Yco0cNho='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -63,6 +63,23 @@ const $ = (s, r) => (r || document).querySelector(s);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const WD = '日一二三四五六';
 const WD_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], WD_JA = '日月火水木金土';
+// 活動頁底部：交通、天氣、地圖的出處（開放資料授權要求標示）
+function attribNote(d) {
+  d = esc(d || '');
+  if (LANG === 'en') return 'Transport: MOTC TDX · Weather: CWA · Maps & lodging: © OpenStreetMap' + (d ? ' (' + d + ')' : '');
+  if (LANG === 'ja') return '交通：交通部 TDX・天気：中央気象署・地図・宿泊：© OpenStreetMap' + (d ? '（' + d + '）' : '');
+  return '交通：交通部 TDX・天氣：中央氣象署・地圖與住宿：© OpenStreetMap' + (d ? '（' + d + '）' : '');
+}
+// 情報站底部的資料來源公告：文字依語言直接給，不經翻譯字典（日期要放在固定位置）
+function srcNote() {
+  const d = esc(ARTS_ASOF || DATA_ASOF || ''), a = t => '<a href="https://cloud.culture.tw/" target="_blank" rel="noopener">' + t + '</a>';
+  const T = {
+    zh: '資料來源：臺北小巨蛋、北流、' + a('文化部開放資料') + (d ? '（' + d + ' 更新）' : '') + '。實際資訊以主辦單位公告為準。',
+    en: 'Sources: Taipei Arena, Taipei Music Center, ' + a('Ministry of Culture open data') + (d ? ' (updated ' + d + ')' : '') + '. Please refer to official announcements by organizers.',
+    ja: 'データ出典：臺北小巨蛋、北流、' + a('文化部オープンデータ') + (d ? '（' + d + ' 更新）' : '') + '。最新情報は主催者の発表をご確認ください。'
+  };
+  return '<p class="src" translate="no">' + (T[LANG] || T.zh) + '</p>';
+}
 function dinfo(d) {
   const t = new Date(d + 'T12:00:00+08:00'), w = t.getDay(), md = (t.getMonth() + 1) + '/' + t.getDate(), ymd = t.getFullYear() + '/' + md;
   if (LANG === 'en') return { md, wd: WD_EN[w], full: ymd + ' (' + WD_EN[w] + ')' };
@@ -740,8 +757,7 @@ function vHome() {
     (area ? '<div class="chips sub">' + AREAS[area].filter(c => up.some(x => V(x.venue).city === c)).map(x => '<button class="chip' + (S.city === x ? ' on' : '') + '" data-act="city" data-v="' + x + '">' + x + '</button>').join('') + '</div>' : '') +
     '<div class="chips">' + genres.map(x => '<button class="chip' + (S.genre === x ? ' on' : '') + '" data-act="genre" data-v="' + x + '">' + x + '</button>').join('') + '</div>' +
     '<div id="homeList">' + homeList() + '</div>' +
-    '<p class="src">' + (DATA_LIVE ? '五大場館的演唱會每天自動比對臺北小巨蛋、北流官網與維基百科，再加上人工整理的票價與售票資訊（資料日期 ' + DATA_ASOF + '）' : '演唱會整理自公開報導（資料日期 ' + DATA_ASOF + '）') +
-    '；全台的演唱會、表演與展覽來自<a href="https://cloud.culture.tw/" target="_blank" rel="noopener">文化部藝文活動開放資料</a>' + (ARTS_ASOF ? '（' + ARTS_ASOF + ' 更新）' : '') + '，每天自動更新。日期、票價可能異動，請以主辦單位與售票平台公告為準。</p>';
+    srcNote();
 }
 
 function gate(what) {
@@ -2652,7 +2668,7 @@ function openConcert(id, keep) {
   const cp = !c.price && crowd(id, 'price'), cf = !c.platform && !c.ticketUrl && crowd(id, 'platform');
   const pf = c.platform && PLATFORMS[c.platform] ? '<a href="' + esc(c.ticketUrl || PLATFORMS[c.platform]) + '" target="_blank" rel="noopener">' + esc(c.platform) + (c.ticketUrl ? '（這場的售票頁）' : '') + '</a>' : (c.ticketUrl ? '<a href="' + esc(c.ticketUrl) + '" target="_blank" rel="noopener">這場的售票頁</a>' : '');
   const extra = (c.prices || []).map(p => '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>').join('');
-  const srcs = c.src.map(k => SOURCES[k]).filter(Boolean).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).concat(arts ? [['文化部藝文活動開放資料' + (c.sn ? '（提供：' + c.sn + '）' : ''), 'https://cloud.culture.tw/']] : []).map(s => '<a href="' + esc(s[1]) + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a>').join('、');
+  const srcs = c.src.map(k => SOURCES[k]).filter(x => x && !/維基|wikipedia/i.test(x[0] + x[1])).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).concat(arts ? [['文化部藝文活動開放資料' + (c.sn ? '（提供：' + c.sn + '）' : ''), 'https://cloud.culture.tw/']] : []).map(s => '<a href="' + esc(s[1]) + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a>').join('、');
   const host = c.url ? new URL(c.url).hostname.replace(/^www\./, '') : '';
   const countdown = c.r ? (open ? '<span class="count">' + Math.max(0, daysLeft(c.r[1])) + '</span><span>天後閉展' + (isLong(c) ? '（常設展）' : '') + '</span>' : '<span class="count">' + Math.max(0, left) + '</span><span>天後開展</span>')
     : '<span class="count">' + Math.max(0, left) + '</span><span>天後' + (c.d.length > 1 ? '（下一場）' : '開演') + '</span>';
@@ -2674,7 +2690,7 @@ function openConcert(id, keep) {
     '<div class="actions" style="margin-top:10px"><button class="btn ' + (rem ? 'ghost' : 'line') + '" data-act="remind" data-id="' + c.id + '">' + (rem ? '★ 已收藏' : c.r ? '☆ 收藏這個展' : '☆ 收藏這場') + '</button>' +
     '<button class="btn pink" style="flex:1" id="frBtn" data-act="findRide" data-id="' + c.id + '">' + rideBtnLabel(c.id) + '</button></div>' +
     '<button class="btn full" style="margin-top:8px" data-act="planFor" data-id="' + c.id + '">' + (c.r ? '排去看展的行程' : '排這場的行程') + '</button>' +
-    '<p class="src" style="margin-top:16px">資料來源：<span translate="no">' + srcs + '</span>・交通：交通部 TDX・天氣：中央氣象署・地圖與住宿：© OpenStreetMap（' + (arts ? ARTS_ASOF || DATA_ASOF : DATA_ASOF) + '）</p>' +
+    '<p class="src" style="margin-top:16px">' + (srcs ? '資料來源：<span translate="no">' + srcs + '</span>・' : '') + '<span translate="no">' + attribNote(arts ? ARTS_ASOF || DATA_ASOF : DATA_ASOF) + '</span></p>' +
     (c.r ? '' : '<div class="fixbox"><span>開演時間、票價有誤？看完了想回報幾點散場？</span><button class="btn line" data-act="fixForm" data-id="' + c.id + '">協助回報</button></div>'));
   S.openCid = id; if (keepY) $('#sheet').scrollTop = keepY;
   if (!keep) { loadFixes(id); countRides(id); }
