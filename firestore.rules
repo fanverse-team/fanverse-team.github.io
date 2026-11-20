@@ -321,7 +321,8 @@ service cloud.firestore {
       return d.keys().hasOnly(['mode', 'category', 'have', 'want', 'price', 'condition', 'concertId', 'day', 'spot', 'tags', 'note', 'img', 'owner', 'createdAt'])
         && d.keys().hasAll(['mode', 'category', 'have', 'want', 'price', 'condition', 'concertId', 'day', 'spot', 'tags', 'note', 'img', 'owner', 'createdAt'])
         && d.mode in ['交換', '送出', '收取']
-        && d.category in ['小卡', '專輯', '應援物', '其他']
+        && d.category is list && d.category.size() >= 1 && d.category.size() <= 4
+        && d.category.hasOnly(['小卡', '專輯', '應援物', '其他'])
         && itemsOk(d.have) && itemsOk(d.want)
         && (d.mode == '收取' || d.have.size() > 0)
         && (d.mode == '送出' || d.want.size() > 0)
