@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-CuH7fHgCdahfI9uZAvJPI6vE93kIXtXxdqtKrW6pwLw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-mDERF2nqQTn/BkzYMtHH/u8/9G4VShwVfO/1oH7SAT8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -109,7 +109,7 @@ function buildTrx() {
 const FW = /[。，：；（）！？「」、・｜]/;
 const enPunct = t => t.replace(/。(?=\S)/g, '. ').replace(/。/g, '.').replace(/[，、]\s*/g, ', ').replace(/：\s*/g, ': ').replace(/；\s*/g, '; ')
   .replace(/！/g, '!').replace(/？/g, '?').replace(/\s*（/g, ' (').replace(/）/g, ')').replace(/[「」]/g, '"')
-  .replace(/\s*・\s*/g, ' · ').replace(/\s*｜\s*/g, ' | ').replace(/([a-z0-9)])([.!?])([A-Z])/g, '$1$2 $3').replace(/([a-z)]):(?=[A-Z])/g, '$1: ').replace(/ {2,}/g, ' ');
+  .replace(/\s*・\s*/g, ' · ').replace(/\s*｜\s*/g, ' | ').replace(/([a-z0-9)])([.!?])([A-Z])/g, '$1$2 $3').replace(/([a-z)]):(?=[A-Z])/g, '$1: ').replace(/ +([,.;:!?)])/g, '$1').replace(/ {2,}/g, ' ');
 const needTr = s => CJK1.test(s) || (LANG === 'en' && FW.test(s));
 function tr(s) {
   if (!DICT || typeof s !== 'string' || !needTr(s)) return s;
@@ -314,7 +314,7 @@ function V(name) {
   const tier = city === '台北' ? 0 : ['新北', '桃園', '新竹', '台中', '台南', '高雄'].includes(city) ? 1 : 2;
   const island = CITY_REGION[city] === '離島';
   const transit = (s0 ? ['最近的' + s0[1] + '：「' + s0[0] + '」，直線約 ' + far(s0[2]) + '（步行約 ' + walk(s0[2]) + ' 分鐘）'] : [island ? '離島場館：請先訂好機票或船票，到當地後搭計程車、公車或租車前往' : x.at ? '場館 3 公里內沒有捷運或火車站，建議搭客運、計程車或開車前往' : '這個場館還沒有座標資料，請用下方 Google 地圖連結查路線'])
-    .concat(s1 ? ['外縣市來的話，可以到「' + s1[0] + '」（' + s1[1] + '，直線約 ' + far(s1[2]) + '）再轉乘'] : [])
+    .concat(s1 ? ['外縣市轉乘站：「' + s1[0] + '」（' + s1[1] + '，直線約 ' + far(s1[2]) + '）'] : [])
     .concat(['點下方「查大眾運輸路線」看 Google 地圖的即時路線與班次']);
   const v = {
     src: VDB, auto: true, city, addr: x.addr || '', at: x.at || null, st,
@@ -1178,7 +1178,7 @@ function plusSheet(why) {
     '<div class="actions"><button class="btn line" style="flex:1" data-act="close">先不要</button><button class="btn pink" style="flex:2" data-act="goPlus">看方案（NT$49／月起）</button></div>');
 }
 function plusTable(short) {
-  const rows = [['收藏活動', '5 個', '無上限'], ['追蹤藝人', '5 位', '無上限'], ['行程規劃', '每天 3 次', '無上限'], ['行事曆提醒', '演出前一天', '前一天＋3 小時前＋開賣提醒'],
+  const rows = [['收藏活動', '5 場', '無上限'], ['追蹤藝人', '5 位', '無上限'], ['行程規劃', '每天 3 次', '無上限'], ['行事曆提醒', '演出前一天', '前一天＋3 小時前＋開賣提醒'],
     ['追蹤藝人公布新場次', '—', '開網站就通知'], ['多人分帳計算機', '—', '✓'], ['收藏一次匯出行事曆、追星月曆圖', '—', '✓'], ['應援色主題、名牌與徽章', '—', '8 種顏色'], ['廣告', '有', '無']];
   if (short) rows.splice(6);
   return '<table class="ptab"><thead><tr><th></th><th>免費</th><th>Plus</th></tr></thead><tbody>' + rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td><b>' + r[2] + '</b></td></tr>').join('') + '</tbody></table>' +
@@ -2103,8 +2103,8 @@ function mrtLast(m) { const xs = (m && m.last || []).map(l => [l[0], lateH(l[2])
 function transitHtml(name, acc) {
   const t = TRANSIT[name]; if (!t) return '';
   const mrt = t.mrt.map(m => '<li>🚇 <b>' + esc(m.n) + '</b>（' + esc(m.sys) + '，直線約 ' + m.d + ' 公尺）' +
-    (m.ex ? '<br><span class="small">最近出口：' + esc(m.ex[0]) + ' 號出口，步行約 ' + walkMin(m.ex[1]) + ' 分鐘</span>' : '') +
-    (m.lift ? '<br><span class="small">♿ 有電梯的出口：' + esc(m.lift[0]) + ' 號' + (m.ex && m.lift[0] === m.ex[0] ? '（就是最近的出口）' : '，步行約 ' + walkMin(m.lift[1]) + ' 分鐘') + '</span>' : acc ? '<br><span class="small">♿ 資料裡沒有電梯出口，請先向捷運公司確認</span>' : '') +
+    (m.ex ? '<br><span class="small">最近出口：' + exLbl(m.ex[0]) + '，步行約 ' + walkMin(m.ex[1]) + ' 分鐘</span>' : '') +
+    (m.lift ? '<br><span class="small">♿ 有電梯的出口：' + exLbl(m.lift[0]) + (m.ex && m.lift[0] === m.ex[0] ? '（就是最近的出口）' : '，步行約 ' + walkMin(m.lift[1]) + ' 分鐘') + '</span>' : acc ? '<br><span class="small">♿ 資料裡沒有電梯出口，請先向捷運公司確認</span>' : '') +
     (m.last.length ? '<br><span class="small muted">末班車：' + m.last.map(l => esc(l[0]) + ' ' + l[2]).join('、') + '（週六時刻）</span>' : '') + '</li>').join('');
   const bus = t.bus.map(b => '<li>🚌 <b>' + esc(b[0]) + '</b>（約 ' + b[1] + ' 公尺）<br><span class="small">' + b[2].map(esc).join('、') + '</span></li>').join('');
   const bike = t.bike.map(b => '<li>🚲 YouBike「' + esc(b[0]) + '」（約 ' + b[1] + ' 公尺' + (b[2] ? '，' + b[2] + ' 個車柱' : '') + '）</li>').join('');
@@ -2129,6 +2129,7 @@ function joinLegs(first, second, m1, m2) {
   for (const a of first) { const b = second.find(x => x.dep >= a.arr + 0.25); if (b && !used.has(b.n + b.dep)) { used.add(b.n + b.dep); out.push({ legs: [Object.assign({ m: m1 }, a), Object.assign({ m: m2 }, b)], n: a.n + '→' + b.n, dep: a.dep, arr: b.arr, A: a.A, B: b.B }); } }
   return out.sort((p, q) => p.dep - q.dep);
 }
+const exLbl = x => /^\d+$/.test(x) ? (LANG === 'en' ? 'Exit ' + x : LANG === 'ja' ? x + '番出口' : x + ' 號出口') : esc(x);
 function legTxt(mode, t) {
   if (t.legs) return trainTxt(t.legs[0].m, t.legs[0]).replace(/。$/, '') + '；轉乘站：' + t.legs[1].A + '，' + trainTxt(t.legs[1].m, t.legs[1]).replace(/^建議搭乘：/, '');
   if (mode === '客運') return '建議搭乘：國道客運 ' + t.n + '｜' + hm(t.dep) + ' ' + t.A + (t.aN ? '（' + t.aN + '）' : '') + ' → 約 ' + hm(t.arr) + ' ' + t.B + (t.bN ? '（' + t.bN + '）' : '') + '。';
@@ -2379,7 +2380,7 @@ function detailExtras(c) {
   const wx = days.map(d => [d, weatherOf(v.city, d)]).filter(x => x[1]);
   const near = c.r ? [] : nearbyArts(v.city, c.d[0][0], c.id, 9, 18).slice(0, 3);
   return (wx.length ? '<div class="sec">天氣預報</div><ul class="list">' + wx.map(([d, w]) => '<li>🌦️ ' + dinfo(d).md + ' ' + esc(v.city) + '：' + esc(weatherTxt(w)) + '</li>').join('') + '</ul>' : '') +
-    (near.length ? '<div class="sec">同一天在' + esc(v.city) + '也可以看</div><ul class="list">' + near.map(e => '<li><button class="lnk" data-act="concert" data-id="' + esc(e.id) + '">' + esc(e.title) + '</button>（' + esc(e.tag) + '）</li>').join('') + '</ul>' : '');
+    (near.length ? '<div class="sec">同一天的其他活動（' + esc(v.city) + '）</div><ul class="list">' + near.map(e => '<li><button class="lnk" data-act="concert" data-id="' + esc(e.id) + '">' + esc(e.title) + '</button>（' + esc(e.tag) + '）</li>').join('') + '</ul>' : '');
 }
 function endOf(c, day, start, visit) {
   const x = !visit && crowd(c.id, 'end', day);
@@ -2881,7 +2882,7 @@ function hotelList(name, date, n, nights) {
   const li = h => '<li><b>' + esc(h.n) + '</b>' + (h.en && h.en !== h.n ? ' <span class="small muted">' + esc(h.en) + '</span>' : '') +
     '<br><span class="small">' + esc(h.t) + (h.s ? '・' + h.s + ' 星' : '') + '・直線約 ' + h.d.toLocaleString() + ' 公尺（步行約 ' + Math.max(1, Math.round(h.d * 1.3 / 80)) + ' 分鐘）</span>' +
     (h.m ? '<br><span class="small">🚇 離「' + esc(h.m[0]) + '」約 ' + h.m[1] + ' 公尺</span>' : '') +
-    '<br><span class="small"><a href="' + esc(bookLink(h, date, nights)) + '" target="_blank" rel="noopener" data-out="booking">查 ' + md + ' 入住' + (nights > 1 ? '、' + nights + ' 晚' : '') + '的即時房價</a>・<a href="' + esc(hotelMap(h)) + '" target="_blank" rel="noopener">地圖</a></span></li>';
+    '<br><span class="small"><a href="' + esc(bookLink(h, date, nights)) + '" target="_blank" rel="noopener" data-out="booking">即時房價（' + md + ' 入住' + (nights > 1 ? '・' + nights + ' 晚' : '') + '）</a>・<a href="' + esc(hotelMap(h)) + '" target="_blank" rel="noopener">地圖</a></span></li>';
   return '<ul class="list">' + near.map(li).join('') + '</ul>' + Object.entries(groups).map(([s, hs]) => '<div class="small" style="margin:10px 0 2px"><b>捷運「' + esc(s) + '」周邊</b>：搭捷運到場館，房價通常比場館旁便宜</div><ul class="list">' + hs.slice(0, n ? 2 : 5).map(li).join('') + '</ul>').join('') +
     '';
 }
@@ -2911,7 +2912,7 @@ function openConcert(id, keep) {
   const cp = !c.price && crowd(id, 'price'), cf = !c.platform && !c.ticketUrl && crowd(id, 'platform');
   const pf = c.platform && PLATFORMS[c.platform] ? '<a href="' + esc(c.ticketUrl || PLATFORMS[c.platform]) + '" target="_blank" rel="noopener">' + esc(c.platform) + (c.ticketUrl ? '（這場的售票頁）' : '') + '</a>' : (c.ticketUrl ? '<a href="' + esc(c.ticketUrl) + '" target="_blank" rel="noopener">這場的售票頁</a>' : '');
   const extra = (c.prices || []).map(p => '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>').join('');
-  const srcs = c.src.map(k => SOURCES[k]).filter(x => x && !/維基|wikipedia/i.test(x[0] + x[1])).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).concat(arts ? [['文化部藝文活動開放資料' + (c.sn ? '（提供：' + c.sn + '）' : ''), 'https://cloud.culture.tw/']] : []).map(s => '<a href="' + esc(s[1]) + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a>').join('、');
+  const srcs = c.src.map(k => SOURCES[k]).filter(x => x && !/維基|wikipedia/i.test(x[0] + x[1])).concat(c.priceSrc ? [['票價來源（自動擷取）｜' + c.priceSrc[0], c.priceSrc[1]]] : []).concat(arts ? [[({ en: 'Ministry of Culture open data', ja: '文化部オープンデータ' }[LANG] || '文化部藝文活動開放資料') + (c.sn ? (LANG === 'en' ? ' (provider: ' + c.sn + ')' : LANG === 'ja' ? '（提供：' + c.sn + '）' : '（提供：' + c.sn + '）') : ''), 'https://cloud.culture.tw/']] : []).map(s => '<a href="' + esc(s[1]) + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a>').join('、');
   const host = c.url ? new URL(c.url).hostname.replace(/^www\./, '') : '';
   const countdown = c.r ? (open ? '<span class="count">' + Math.max(0, daysLeft(c.r[1])) + '</span><span>天後閉展' + (isLong(c) ? '（常設展）' : '') + '</span>' : '<span class="count">' + Math.max(0, left) + '</span><span>天後開展</span>')
     : left <= 0 ? '<span class="count">今天</span><span>' + (c.d.length > 1 ? '下一場就在今天' : '就是今天') + '</span>'
