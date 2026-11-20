@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-LdByVGOdsvoU3NT5/i4bQx2Z11orRguup5W3QKrXGoY='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-tBJmm/ajmkDLPL4s1xdl2kuBwbllp3H2U5eFqcBJqTQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -1461,13 +1461,18 @@ function dmRep(mid) {
     catch (e) { toast(e && e.code === 'permission-denied' ? '你已經檢舉過這則訊息' : errMsg(e)); }
   });
 }
-/* 今日場次與散場提醒 */
+/* 近 3 天場次專屬交換區與散場提醒 */
 function nowH() { const t = new Date(Date.now() + 8 * 3600e3); return t.getUTCHours() + t.getUTCMinutes() / 60; }
+// 專屬交換區：活動當天是第 0 天，往前 3 天開始開放（今天～3 天後的場次）
+const ZONE_DAYS = 3;
+function zoneDays() { const t = Date.parse(todayTW() + 'T00:00:00Z'), out = []; for (let i = 0; i <= ZONE_DAYS; i++) out.push(new Date(t + i * 864e5).toISOString().slice(0, 10)); return out; }
+const zoneDay = c => { const z = zoneDays(); const x = c && !c.r && c.d.find(d => z.includes(d[0])); return x ? x[0] : ''; };
 function todaySessions() {
-  const td = todayTW(), n = {}; allTrades().forEach(t => { if (t.concertId) n[t.concertId] = (n[t.concertId] || 0) + 1; });
-  return UPCOMING().filter(c => !c.r && c.d.some(x => x[0] === td))
-    .sort((a, b) => (n[b.id] || 0) - (n[a.id] || 0) || (a.k === 'concert' ? 0 : 1) - (b.k === 'concert' ? 0 : 1)).slice(0, 12);
+  const n = {}; allTrades().forEach(t => { if (t.concertId) n[t.concertId] = (n[t.concertId] || 0) + 1; });
+  return UPCOMING().filter(c => zoneDay(c))
+    .sort((a, b) => (zoneDay(a) < zoneDay(b) ? -1 : zoneDay(a) > zoneDay(b) ? 1 : 0) || (n[b.id] || 0) - (n[a.id] || 0) || (a.k === 'concert' ? 0 : 1) - (b.k === 'concert' ? 0 : 1)).slice(0, 16);
 }
+function zoneTag(day) { const i = zoneDays().indexOf(day); return i === 0 ? '今天' : i === 1 ? '明天' : i === 2 ? '後天' : dinfo(day).md; }
 function sessionEnd(c, day) { const s = c && !c.r && c.d.find(x => x[0] === day); if (!s) return null; const st = s[1] ? toH(s[1]) : 19; return endOf(c, day, st === null ? 19 : st, false).h; }
 function endingNow() {
   if (S.mode !== 'ready') return null;
@@ -1525,8 +1530,8 @@ function vMarket() {
   if (!guest && S.newMatch) S.newMatch = 0;
   const today = guest ? [] : todaySessions();
   return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物：只換不賣，散場後現場就能換</p>' + tradeTop() +
-    (today.length ? '<div class="sec" style="margin:4px 0 6px">🔴 今日場次</div><div class="chips">' + today.map(c => '<button class="chip' + (S.marketC === c.id ? ' on' : '') + '" data-act="mc" data-v="' + esc(S.marketC === c.id ? '' : c.id) + '">' + esc(str(c.artist, 16)) + '・' + esc(str(c.venue, 10)) + '</button>').join('') + '</div>' : '') +
-    (mc ? '<div class="safe" style="display:flex;align-items:center;gap:8px">📍 <span style="flex:1">正在看：<b>' + esc(sessLabel(mc, mc.d.some(x => x[0] === td) ? td : '')) + '</b> 的交換</span><button class="btn line" data-act="mc" data-v="">看全部</button></div>' : '') +
+    (today.length ? '<div class="sec" style="margin:4px 0 6px">🔴 近 3 天場次專屬交換區</div><div class="chips">' + today.map(c => { const d = zoneDay(c); return '<button class="chip' + (S.marketC === c.id ? ' on' : '') + '" data-act="mc" data-v="' + esc(S.marketC === c.id ? '' : c.id) + '">' + (d === td ? '🔴 ' : '') + esc(zoneTag(d)) + '・' + esc(str(c.artist, 16)) + '・' + esc(str(c.venue, 10)) + '</button>'; }).join('') + '</div><p class="small muted" style="margin:-6px 0 10px">活動前 3 天開放，到活動當天為止</p>' : '') +
+    (mc ? '<div class="safe" style="display:flex;align-items:center;gap:8px">📍 <span style="flex:1">正在看：<b>' + esc(sessLabel(mc, zoneDay(mc))) + '</b> 的交換</span><button class="btn line" data-act="mc" data-v="">看全部</button></div>' : '') +
     '<div class="chips">' + [['全部', '全部']].concat(TMODES).map(k => '<button class="chip' + (S.marketMode === k[0] ? ' on' : '') + '" data-act="mmode" data-v="' + k[0] + '">' + k[1] + '</button>').join('') + '</div>' +
     '<div class="chips">' + ['全部', '小卡', '專輯', '應援物', '其他'].map(k => '<button class="chip' + (S.marketCat === k ? ' on' : '') + '" data-act="mcat" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
     (guest ? guestBanner('周邊交換') : '') +
