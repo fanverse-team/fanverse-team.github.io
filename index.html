@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-i7Oy+KT7MGA7mIvmROVpJHbahPxcREiytXH+aARp/20='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-SOX0E5nU2E1OzrMfP3krSX1VbicaexXw+Bn6zqEBZf8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -552,7 +552,7 @@ function render() {
     else if (S.view === 'plus') v.innerHTML = vPlus();
     else v.innerHTML = vMe();
   }
-  const fab = S.mode === 'ready' && S.view === 'match' ? '<button class="fab" data-act="newRide">＋ 發起媒合</button>' : S.mode === 'ready' && S.view === 'market' ? '<button class="fab" data-act="newTrade">＋ 上架周邊</button>' : '';
+  const fab = S.mode === 'ready' && S.view === 'match' ? '<button class="fab" data-act="newRide">＋ 發起媒合</button>' : S.mode === 'ready' && S.view === 'market' ? (S.mkKind === 'ticket' ? '<button class="fab" data-act="newTicket">＋ 刊登讓票</button>' : '<button class="fab" data-act="newTrade">＋ 上架周邊</button>') : '';
   $('#fabWrap').innerHTML = fab;
 }
 
@@ -827,15 +827,15 @@ function pickerHtml(id, value, opt) {
     (opt.allLabel && c ? '<button type="button" class="sclear" data-act="pkClear" data-v="' + id + '" aria-label="改看所有場次">✕</button>' : '') +
     '<div class="sug" id="' + id + 'Sug" role="listbox" hidden></div></div>';
 }
-const PK_OPT = { tC: { ph: '打藝人、場館或月份找場次', aria: '交換場次' }, mConcert: { allLabel: '所有場次', ph: '找場次：打藝人、場館或月份', aria: '篩選場次' }, rC: { ph: '打藝人、場館或月份找場次', aria: '場次' } };
+const PK_OPT = { tC: { ph: '打藝人、場館或月份找場次', aria: '交換場次' }, mConcert: { allLabel: '所有場次', ph: '找場次：打藝人、場館或月份', aria: '篩選場次' }, rC: { ph: '打藝人、場館或月份找場次', aria: '場次' }, kC: { ph: '打藝人、場館或月份找場次', aria: '讓票場次', pool: () => tkShows() }, tkF: { allLabel: '所有場次', ph: '找場次：打藝人、場館或月份', aria: '篩選讓票場次' } };
 function pkItems(id, q) {
-  const opt = PK_OPT[id] || {}, items = [];
+  const opt = PK_OPT[id] || {}, items = [], pool = opt.pool ? opt.pool() : UPCOMING();
   if (!q) {
     if (opt.allLabel) items.push({ v: '', html: '<span class="sg-ic">📋</span>' + esc(opt.allLabel) });
-    UPCOMING().slice().sort((a, b) => a.date < b.date ? -1 : 1).slice(0, 8).forEach(c => items.push({ v: c.id, html: '<span class="sg-ic">🎤</span><span><b>' + esc(c.artist) + '</b><span class="sg-sub">' + dinfo(c.date).md + '・' + esc(c.venue) + '</span></span>' }));
+    pool.slice().sort((a, b) => a.date < b.date ? -1 : 1).slice(0, 8).forEach(c => items.push({ v: c.id, html: '<span class="sg-ic">🎤</span><span><b>' + esc(c.artist) + '</b><span class="sg-sub">' + dinfo(c.date).md + '・' + esc(c.venue) + '</span></span>' }));
     return items;
   }
-  (searchConcerts(q, UPCOMING()) || []).slice(0, 8).forEach(r => items.push({ v: r.c.id, html: '<span class="sg-ic">🎤</span><span><b>' + hl(r.c.artist, q) + '</b>' + (r.fuzzy ? '<span class="sg-tag">你是不是要找</span>' : '') + '<span class="sg-sub">' + (r.c.r ? rangeLabel(r.c) : dinfo(r.c.date).md + (r.c.d.length > 1 ? ' 等 ' + r.c.d.length + ' 場' : '')) + '・' + esc(r.c.venue) + '</span></span>' }));
+  (searchConcerts(q, pool) || []).slice(0, 8).forEach(r => items.push({ v: r.c.id, html: '<span class="sg-ic">🎤</span><span><b>' + hl(r.c.artist, q) + '</b>' + (r.fuzzy ? '<span class="sg-tag">你是不是要找</span>' : '') + '<span class="sg-sub">' + (r.c.r ? rangeLabel(r.c) : dinfo(r.c.date).md + (r.c.d.length > 1 ? ' 等 ' + r.c.d.length + ' 場' : '')) + '・' + esc(r.c.venue) + '</span></span>' }));
   if (!items.length) items.push({ v: null, html: '<span class="sg-ic">🤔</span><span class="muted">找不到「' + esc(q) + '」，試試藝人英文名、場館或月份</span>' });
   return items;
 }
@@ -859,6 +859,8 @@ function pkPick(id, i) {
 function pkChanged(id, v) {
   if (id === 'mConcert') setMatchConcert(v);
   else if (id === 'tC') { const box = $('#tDBox'); if (box) box.innerHTML = tradeDateSel(v); watchPool(v); tagRender(); }
+  else if (id === 'kC') { const a = $('#kDBox'), b = $('#kFBox'); if (a) a.innerHTML = ticketDays(v); if (b) b.innerHTML = ticketFaceSel(v); }
+  else if (id === 'tkF') { S.tkC = v || ''; render(); }
   else if (id === 'rC') { const box = $('#rDBox'); if (box) box.innerHTML = rideDateSel(v); const f = $('#rideF'); if (f) delete f.dataset.force; }
 }
 document.addEventListener('focusin', e => { const p = e.target.closest && e.target.closest('.picker'); if (!p || !e.target.classList.contains('pk-in')) return; S.pk = { id: p.dataset.pk, idx: -1, items: [] }; e.target.select(); pkRender(p.dataset.pk); });
@@ -932,10 +934,10 @@ async function doBlock(who, on) {
   } catch (e) { toast(errMsg(e)); }
 }
 function repPost(type, id) {
-  const item = type === 'ride' ? rideById(id) : tradeById(id); if (!item) return;
+  const item = type === 'ride' ? rideById(id) : type === 'ticket' ? ticketById(id) : tradeById(id); if (!item) return;
   return withLock('rpp' + id, async () => {
     try {
-      await F.setDoc(F.doc(db, 'reports', uid() + '_p-' + id), { by: uid(), rideId: type + ':' + id, msgId: 'p-' + id, who: String(item.owner || ''), text: str(type === 'ride' ? item.title + '｜' + item.note : (tTxt(item, 'have') || tTxt(item, 'want')) + '｜' + item.note, 300), reason: type === 'ride' ? '媒合貼文' : '交換貼文', createdAt: F.serverTimestamp() });
+      await F.setDoc(F.doc(db, 'reports', uid() + '_p-' + id), { by: uid(), rideId: type + ':' + id, msgId: 'p-' + id, who: String(item.owner || ''), text: str(type === 'ride' ? item.title + '｜' + item.note : type === 'ticket' ? item.area + '｜票面 ' + item.face + '｜讓 ' + item.price + '｜' + item.note : (tTxt(item, 'have') || tTxt(item, 'want')) + '｜' + item.note, 300), reason: type === 'ride' ? '媒合貼文' : type === 'ticket' ? '讓票貼文' : '交換貼文', createdAt: F.serverTimestamp() });
       toast('已檢舉，管理員會盡快處理');
     } catch (e) { toast(e && e.code === 'permission-denied' ? '你已經檢舉過這篇' : errMsg(e)); }
   });
@@ -1097,7 +1099,7 @@ async function admAct(kind, x) {
 }
 async function adminDelPost(type, id) {
   if (!isAdmin() || !confirm('以管理員身分刪除這篇貼文？')) return;
-  try { await F.deleteDoc(F.doc(db, type === 'ride' ? 'rides' : 'trades', id)); toast('已刪除'); } catch (e) { toast(errMsg(e)); }
+  try { await F.deleteDoc(F.doc(db, type === 'ride' ? 'rides' : type === 'ticket' ? 'tickets' : 'trades', id)); toast('已刪除'); } catch (e) { toast(errMsg(e)); }
 }
 
 /* ---------- 分享、加入行事曆 ---------- */
@@ -1529,7 +1531,7 @@ function onDms(list) {
   S.dms = list; loadPubs(list.map(dmPeer));
   if (S.dmsReady) list.forEach(d => {
     if (old[d.id] === d.status + d.by || blocked(dmPeer(d))) return;
-    if (d.status === 'pending' && d.by !== uid()) { toast('📩 ' + nickOf(dmPeer(d)) + ' 想跟你私訊換周邊'); sysNotify('📩 有人想跟你換周邊', '到「周邊交換」接受邀請後就能私訊', 'dm-' + d.id); }
+    if (d.status === 'pending' && d.by !== uid()) { if (isTk(d.b)) { toast('📩 ' + nickOf(dmPeer(d)) + ' 想跟你私訊讓票的事'); sysNotify('📩 有人想詢問你的讓票', '到「周邊交換」接受邀請後就能私訊', 'dm-' + d.id); } else { toast('📩 ' + nickOf(dmPeer(d)) + ' 想跟你私訊換周邊'); sysNotify('📩 有人想跟你換周邊', '到「周邊交換」接受邀請後就能私訊', 'dm-' + d.id); } }
     else if (d.status === 'open' && d.by === uid() && old[d.id]) toast('💬 ' + nickOf(dmPeer(d)) + ' 接受了私訊邀請');
   });
   S.dmsReady = true;
@@ -1542,7 +1544,7 @@ async function dmOpen(to, a, b) {
   const ex = dmOf(to);
   if (ex && ex.status === 'open') return openDm(ex.id);
   if (ex && ex.status === 'pending') return ex.by === uid() ? toast('已經送出邀請，請等對方接受') : dmAccept(ex.id);
-  const t = tradeById(b) || tradeById(a) || {}, cid = concertOk(t.concertId) ? t.concertId : '';
+  const t = tradeById(b) || tradeById(a) || ticketById(b) || {}, cid = concertOk(t.concertId) ? t.concertId : '';
   return withLock('dmo' + to, async () => {
     try {
       const ref = F.doc(db, 'dms', dmPid(to));
@@ -1566,10 +1568,12 @@ function openDm(pid) {
     dmSeen(pid); renderDmMsgs(); renderTabs();
   }, e => { if (S.dm !== dm) return; dm.ready = true; dm.err = errMsg(e); renderDmMsgs(); });
   const o = dmPeer(d), ta = tradeById(d.by === uid() ? d.a : d.b), tb = tradeById(d.by === uid() ? d.b : d.a), c = C(d.cid);
+  const tk = isTk(d.b) ? ticketById(d.b) : null; S.dmTicket = isTk(d.b);
   const line = t => t ? T_LABEL[t.mode] + '：' + (gives(t) ? gives(t) : '') + (gives(t) && takes(t) ? ' → ' : '') + (takes(t) ? (t.mode === '收取' ? '想收 ' : '') + takes(t) : '') : '';
   openSheet('私訊・' + nickOf(o), personBlock(o) +
-    (c || ta || tb ? '<div class="psub" style="margin:6px 0 8px">' + (c ? '🎤 ' + esc(c.artist) + '・' + esc(c.venue) + '<br>' : '') + (ta ? '我的刊登｜' + esc(line(ta)) + '<br>' : '') + (tb ? '對方刊登｜' + esc(line(tb)) : '') + '</div>' : '') +
-    '<div class="safe">🤝 只有你們兩個看得到。周邊<b>只換不賣</b>，請約在場館內外人多、明顯的地方（例如販賣區旁），<b>不要給電話、LINE、帳號或匯款</b>；遇到騷擾請按「檢舉」或「封鎖」，必要時撥 165。</div>' +
+    (c || ta || tb || tk ? '<div class="psub" style="margin:6px 0 8px">' + (c ? '🎤 ' + esc(c.artist) + '・' + esc(c.venue) + '<br>' : '') + (ta ? '我的刊登｜' + esc(line(ta)) + '<br>' : '') + (tb ? '對方刊登｜' + esc(line(tb)) : '') + (tk ? '🎫 讓票｜<span translate="no">' + esc(str(tk.area, 20)) + '</span>・' + num(tk.qty) + ' 張・NT$' + num(tk.price).toLocaleString() + '／張' : '') + '</div>' : '') +
+    (S.dmTicket ? '<div class="safe">🎫 只有你們兩個看得到。價格以刊登內容為準，<b>不得加價</b>；請當面驗票、確認可入場後再付款，或使用售票平台的官方轉讓，<b>不要先匯款</b>，也不要給電話、LINE 或帳號；遇到可疑情況請按「檢舉」，必要時撥 165。</div>'
+      : '<div class="safe">🤝 只有你們兩個看得到。周邊<b>只換不賣</b>，請約在場館內外人多、明顯的地方（例如販賣區旁），<b>不要給電話、LINE、帳號或匯款</b>；遇到騷擾請按「檢舉」或「封鎖」，必要時撥 165。</div>') +
     '<div id="dMsgs" class="chat"></div>' +
     '<form id="dmF" class="chatbar"><input class="in" id="dmIn" maxlength="300" placeholder="約時間地點，例如：散場後 B2 出口見" autocomplete="off" aria-label="訊息"><button class="btn pink" type="submit">送出</button></form>' +
     '<div class="actions" style="margin-top:10px"><button class="btn line" data-act="block" data-v="' + esc(o) + '">封鎖對方</button><button class="btn line" data-act="dmClose" data-id="' + esc(pid) + '">結束私訊</button></div>');
@@ -1580,7 +1584,7 @@ function renderDmMsgs() {
   let h;
   if (dm.err) h = '<div class="err">' + esc(dm.err) + '</div>';
   else if (!dm.ready) h = '<div class="empty">載入中…</div>';
-  else if (!dm.msgs.length) h = '<div class="empty">打聲招呼，約好散場後在哪裡交換吧！</div>';
+  else if (!dm.msgs.length) h = '<div class="empty">' + (S.dmTicket ? '打聲招呼，約好驗票和交付的時間地點吧！' : '打聲招呼，約好散場後在哪裡交換吧！') + '</div>';
   else h = dm.msgs.map(m => {
     if (blocked(m.uid)) return '';
     const mine = m.uid === uid();
@@ -1599,7 +1603,8 @@ function modCheck(text) { const b = DM_BLOCK.find(x => x[0].test(text)); return 
 async function sendDm() {
   const dm = S.dm, inp = $('#dmIn'); if (!dm || !inp) return;
   const text = cleanText(inp.value, 300); if (!text) return;
-  const bad = modCheck(text); if (bad) return toast('為保安全，私訊中不能包含' + bad + '，請修改後再送出');
+  const bad = modCheck(text) || (S.dmTicket && TK_BAD.test(text) ? '加價或議價字眼' : '');
+  if (bad) return toast(S.dmTicket && /金錢|加價/.test(bad) ? '為保安全，私訊中不能提到金額、匯款或議價，價格以刊登內容為準' : '為保安全，私訊中不能包含' + bad + '，請修改後再送出');
   if (Date.now() - dm.last < 2500) return toast('傳太快了，稍等一下再送');
   dm.last = Date.now();
   const mid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), b = F.writeBatch(db);
@@ -1652,18 +1657,24 @@ function matchBtn(x) {
   if (d && d.status === 'pending') return d.by === uid() ? '<span class="pill">等對方接受</span>' : '<button class="btn pink" data-act="dmAccept" data-id="' + esc(d.id) + '">接受私訊</button>';
   return '<button class="btn pink" data-act="dmOpen" data-to="' + esc(o) + '" data-a="' + esc(x.m.id) + '" data-b="' + esc(x.t.id) + '">私訊對方</button>';
 }
+function dmTop() {
+  if (S.mode !== 'ready') return '';
+  let h = '';
+  dmInvites().forEach(d => {
+    const t = tradeById(d.a), tk = isTk(d.b) ? ticketById(d.b) : null;
+    h += '<div class="card"><b>📩 ' + esc(nickOf(d.by)) + (isTk(d.b) ? ' 想跟你私訊讓票的事' : ' 想跟你私訊換周邊') + '</b>' + (tk ? '<div class="psub">🎫 ' + esc(str(tk.area, 20)) + '・' + num(tk.qty) + ' 張</div>' : '') + (t ? '<div class="psub">對方刊登：' + esc(T_LABEL[t.mode] + ' ' + (gives(t) || takes(t))) + '</div>' : '') +
+      '<div class="actions"><button class="btn pink" data-act="dmAccept" data-id="' + esc(d.id) + '">接受並開聊天室</button><button class="btn line" data-act="dmClose" data-id="' + esc(d.id) + '">婉拒</button></div></div>';
+  });
+  const open = S.dms.filter(d => d.status === 'open' && !blocked(dmPeer(d)));
+  if (open.length) h += '<div class="card"><div class="sec" style="margin-top:0">💬 我的私訊</div>' + open.map(d => '<div class="rowline"><span>' + esc(nickOf(dmPeer(d))) + (dmUnread(d) ? ' <span class="pill hot">新訊息</span>' : '') + '</span><button class="btn line" data-act="dmGo" data-id="' + esc(d.id) + '">打開</button></div>').join('') + '</div>';
+  return h;
+}
 function tradeTop() {
   if (S.mode !== 'ready') return '';
   let h = '';
   const end = endingNow();
   if (end && S.marketC !== end.c.id) h += '<div class="safe" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">🎤 <span style="flex:1"><b>' + esc(end.c.artist) + '</b> 差不多散場了（預估），看看這場有誰要換！</span><button class="btn pink" data-act="mc" data-v="' + esc(end.c.id) + '">看這場</button></div>';
-  dmInvites().forEach(d => {
-    const t = tradeById(d.a);
-    h += '<div class="card"><b>📩 ' + esc(nickOf(d.by)) + ' 想跟你私訊換周邊</b>' + (t ? '<div class="psub">對方刊登：' + esc(T_LABEL[t.mode] + ' ' + (gives(t) || takes(t))) + '</div>' : '') +
-      '<div class="actions"><button class="btn pink" data-act="dmAccept" data-id="' + esc(d.id) + '">接受並開聊天室</button><button class="btn line" data-act="dmClose" data-id="' + esc(d.id) + '">婉拒</button></div></div>';
-  });
-  const open = S.dms.filter(d => d.status === 'open' && !blocked(dmPeer(d)));
-  if (open.length) h += '<div class="card"><div class="sec" style="margin-top:0">💬 我的私訊</div>' + open.map(d => '<div class="rowline"><span>' + esc(nickOf(dmPeer(d))) + (dmUnread(d) ? ' <span class="pill hot">新訊息</span>' : '') + '</span><button class="btn line" data-act="dmGo" data-id="' + esc(d.id) + '">打開</button></div>').join('') + '</div>';
+  h += dmTop();
   const ms = myMatches();
   if (ms.length) h += '<div class="card"><div class="sec" style="margin-top:0">✨ 幫你配對到 ' + ms.length + ' 筆</div>' + ms.slice(0, 8).map(x => {
     const c = C(x.t.concertId);
@@ -1678,6 +1689,7 @@ function tradeTop() {
 function vMarket() {
   const guest = S.mode !== 'ready';
   if (guest && (S.mode === 'off' || S.mode === 'loading')) return '<h2 class="vt">周邊交換</h2>' + gate('周邊交換');
+  if (S.mkKind === 'ticket') return vTickets(guest);
   const mc = C(S.marketC), td = todayTW();
   if (!guest && mc) watchPool(mc.id);
   const pool = !guest && mc ? S.pool[mc.id] : null;
@@ -1685,15 +1697,120 @@ function vMarket() {
   const list = base.filter(t => !blocked(t.owner) && (!mc || t.concertId === mc.id) && (S.marketMode === '全部' || t.mode === S.marketMode) && (S.marketCat === '全部' || catsOf(t).includes(S.marketCat)));
   if (!guest && S.newMatch) S.newMatch = 0;
   const today = guest ? [] : todaySessions();
-  return '<h2 class="vt">周邊交換</h2>' + tradeTop() +
-    (today.length ? '<div class="sec" style="margin:4px 0 6px">🔴 近 3 天場次專屬交換區</div><div class="chips">' + today.map(c => { const d = zoneDay(c); return '<button class="chip' + (S.marketC === c.id ? ' on' : '') + '" data-act="mc" data-v="' + esc(S.marketC === c.id ? '' : c.id) + '">' + (d === td ? '🔴 ' : '') + esc(zoneTag(d)) + '・' + esc(str(c.noArtist ? c.title : c.artist, 16)) + '・' + esc(str(c.venue, 10)) + '</button>'; }).join('') + '</div><p class="small muted" style="margin:-6px 0 10px">活動前 3 天開放，到活動當天為止</p>' : '') +
+  return '<h2 class="vt">周邊交換</h2>' + kindSeg() + tradeTop() +
+    (today.length ? '<div class="sec" style="margin:4px 0 6px">🔴 近 3 天場次專屬交換區</div><div class="chips">' + today.map(c => { const d = zoneDay(c); return '<button class="chip' + (S.marketC === c.id ? ' on' : '') + '" data-act="mc" data-v="' + esc(S.marketC === c.id ? '' : c.id) + '">' + (d === td ? '🔴 ' : '') + esc(zoneTag(d)) + '・' + esc(str(c.noArtist ? c.title : c.artist, 16)) + '・' + esc(str(c.venue, 10)) + '</button>'; }).join('') + '</div>' : '') +
     (mc ? '<div class="safe" style="display:flex;align-items:center;gap:8px">📍 <span style="flex:1">正在看：<b>' + esc(sessLabel(mc, zoneDay(mc))) + '</b> 的交換</span><button class="btn line" data-act="mc" data-v="">看全部</button></div>' : '') +
     '<div class="chips">' + [['全部', '全部']].concat(TMODES).map(k => '<button class="chip' + (S.marketMode === k[0] ? ' on' : '') + '" data-act="mmode" data-v="' + k[0] + '">' + k[1] + '</button>').join('') + '</div>' +
     '<div class="chips">' + ['全部', '小卡', '專輯', '應援物', '其他'].map(k => '<button class="chip' + (S.marketCat === k ? ' on' : '') + '" data-act="mcat" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
     (guest ? guestBanner('周邊交換') : '') +
-    '<div class="safe">🤝 周邊<b>只換不賣</b>。刊登時選好場次，同一場有人對得上就會自動配對，雙方同意後開私訊約現場交換。</div>' +
+    '<div class="safe">🤝 周邊僅限交換，請勿開價或要求補貼差額。</div>' +
     (!guest && (mc ? pool && !pool.ready && !list.length : !S.tradesReady) ? '<div class="empty">載入中…</div>' : list.length ? '<div class="cgrid">' + list.map(tradeCard).join('') + '</div>' : '<div class="empty">這個分類還沒有東西，來上架第一個吧！</div>');
 }
+/* ---------- 原價讓票：讓票價不得超過票面，票面不得超過官方公告票價 ---------- */
+// 文創法第 10 條之 1：藝文表演票券以超過票面金額或定價販售（含上架、陳列、兜售）可處票面 10–50 倍罰鍰
+const TK_MAX_OPEN = 4, TK_MAX_QTY = 4, TK_VIA = ['面交', '官方轉讓'];
+const TK_BAD = /加價|喊價|出價|競標|價高者|補貼|補差|差價|另計|另加|代購|手續費|跑腿|請(?:喝|吃)|飲料|紅包|禮物|贈品|\+\s*\d|NT\s*\$|\$\s*\d|\d+\s*(?:元|塊|k\b)|私訊.{0,4}價|價格?私|聊聊價|議價/i;
+const kindSeg = () => '<div class="seg" style="margin:0 0 12px"><button type="button" class="' + (S.mkKind !== 'ticket' ? 'on' : '') + '" data-act="mkKind" data-v="merch">周邊</button><button type="button" class="' + (S.mkKind === 'ticket' ? 'on' : '') + '" data-act="mkKind" data-v="ticket">🎫 原價讓票</button></div>';
+// 從官方票價文字取出各票價（NT$800–6,780 → [800, 6780]）；取不到就不開放這場讓票
+function tkTiers(c) {
+  if (!c || c.free || !c.price) return [];
+  return [...new Set((String(c.price).match(/\d[\d,]*/g) || []).map(x => +x.replace(/,/g, '')).filter(n => n >= 100 && n <= 50000))].sort((a, b) => a - b);
+}
+const tkShows = () => CONCERTS.filter(c => tkTiers(c).length && c.d.some(x => x[0] >= todayTW()));
+const ticketById = id => (S.tickets || []).find(t => t.id === id);
+const isTk = id => /^TK-[A-Za-z0-9]{12}$/.test(String(id || ''));
+const myOpenTickets = () => (S.tickets || []).filter(t => t.owner === uid() && t.day >= todayTW());
+function watchTickets() {
+  if (S.tkOn || !S.live || !db) return; S.tkOn = true;
+  S.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'tickets'), F.where('day', '>=', todayTW()), F.orderBy('day'), F.limit(300)), snap => {
+    S.tickets = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id })); S.tkReady = true; loadPubs(S.tickets.map(t => t.owner)); renderData();
+  }, e => { S.tkReady = true; S.note = '讓票資料讀取失敗：' + errMsg(e); renderData(); }));
+}
+function vTickets(guest) {
+  if (!guest) watchTickets();
+  const kc = C(S.tkC) ? S.tkC : '';
+  const list = guest ? [] : (S.tickets || []).filter(t => !blocked(t.owner) && t.day >= todayTW() && (!kc || t.concertId === kc));
+  return '<h2 class="vt">周邊交換</h2>' + kindSeg() + (guest ? '' : dmTop()) +
+    '<div class="safe">🎫 讓票價格不得超過票面金額，加價轉售（含刊登）依法可處票面金額 10–50 倍罰鍰。站內不經手付款，請當面驗票後再付款，或使用售票平台的官方轉讓。</div>' +
+    (guest ? '<div class="empty">讓票只開放實名會員查看與刊登</div><button class="btn line full" data-act="tab" data-v="me">' + (S.mode === 'out' ? '登入／註冊實名會員' : '前往完成實名註冊') + '</button>' : pickerHtml('tkF', kc, PK_OPT.tkF) +
+      (!S.tkReady ? '<div class="empty">載入中…</div>' : list.length ? '<div class="cgrid">' + list.map(ticketCard).join('') + '</div>' : '<div class="empty">目前沒有讓票</div>')) +
+''; 
+}
+function ticketCard(t) {
+  const c = C(t.concertId), mine = t.owner === uid(), face = num(t.face), price = num(t.price);
+  const tag = price < face ? '低於票面' : '原價';
+  const actions = mine
+    ? '<button class="btn line" data-act="tkDone" data-id="' + esc(t.id) + '">已讓出・下架</button>'
+    : '<button class="btn pink" data-act="tkDm" data-id="' + esc(t.id) + '">私訊讓票人</button>';
+  return '<div class="card"><div class="ptop"><span class="pill hot">🎫 ' + esc(tag) + '</span><span class="small muted">' + esc(t.via === '官方轉讓' ? '官方平台轉讓' : '現場面交') + '</span></div>' +
+    '<div class="swap"><b translate="no">' + esc(c ? sessLabel(c, t.day) : '') + '</b><br><span translate="no">' + esc(str(t.area, 20)) + '</span>・' + num(t.qty) + ' 張</div>' +
+    '<div class="psub" style="margin-top:4px">票面 NT$' + face.toLocaleString() + '／張・讓票 <b>NT$' + price.toLocaleString() + '</b>／張</div>' +
+    (t.named ? '<div class="psub">⚠️ 實名制票券，須透過官方系統轉讓，私下換手可能無法入場</div>' : '') +
+    (t.note ? '<div class="psub" translate="no">' + esc(str(t.note, 60)) + '</div>' : '') +
+    personBlock(t.owner) + '<div class="actions">' + actions + '</div>' + postOps('ticket', t) + '</div>';
+}
+function ticketDays(cid) {
+  const c = C(cid); if (!c) return '';
+  const ds = c.d.filter(x => x[0] >= todayTW()); if (!ds.length) return '';
+  return '<label class="f" for="kD">哪一天</label><select class="in" id="kD">' + ds.map(x => '<option value="' + x[0] + '">' + dinfo(x[0]).full + (x[1] ? ' ' + esc(tm(x[1])) : '') + '</option>').join('') + '</select>';
+}
+function ticketFaceSel(cid) {
+  const tiers = tkTiers(C(cid)); if (!tiers.length) return '';
+  const range = tiers.length === 2 && /[–~-]/.test(C(cid).price);
+  return '<label class="f" for="kFace">票面金額（每張）</label>' + (range
+    ? '<input class="in" id="kFace" type="number" inputmode="numeric" min="' + tiers[0] + '" max="' + tiers[1] + '" placeholder="官方票價 NT$' + tiers[0].toLocaleString() + '–' + tiers[1].toLocaleString() + '">'
+    : '<select class="in" id="kFace">' + tiers.map(n => '<option value="' + n + '">NT$' + n.toLocaleString() + '</option>').join('') + '</select>') +
+    '<div class="hint">依官方公告票價：' + esc(C(cid).price) + '</div>';
+}
+function ticketForm() {
+  if (S.banned) return toast('帳號停權中，暫時不能刊登');
+  if (S.profile && S.profile.minor) return toast('未滿 18 歲無法刊登或詢問讓票');
+  if (myOpenTickets().length >= TK_MAX_OPEN) return toast('同時最多刊登 ' + TK_MAX_OPEN + ' 筆讓票，請先下架已讓出的票');
+  const shows = tkShows(); if (!shows.length) return toast('目前沒有可刊登讓票的場次');
+  const def = C(S.tkC) && tkTiers(C(S.tkC)).length ? S.tkC : shows[0].id;
+  openSheet('刊登讓票',
+    '<form id="tkForm" novalidate><label class="f" for="kCIn">場次</label>' + pickerHtml('kC', def, PK_OPT.kC) +
+    '<div class="hint">只能選擇已公布官方票價的場次</div>' +
+    '<div id="kDBox">' + ticketDays(def) + '</div>' +
+    '<label class="f" for="kArea">座位區</label><input class="in" id="kArea" maxlength="20" placeholder="例：搖滾區 A3、2F 紅 2C">' +
+    '<label class="f" for="kQty">張數</label><select class="in" id="kQty">' + [1, 2, 3, 4].map(n => '<option value="' + n + '">' + n + ' 張</option>').join('') + '</select>' +
+    '<div id="kFBox">' + ticketFaceSel(def) + '</div>' +
+    '<label class="f" for="kPrice">讓票價格（每張）</label><input class="in" id="kPrice" type="number" inputmode="numeric" min="0" placeholder="不得超過票面金額">' +
+    '<label class="f">交付方式</label><div class="seg" id="kVia">' + TK_VIA.map((v, i) => '<button type="button" class="' + (i === 0 ? 'on' : '') + '" data-act="seg" data-v="' + v + '">' + (v === '面交' ? '現場面交' : '官方平台轉讓') + '</button>').join('') + '</div>' +
+    '<label class="check"><input type="checkbox" id="kNamed"> 這是實名制票券</label>' +
+    '<label class="f" for="kNote">備註（選填）</label><input class="in" id="kNote" maxlength="60" placeholder="例：可在南港站面交">' +
+    '<div class="hint">備註不能出現金額、加價或議價字眼，也不能留電話、LINE 或連結。</div>' +
+    '<label class="check"><input type="checkbox" id="kOk"> 我確認讓票價格未超過票面金額，且未要求任何額外費用或贈品</label>' +
+    '<div id="sheetErr"></div><button class="btn pink full" style="margin-top:14px" type="submit">刊登</button></form>');
+}
+async function submitTicket() {
+  const cid = $('#kC') && $('#kC').value, c = C(cid);
+  if (!c || !tkTiers(c).length) return sheetErr('請選擇已公布官方票價的場次');
+  const day = $('#kD') && $('#kD').value; if (!day || !c.d.some(x => x[0] === day) || day < todayTW()) return sheetErr('請選擇場次日期');
+  const area = cleanText($('#kArea').value, 20); if (!area) return sheetErr('請填座位區');
+  const qty = +$('#kQty').value, face = Math.round(+$('#kFace').value), price = Math.round(+$('#kPrice').value);
+  const tiers = tkTiers(c);
+  if (!face || face < tiers[0] || face > tiers[tiers.length - 1]) return sheetErr('票面金額須在官方票價範圍內：NT$' + tiers[0].toLocaleString() + '–' + tiers[tiers.length - 1].toLocaleString());
+  if ($('#kPrice').value === '' || !(price >= 0)) return sheetErr('請填讓票價格');
+  if (price > face) return sheetErr('讓票價格不得超過票面金額');
+  const note = cleanText($('#kNote').value, 60);
+  if (note && (TK_BAD.test(note) || modCheck(note))) return sheetErr('備註不能出現金額、加價或議價字眼，也不能留聯絡方式');
+  if (TK_BAD.test(area) || modCheck(area)) return sheetErr('座位區只能填區域和排號');
+  if (!$('#kOk').checked) return sheetErr('請勾選確認讓票價格未超過票面金額');
+  if (myOpenTickets().length >= TK_MAX_OPEN) return sheetErr('同時最多刊登 ' + TK_MAX_OPEN + ' 筆讓票');
+  if (Date.now() - (S.tkAt || 0) < 60e3) return sheetErr('傳太快了，稍等一下再送');
+  const via = ($('#kVia .on') || {}).dataset ? $('#kVia .on').dataset.v : '面交';
+  const id = 'TK-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[b % 62]).join('');
+  try {
+    await F.setDoc(F.doc(db, 'tickets', id), { owner: uid(), concertId: cid, day, area, qty, face, price, named: !!$('#kNamed').checked, via: TK_VIA.includes(via) ? via : '面交', note, createdAt: F.serverTimestamp() });
+    S.tkAt = Date.now(); closeSheet(); toast('已刊登讓票');
+  } catch (e) { sheetErr(errMsg(e)); }
+}
+async function ticketDone(id) {
+  if (!confirm('確定下架這筆讓票？')) return;
+  try { await F.deleteDoc(F.doc(db, 'tickets', id)); toast('已下架'); } catch (e) { toast(errMsg(e)); }
+}
+
 function tradeCard(t) {
   const c = C(t.concertId);
   const img = typeof t.img === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(t.img) ? '<img class="thumb" src="' + t.img + '" alt="' + esc(str(tTxt(t, 'have') || tTxt(t, 'want'), 40)) + '">' : '<div class="ph">' + esc(catsOf(t)[0] || '周邊') + '</div>';
@@ -2922,7 +3039,7 @@ function ensureFeeds() {
 }
 function startListeners() {
   const u = uid();
-  S.live = true; S.feedOn = {}; S.pool = {}; ensureFeeds();
+  S.live = true; S.feedOn = {}; S.pool = {}; S.tkOn = false; S.tickets = []; S.tkReady = false; ensureFeeds();
   S.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'trades'), F.where('owner', '==', u)), snap => {
     S.ownTrades = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id }));
     [...new Set(S.ownTrades.map(t => t.concertId).filter(Boolean))].slice(0, 6).forEach(watchPool);
@@ -3575,7 +3692,11 @@ document.addEventListener('click', e => {
     case 'close': closeSheet(); break;
     case 'remind': if (!S.reminders.includes(id) && overLimit('rem')) break; S.reminders = S.reminders.includes(id) ? S.reminders.filter(x => x !== id) : S.reminders.concat(id); saveLS('fv_rem', S.reminders); if (S.reminders.includes(id)) bump('fav', id); pushSync(); toast(S.reminders.includes(id) ? '已收藏' : '已取消收藏'); openConcert(id); break;
     case 'findRide': closeSheet(); S.matchKind = '全部'; S.matchConcert = id; go('match'); break;
-    case 'pkClear': if (v === 'mConcert') setMatchConcert(''); break;
+    case 'pkClear': if (v === 'mConcert') setMatchConcert(''); else if (v === 'tkF') { S.tkC = ''; render(); } break;
+    case 'mkKind': S.mkKind = v === 'ticket' ? 'ticket' : 'merch'; render(); break;
+    case 'newTicket': ticketForm(); break;
+    case 'tkDone': ticketDone(id); break;
+    case 'tkDm': { const t = ticketById(id); if (S.profile && S.profile.minor) toast('未滿 18 歲無法刊登或詢問讓票'); else if (t) dmOpen(t.owner, '', t.id); } break;
     case 'planFor': closeSheet(); S.ai.concert = id; S.ai.dateIdx = Math.max(0, C(id).d.findIndex(x => x[0] === C(id).date)); S.ai.out = null; go('ai'); break;
     case 'mkind': S.matchKind = v; render(); break;
     case 'mmode': S.marketMode = v; render(); break;
@@ -3703,6 +3824,7 @@ document.addEventListener('submit', e => {
   else if (f.id === 'profF') doProfile(f);
   else if (f.id === 'rideF') submitRide(f);
   else if (f.id === 'tradeF') submitTrade(f);
+  else if (f.id === 'tkForm') submitTicket();
   else if (f.id === 'nickF') submitNick(f);
   else if (f.id === 'delF') deleteAccount(f);
   else if (f.id === 'chatF') sendChat();
