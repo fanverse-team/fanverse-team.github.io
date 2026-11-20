@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-PfW/JEv6hUoZq02SwzIpba45lER7E3SlA8cASwGBSu8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-Xvx+0tXtMRhBs8tOfNQgAw7C9W3qESx09C4Rxo7q00w='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>FANVERSE 追星人的第二個家</title>
+<title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
 <link rel="stylesheet" href="styles.css">
 <link rel="manifest" href="manifest.json">
@@ -19,7 +19,7 @@
 <div class="app">
   <header class="top"><div class="topin">
     <div class="brand">
-      <div class="logo">FAN<span>VERSE</span></div>
+      <div class="bl"><button class="prefb" id="prefB" data-act="prefs" aria-label="語言與外觀">🌐 中文</button><div class="logo">FAN<span>VERSE</span></div></div>
       <span class="acct" id="acct"></span>
     </div>
     <div class="slogan">同一份喜歡，在這裡相遇</div>
@@ -63,7 +63,97 @@ let A = null, F = null, auth = null, db = null;
 const $ = (s, r) => (r || document).querySelector(s);
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const WD = '日一二三四五六';
-function dinfo(d) { const t = new Date(d + 'T12:00:00+08:00'); return { md: (t.getMonth() + 1) + '/' + t.getDate(), wd: '週' + WD[t.getDay()], full: t.getFullYear() + '/' + (t.getMonth() + 1) + '/' + t.getDate() + '（' + WD[t.getDay()] + '）' }; }
+const WD_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], WD_JA = '日月火水木金土';
+function dinfo(d) {
+  const t = new Date(d + 'T12:00:00+08:00'), w = t.getDay(), md = (t.getMonth() + 1) + '/' + t.getDate(), ymd = t.getFullYear() + '/' + md;
+  if (LANG === 'en') return { md, wd: WD_EN[w], full: ymd + ' (' + WD_EN[w] + ')' };
+  if (LANG === 'ja') return { md, wd: WD_JA[w] + '曜', full: ymd + '（' + WD_JA[w] + '）' };
+  return { md, wd: '週' + WD[w], full: ymd + '（' + WD[w] + '）' };
+}
+
+/* ---------- 多語系（中文／English／日本語）與深色模式 ----------
+   介面文字在畫面產生後才翻譯（MutationObserver），程式邏輯一律用中文原值，不受影響。
+   場次、藝人、場館名稱與會員自己寫的內容不翻譯（只有官方英文名的場館會換成官方名稱）。 */
+const LANGS = [['zh', '中文', 'zh-Hant-TW'], ['en', 'English', 'en'], ['ja', '日本語', 'ja']];
+let LANG = (l => LANGS.some(x => x[0] === l) ? l : 'zh')(loadLS('fv_lang', 'zh'));
+let DICT = null, TRX = null, PROT = new Set(), protFor = null;
+const CJK1 = /[㐀-鿿]/;
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function buildTrx() {
+  if (!DICT) { TRX = null; return; }
+  protFor = typeof CONCERTS !== 'undefined' ? CONCERTS : null; PROT = new Set();
+  // 場次、藝人、場館等資料：整段保護，不讓裡面的字被拆開翻譯
+  (protFor || []).forEach(c => ['title', 'artist', 'venue', 'hall', 'note', 'price', 'sale', 'desc', 'platform'].forEach(k => { const v = c[k]; if (typeof v === 'string' && v.length > 1 && CJK1.test(v) && !DICT[v]) PROT.add(v); }));
+  const keys = Object.keys(DICT).concat([...PROT]).sort((a, b) => b.length - a.length);
+  // 兩個字以下的詞，前後不能緊貼其他中文字，避免把名字或句子的一部分翻掉
+  const alt = keys.map(k => k.length <= 2 && /^[㐀-鿿]+$/.test(k) ? '(?<![\\u3400-\\u9fff])' + reEsc(k) + '(?![\\u3400-\\u9fff])' : reEsc(k));
+  TRX = alt.length ? new RegExp(alt.join('|'), 'g') : null;
+}
+function tr(s) {
+  if (!DICT || typeof s !== 'string' || !CJK1.test(s)) return s;
+  if (protFor !== (typeof CONCERTS !== 'undefined' ? CONCERTS : null)) buildTrx();
+  if (!TRX) return s;
+  return s.replace(TRX, m => PROT.has(m) ? m : (DICT[m] !== undefined ? DICT[m] : m));
+}
+const TR_ATTR = ['placeholder', 'aria-label', 'title'];
+function trNode(root) {
+  if (!DICT) return;
+  const walk = n => {
+    if (n.nodeType === 3) { if (CJK1.test(n.nodeValue)) { const v = tr(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; } return; }
+    if (n.nodeType !== 1) return;
+    if (n.getAttribute('translate') === 'no' || n.tagName === 'SCRIPT' || n.tagName === 'STYLE' || n.tagName === 'TEXTAREA') return;
+    if (n.tagName === 'OPTION' && !n.hasAttribute('value')) n.setAttribute('value', n.textContent); // 選單的值維持中文，程式才讀得懂
+    TR_ATTR.forEach(a => { const v = n.getAttribute(a); if (v && CJK1.test(v)) { const t = tr(v); if (t !== v) n.setAttribute(a, t); } });
+    for (let c = n.firstChild; c; c = c.nextSibling) walk(c);
+  };
+  walk(root);
+}
+let trObs = null;
+function startTr() {
+  if (trObs) { trObs.disconnect(); trObs = null; }
+  if (!DICT) return;
+  trNode(document.body); document.title = tr(document.title);
+  trObs = new MutationObserver(ms => {
+    trObs.disconnect();
+    ms.forEach(m => { if (m.type === 'characterData') trNode(m.target); else if (m.type === 'attributes') trNode(m.target); else m.addedNodes.forEach(trNode); });
+    trObs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: TR_ATTR });
+  });
+  trObs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: TR_ATTR });
+}
+async function loadLang() {
+  document.documentElement.lang = (LANGS.find(x => x[0] === LANG) || LANGS[0])[2];
+  if (LANG === 'zh') { DICT = null; TRX = null; if (trObs) { trObs.disconnect(); trObs = null; } return; }
+  try {
+    const r = await fetch('i18n/' + LANG + '.json?v=' + todayTW(), { cache: 'no-cache', credentials: 'omit' });
+    const j = r.ok ? await r.json() : null;
+    DICT = j && typeof j === 'object' ? j : null;
+  } catch (e) { DICT = null; }
+  buildTrx(); startTr();
+}
+function setLang(l) {
+  if (!LANGS.some(x => x[0] === l) || l === LANG) return closeSheet();
+  saveLS('fv_lang', l); location.reload(); // 重新載入最乾淨：所有畫面、選單、日期都用新語言重畫
+}
+// 外觀：跟隨系統（預設）／明亮／深色
+const THEMES = [['auto', '跟隨系統'], ['light', '明亮'], ['dark', '深色']];
+let THEME = (t => THEMES.some(x => x[0] === t) ? t : 'auto')(loadLS('fv_theme', 'auto'));
+const darkMQ = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+const isDark = () => THEME === 'dark' || (THEME === 'auto' && !!(darkMQ && darkMQ.matches));
+function paintTheme() {
+  const r = document.documentElement;
+  if (THEME === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', THEME);
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', '#16132B');
+}
+function setTheme(t) { THEME = THEMES.some(x => x[0] === t) ? t : 'auto'; saveLS('fv_theme', THEME); paintTheme(); if (typeof applyTheme === 'function') applyTheme(); prefSheet(); }
+paintTheme();
+if (darkMQ && darkMQ.addEventListener) darkMQ.addEventListener('change', () => { if (typeof applyTheme === 'function') applyTheme(); });
+function prefSheet() {
+  const seg = (list, cur, act) => '<div class="seg">' + list.map(x => '<button type="button" class="' + (x[0] === cur ? 'on' : '') + '" data-act="' + act + '" data-v="' + x[0] + '"' + (act === 'setLang' ? ' translate="no"' : '') + '>' + x[1] + '</button>').join('') + '</div>';
+  openSheet('語言與外觀', '<label class="f">語言 / Language / 言語</label>' + seg(LANGS, LANG, 'setLang') +
+    '<p class="small muted" style="margin:6px 2px 0">場次、藝人與場館名稱維持原文，只有官方提供的譯名會顯示翻譯。</p>' +
+    '<label class="f" style="margin-top:16px">外觀</label>' + seg(THEMES, THEME, 'setTheme'));
+}
+function prefLabel() { const b = $('#prefB'); if (b) b.innerHTML = '🌐 <span translate="no">' + (LANGS.find(x => x[0] === LANG) || LANGS[0])[1] + '</span>'; }
 function daysLeft(d) { return Math.ceil((new Date(d + 'T00:00:00+08:00') - Date.now()) / 86400000); }
 function loadLS(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
 function saveLS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
@@ -984,8 +1074,9 @@ const isPlus = () => !!(S.plus && S.plus.until > Date.now());
 const cheer = name => CHEER.find(x => x[0] === name) || CHEER[0];
 const fmtDay = ms => { const d = new Date(ms + 8 * 3600e3); return d.getUTCFullYear() + '/' + (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); };
 function applyTheme() {
-  const c = isPlus() ? cheer(S.plus.color) : CHEER[0], r = document.documentElement.style;
-  r.setProperty('--pink', c[1]); r.setProperty('--pinkd', c[2]); r.setProperty('--pinkbg', c[3]);
+  const c = isPlus() ? cheer(S.plus.color) : CHEER[0], r = document.documentElement.style, dk = isDark();
+  const rgba = (h, a) => 'rgba(' + [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',') + ',' + a + ')';
+  r.setProperty('--pink', c[1]); r.setProperty('--pinkd', dk ? c[1] : c[2]); r.setProperty('--pinkbg', dk ? rgba(c[1], .2) : c[3]);
   IMG.pink = c[1]; IMG.pinkd = c[2]; IMG.pinkbg = c[3];
 }
 function cleanSub(x) {
@@ -2347,13 +2438,13 @@ function tripSummary(o) {
 }
 function renderPlan(o, act) {
   const money = n => 'NT$' + Math.round(n).toLocaleString();
-  const optRows = o.opts.map(x => '<div class="rowline" style="align-items:flex-start"><span><b style="color:var(--ink)">' + esc(x.mode) + (o.opt && x.mode === o.opt.mode ? '（你選的）' : '') + '</b>' + (x.fit ? ' <span class="pill">適合你</span>' : '') + '<br><span class="small muted">' + esc(x.note) + '</span></span><span style="text-align:right;white-space:nowrap">約' + esc(dur(x.min)) + '<br>' + money(x.cost) + '</span></div>').join('');
+  const optRows = o.opts.map(x => '<div class="rowline" style="align-items:flex-start"><span><b style="color:var(--text)">' + esc(x.mode) + (o.opt && x.mode === o.opt.mode ? '（你選的）' : '') + '</b>' + (x.fit ? ' <span class="pill">適合你</span>' : '') + '<br><span class="small muted">' + esc(x.note) + '</span></span><span style="text-align:right;white-space:nowrap">約' + esc(dur(x.min)) + '<br>' + money(x.cost) + '</span></div>').join('');
   let lastDay = '';
   const tl = o.tl.map(x => { const head = o.multi && x.day !== lastDay ? '<li class="tlday">' + esc(o.dayLabels[x.day] || x.day) + '</li>' : ''; lastDay = x.day; return head + '<li><span class="t">' + esc(x.t) + '</span><b>' + esc(x.h) + '</b>' + (x.d ? '<br>' + esc(x.d) : '') +
     (x.arts ? '<br><span class="small">🎨 順便看：' + x.arts.map(e => '<button class="lnk" data-act="concert" data-id="' + esc(e.id) + '">' + esc(e.title) + '</button>（' + esc(e.tag) + '）').join('、') + '</span>' : '') + '</li>'; }).join('');
   const k = act === 'groupPlanImg' ? 'g' : 'ai';
   const v = o.v;
-  return '<div class="result"><div style="font-weight:700;color:var(--ink)">' + esc(o.c.noArtist ? str(o.c.title, 30) : o.c.artist) + '・' + dinfo(o.pick[0]).full + ' ' + esc(o.visit ? (o.c.hours ? '開放 ' + o.c.hours : '') : tm(o.pick[1])) + '・' + esc(o.c.venue) + '</div>' +
+  return '<div class="result"><div style="font-weight:700;color:var(--text)">' + esc(o.c.noArtist ? str(o.c.title, 30) : o.c.artist) + '・' + dinfo(o.pick[0]).full + ' ' + esc(o.visit ? (o.c.hours ? '開放 ' + o.c.hours : '') : tm(o.pick[1])) + '・' + esc(o.c.venue) + '</div>' +
     '<div class="small muted">' + tripSummary(o) + '</div>' +
     (o.weather ? '<div class="small" style="margin-top:6px">🌦️ ' + dinfo(o.weather.day).md + ' ' + esc(o.v.city) + '：' + esc(o.weather.txt) + '<span class="muted">（中央氣象署預報' + (WEATHER_ASOF ? '・' + WEATHER_ASOF + ' 更新' : '') + '）</span></div>' : '') +
     o.warn.map(w => '<div class="err" style="margin-top:8px">⚠️ ' + esc(w) + '</div>').join('') +
@@ -2546,7 +2637,7 @@ function openConcert(id, keep) {
     '<div class="actions" style="margin-top:10px"><button class="btn ' + (rem ? 'ghost' : 'line') + '" data-act="remind" data-id="' + c.id + '">' + (rem ? '★ 已收藏' : c.r ? '☆ 收藏這個展' : '☆ 收藏這場') + '</button>' +
     '<button class="btn pink" style="flex:1" id="frBtn" data-act="findRide" data-id="' + c.id + '">' + rideBtnLabel(c.id) + '</button></div>' +
     '<button class="btn full" style="margin-top:8px" data-act="planFor" data-id="' + c.id + '">' + (c.r ? '排去看展的行程' : '排這場的行程') + '</button>' +
-    '<div class="sec">資料來源（更新至 ' + (arts ? ARTS_ASOF || DATA_ASOF : DATA_ASOF) + '）</div><ul class="list small">' + srcs + '</ul>' +
+    '<div class="sec">資料來源（更新至 ' + (arts ? ARTS_ASOF || DATA_ASOF : DATA_ASOF) + '）</div><ul class="list small" translate="no">' + srcs + '</ul>' +
     (c.r ? '<p class="small muted">展覽資訊由主辦單位提供給文化部，有誤請向主辦單位反映。</p>' : '<div class="fixbox"><span>開演時間、票價有誤？看完了想回報幾點散場？</span><button class="btn line" data-act="fixForm" data-id="' + c.id + '">協助回報</button></div>'));
   S.openCid = id; if (keepY) $('#sheet').scrollTop = keepY;
   if (!keep) { loadFixes(id); countRides(id); }
@@ -3417,6 +3508,9 @@ document.addEventListener('click', e => {
   if (act === 'follow') { e.stopPropagation(); const a = el.dataset.artist; if (!S.follows.includes(a) && overLimit('follow')) return; S.follows = S.follows.includes(a) ? S.follows.filter(x => x !== a) : S.follows.concat(a); saveLS('fv_follows2', S.follows); if (S.follows.includes(a)) bump('follow', a); pushSync(); toast(S.follows.includes(a) ? '已追蹤 ' + a : '已取消追蹤'); render(); return; }
   switch (act) {
     case 'tab': closeSheet(); go(v); break;
+    case 'prefs': prefSheet(); break;
+    case 'setLang': setLang(v); break;
+    case 'setTheme': setTheme(v); break;
     case 'city': S.city = S.city === v && !AREAS[v] ? (Object.keys(AREAS).find(a => AREAS[a].includes(v)) || '全部') : v; S.homeLimit = 0; render(); break;
     case 'kind': if (KINDS.some(k => k[0] === v)) { S.kind = v; S.genre = '全部'; S.homeLimit = 0; if (v !== 'concert') S.onlyFollow = false; render(); } break;
     case 'more': S.homeLimit = (S.homeLimit || PAGE) + PAGE; updateHome(); break;
@@ -3581,6 +3675,7 @@ async function boot() {
   // 防止別的網站把 FANVERSE 嵌進框架裡誘騙點擊（GitHub Pages 無法設定 frame-ancestors，所以用程式擋）
   if (window.top !== window.self) { document.body.innerHTML = '<p style="padding:24px;font:16px sans-serif">為了安全，請直接開啟 <a href="https://fanverse-team.github.io/" target="_top">fanverse-team.github.io</a></p>'; return; }
   document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[data-out]'); if (a) bump('out', a.dataset.out); }, true);
+  prefLabel(); await loadLang();
   route();
   loadConcerts(); loadHotels(); loadArts(); loadExtras();
   if (!firebaseConfig || !firebaseConfig.apiKey || /^YOUR_/.test(firebaseConfig.apiKey)) { S.mode = 'off'; S.note = '帳號功能暫時無法使用'; render(); return; }
@@ -3590,7 +3685,7 @@ async function boot() {
     const app = appM.initializeApp(firebaseConfig);
     // 只在真的要讀寫資料庫或登入時才向 reCAPTCHA 取得驗證（不自動更新），省下每月免費驗證次數
     if (acM) { try { acM.initializeAppCheck(app, { provider: new acM.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY), isTokenAutoRefreshEnabled: false }); } catch (e) { } }
-    auth = A.getAuth(app); auth.languageCode = 'zh-TW';
+    auth = A.getAuth(app); auth.languageCode = LANG === 'zh' ? 'zh-TW' : LANG;
     db = F.getFirestore(app);
     countVisit();
     A.onAuthStateChanged(auth, onUser);
