@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-TOePO4bDhZqWNwaofisC0tugSe+gaTj0Z5dzTXY+oFw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-LdByVGOdsvoU3NT5/i4bQx2Z11orRguup5W3QKrXGoY='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -379,7 +379,7 @@ function errMsg(e) {
 /* ---------- state ---------- */
 const S = {
   view: 'home', kind: 'concert', city: '全部', genre: '全部', q: '', onlyFollow: false,
-  matchKind: '全部', matchConcert: '', marketMode: '全部', marketCat: '全部',
+  matchKind: '全部', matchConcert: '', marketMode: '全部', marketCat: '全部', marketC: '', tsel: { have: [], want: [] }, ownTrades: [], pool: {}, dms: [], dmsReady: false, dm: null, newMatch: 0,
   mode: 'loading', note: '', authTab: 'login', meKey: '',
   user: null, profile: null, priv: null,
   rides: [], trades: [], ridesReady: false, tradesReady: false,
@@ -405,6 +405,8 @@ const TABS = [['home', '情報站'], ['match', '同行媒合'], ['market', '周�
 function route() {
   const h = (location.hash || '').replace('#', '');
   const cm = h.match(/^c\/(e\d{2,4}|k[0-9a-f]{12})$/); // 分享連結：#c/e01 直接打開那一場
+  const tm = h.match(/^t\/(e\d{2,4}|k[0-9a-f]{12})$/); // 散場通知：#t/e01 直接看那一場的周邊交換
+  if (tm) { S.marketC = tm[1]; S.view = 'market'; render(); ensureFeeds(); return; }
   S.view = TABS.some(t => t[0] === h) || h === 'admin' || h === 'plus' ? h : 'home';
   if (cm) setTimeout(() => { if (C(cm[1])) openConcert(cm[1]); else S.pendingCid = cm[1]; }, 0);
   S.meKey = '';
@@ -417,7 +419,7 @@ window.addEventListener('hashchange', route);
 
 /* ---------- render ---------- */
 function renderTabs() {
-  $('#tabs').innerHTML = TABS.map(([k, l]) => '<button class="tab' + (S.view === k ? ' on' : '') + '" data-act="tab" data-v="' + k + '" aria-label="' + l + '">' + ICON[k] + '<span>' + l + '</span>' + (k === 'me' && S.live && anyUnread() ? '<i class="dot" aria-label="有未讀訊息"></i>' : '') + '</button>').join('');
+  $('#tabs').innerHTML = TABS.map(([k, l]) => '<button class="tab' + (S.view === k ? ' on' : '') + '" data-act="tab" data-v="' + k + '" aria-label="' + l + '">' + ICON[k] + '<span>' + l + '</span>' + (k === 'me' && S.live && anyUnread() ? '<i class="dot" aria-label="有未讀訊息"></i>' : '') + (k === 'market' && S.view !== 'market' && marketDot() ? '<i class="dot" aria-label="有新的配對或私訊"></i>' : '') + '</button>').join('');
 }
 function render() {
   renderTabs();
@@ -674,8 +676,8 @@ function demoTrades() {
   const u = UPCOMING(), c = u[0];
   return [
     { id: 'demo-t1', demo: true, mode: '交換', category: '小卡', have: '專輯隨機小卡 A 版', want: '同專輯 B 版', condition: '全新', concertId: c ? c.id : '', tags: ['可面交'], note: '示範貼文：交換會寫「我有」和「想換」', owner: 'demo1' },
-    { id: 'demo-t2', demo: true, mode: '出售', category: '應援物', have: '官方手燈（附電池）', price: 900, condition: '近全新', concertId: '', tags: ['原價'], note: '示範貼文：出售要寫價格與物品狀況', owner: 'demo2' },
-    { id: 'demo-t3', demo: true, mode: '徵求', category: '專輯', want: '初回限定盤', price: 1200, concertId: '', tags: [], note: '示範貼文：徵求可以寫預算', owner: 'demo3' }
+    { id: 'demo-t2', demo: true, mode: '送出', category: '應援物', have: '自製手幅（多做了 5 份）', condition: '全新', concertId: c ? c.id : '', spot: '場周販賣區旁邊', tags: ['免費'], note: '示範貼文：純送出，送給同場的粉絲', owner: 'demo2' },
+    { id: 'demo-t3', demo: true, mode: '收取', category: '小卡', want: '官方特典小卡', concertId: c ? c.id : '', spot: 'VIP2 區入場前', tags: [], note: '示範貼文：純收取，有人願意送就會自動配對', owner: 'demo3' }
   ];
 }
 function guestBanner(what) {
@@ -699,6 +701,7 @@ function acceptedBlock(type, item) {
   if (S.profile.minor) h += '<span class="small muted">你的帳號不會公開實名</span>';
   else if (!S.myReveals[owner]) h += '<button class="btn pink" data-act="reveal" data-to="' + esc(owner) + '">確認' + (type === 'ride' ? '同行' : '交易') + '，公開我的實名給對方</button>';
   else h += '<span class="small muted">你已向對方公開實名</span>';
+  if (type === 'trade') h += '<button class="btn pink" data-act="dmOpen" data-to="' + esc(owner) + '" data-a="" data-b="' + esc(item.id) + '">私訊約交換</button>';
   h += '<button class="btn line" data-act="cancelReq" data-type="' + type + '" data-id="' + esc(item.id) + '">退出</button>';
   return h;
 }
@@ -713,7 +716,7 @@ function pickerHtml(id, value, opt) {
     (opt.allLabel && c ? '<button type="button" class="sclear" data-act="pkClear" data-v="' + id + '" aria-label="改看所有場次">✕</button>' : '') +
     '<div class="sug" id="' + id + 'Sug" role="listbox" hidden></div></div>';
 }
-const PK_OPT = { mConcert: { allLabel: '所有場次', ph: '找場次：打藝人、場館或月份', aria: '篩選場次' }, rC: { ph: '打藝人、場館或月份找場次', aria: '場次' } };
+const PK_OPT = { tC: { ph: '打藝人、場館或月份找場次', aria: '交換場次' }, mConcert: { allLabel: '所有場次', ph: '找場次：打藝人、場館或月份', aria: '篩選場次' }, rC: { ph: '打藝人、場館或月份找場次', aria: '場次' } };
 function pkItems(id, q) {
   const opt = PK_OPT[id] || {}, items = [];
   if (!q) {
@@ -744,6 +747,7 @@ function pkPick(id, i) {
 }
 function pkChanged(id, v) {
   if (id === 'mConcert') setMatchConcert(v);
+  else if (id === 'tC') { const box = $('#tDBox'); if (box) box.innerHTML = tradeDateSel(v); watchPool(v); tagRender(); }
   else if (id === 'rC') { const box = $('#rDBox'); if (box) box.innerHTML = rideDateSel(v); const f = $('#rideF'); if (f) delete f.dataset.force; }
 }
 document.addEventListener('focusin', e => { const p = e.target.closest && e.target.closest('.picker'); if (!p || !e.target.classList.contains('pk-in')) return; S.pk = { id: p.dataset.pk, idx: -1, items: [] }; e.target.select(); pkRender(p.dataset.pk); });
@@ -810,16 +814,16 @@ function blockUser(who) {
 }
 async function doBlock(who, on) {
   try {
-    if (on) await F.setDoc(F.doc(db, 'blocks', uid(), 'u', who), { at: F.serverTimestamp() });
+    if (on) { await F.setDoc(F.doc(db, 'blocks', uid(), 'u', who), { at: F.serverTimestamp() }); const d = dmOf(who); if (d && d.status !== 'closed') dmClose(d.id, true); }
     else await F.deleteDoc(F.doc(db, 'blocks', uid(), 'u', who));
     closeSheet(); toast(on ? '已封鎖' : '已解除封鎖');
   } catch (e) { toast(errMsg(e)); }
 }
 function repPost(type, id) {
-  const item = type === 'ride' ? rideById(id) : S.trades.find(x => x.id === id); if (!item) return;
+  const item = type === 'ride' ? rideById(id) : tradeById(id); if (!item) return;
   return withLock('rpp' + id, async () => {
     try {
-      await F.setDoc(F.doc(db, 'reports', uid() + '_p-' + id), { by: uid(), rideId: type + ':' + id, msgId: 'p-' + id, who: String(item.owner || ''), text: str(type === 'ride' ? item.title + '｜' + item.note : (item.have || item.want) + '｜' + item.note, 300), reason: type === 'ride' ? '媒合貼文' : '交換貼文', createdAt: F.serverTimestamp() });
+      await F.setDoc(F.doc(db, 'reports', uid() + '_p-' + id), { by: uid(), rideId: type + ':' + id, msgId: 'p-' + id, who: String(item.owner || ''), text: str(type === 'ride' ? item.title + '｜' + item.note : (tTxt(item, 'have') || tTxt(item, 'want')) + '｜' + item.note, 300), reason: type === 'ride' ? '媒合貼文' : '交換貼文', createdAt: F.serverTimestamp() });
       toast('已檢舉，管理員會盡快處理');
     } catch (e) { toast(e && e.code === 'permission-denied' ? '你已經檢舉過這篇' : errMsg(e)); }
   });
@@ -942,6 +946,7 @@ async function admAct(kind, x) {
     else if (kind === 'delTarget') {
       const r = a.reports.find(y => y.id === x); if (!r) return;
       if (r.reason === '聊天室訊息') await F.deleteDoc(F.doc(db, 'rides', r.rideId, 'chat', r.msgId));
+      else if (r.reason === '私訊訊息') await F.deleteDoc(F.doc(db, 'dms', String(r.rideId).slice(3), 'm', r.msgId));
       else { const [type, id] = String(r.rideId).split(':'); await F.deleteDoc(F.doc(db, type === 'ride' ? 'rides' : 'trades', id)); }
     }
     toast('已完成'); loadAdmin();
@@ -1264,25 +1269,280 @@ function rideCard(r) {
     personBlock(r.owner) + '<div class="actions">' + actions + '</div>' + postOps('ride', r) + '</div>';
 }
 
+/* ---------- 周邊交換：願望清單（交換／純送出／純收取）、今日場次、自動配對、私訊 ---------- */
+const TMODES = [['交換', '交換'], ['送出', '純送出'], ['收取', '純收取']];
+const T_LABEL = { '交換': '交換', '送出': '純送出', '收取': '純收取', '出售': '出售', '徵求': '徵求' };
+// 我有（X）／想要（Y）是複選標籤；舊貼文是一段文字，一樣拆成標籤
+const tItems = (t, k) => (Array.isArray(t[k]) ? t[k] : String(t[k] || '').split(/[、,，]/)).map(x => str(x, 30).trim()).filter(Boolean).slice(0, 6);
+const tTxt = (t, k) => tItems(t, k).join('、');
+const giveL = t => t.mode === '交換' || t.mode === '送出' || t.mode === '出售' ? tItems(t, 'have') : [];
+const takeL = t => t.mode === '交換' || t.mode === '收取' || t.mode === '徵求' ? tItems(t, 'want') : [];
+const gives = t => giveL(t).join('、'), takes = t => takeL(t).join('、');
+const anyLike = (A, B) => A.some(a => B.some(b => itemLike(a, b)));
+const MERCH = ['官方手燈', '手幅', '應援毛巾', '扇子', '小卡', '專輯', '海報', '徽章', '吊飾', '明信片', '貼紙', '自製應援物'];
+function merchOpts(cid) {
+  const n = {}; if (cid) allTrades().filter(t => t.concertId === cid).forEach(t => tItems(t, 'have').concat(tItems(t, 'want')).forEach(x => { n[x] = (n[x] || 0) + 1; }));
+  return [...new Set(Object.keys(n).sort((a, b) => n[b] - n[a]).slice(0, 24).concat(MERCH))];
+}
+function tagBox(k, cid) {
+  const sel = S.tsel[k], opts = [...new Set(sel.concat(merchOpts(cid)))];
+  return '<div class="chips" style="flex-wrap:wrap;overflow:visible">' + opts.map(x => '<button type="button" class="chip' + (sel.includes(x) ? ' on' : '') + '" data-act="tTag" data-k="' + k + '" data-v="' + esc(x) + '" aria-pressed="' + sel.includes(x) + '">' + (sel.includes(x) ? '✓ ' : '') + esc(x) + '</button>').join('') + '</div>' +
+    '<div style="display:flex;gap:8px"><input class="in" id="tAdd_' + k + '" maxlength="30" placeholder="清單裡沒有？自己加，例：隊長版小卡" aria-label="新增標籤"><button type="button" class="btn line" data-act="tTagAdd" data-k="' + k + '">新增</button></div>';
+}
+function tagRender() { const cid = ($('#tC') || {}).value || ''; ['have', 'want'].forEach(k => { const b = $('#tTags_' + k); if (b) b.innerHTML = tagBox(k, cid); }); }
+function tagToggle(k, v) {
+  const sel = S.tsel[k]; if (!sel) return;
+  const i = sel.indexOf(v); if (i >= 0) sel.splice(i, 1); else if (sel.length >= 6) return toast('每一邊最多選 6 個'); else sel.push(v);
+  tagRender();
+}
+function tagAdd(k) {
+  const inp = $('#tAdd_' + k); if (!inp) return;
+  const v = cleanText(inp.value, 30).replace(/[、,，]/g, ' ').trim(); if (!v) return;
+  const bad = modCheck(v); if (bad) return toast('標籤不能包含' + bad);
+  if (!S.tsel[k].includes(v)) { if (S.tsel[k].length >= 6) return toast('每一邊最多選 6 個'); S.tsel[k].push(v); }
+  tagRender(); const n = $('#tAdd_' + k); if (n) n.focus();
+}
+function normItem(s) { return String(s || '').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, ''); }
+function itemLike(a, b) {
+  a = normItem(a); b = normItem(b); if (a.length < 2 || b.length < 2) return false;
+  if (a.includes(b) || b.includes(a)) return true;
+  const bg = s => { const o = new Set(); for (let i = 0; i < s.length - 1; i++) o.add(s.slice(i, i + 2)); return o; };
+  const A = bg(a), B = bg(b); let n = 0; A.forEach(x => { if (B.has(x)) n++; });
+  return 2 * n / (A.size + B.size) >= 0.6;
+}
+const sameSession = (a, b) => !!a.concertId && a.concertId === b.concertId && (!a.day || !b.day || a.day === b.day);
+// m 是我的刊登、t 是別人的：0 沒配到、1 單向（送給想收的人／收到別人送的）、2 雙向交換
+function matchLevel(m, t) {
+  if (!sameSession(m, t) || !t.owner || m.owner === t.owner) return 0;
+  const give = anyLike(giveL(m), takeL(t)), get = anyLike(takeL(m), giveL(t));
+  if (m.mode === '交換' && t.mode === '交換') return give && get ? 2 : 0;
+  return give || get ? 1 : 0;
+}
+function allTrades() {
+  const seen = {}, out = [];
+  [].concat(S.trades, S.ownTrades, ...Object.values(S.pool).map(p => p.list)).forEach(t => { if (t && !seen[t.id]) { seen[t.id] = 1; out.push(t); } });
+  return out;
+}
+const tradeById = id => id ? allTrades().find(t => t.id === id) || null : null;
+// 同一場的交換另外開一條監聽，不受首頁最新 40 筆的限制
+function watchPool(cid) {
+  if (!cid || !S.live || S.pool[cid]) return;
+  const p = S.pool[cid] = { list: [], ready: false };
+  S.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'trades'), F.where('concertId', '==', cid), F.limit(150)), snap => {
+    if (S.pool[cid] !== p) return;
+    p.list = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id })); p.ready = true; loadPubs(p.list.map(t => t.owner)); checkMatches(); renderData(); if ($('#tC') && $('#tC').value === cid) tagRender();
+  }, () => { p.ready = true; renderData(); }));
+}
+function myMatches() {
+  if (S.mode !== 'ready') return [];
+  const mine = S.ownTrades.filter(t => t.concertId && TMODES.some(x => x[0] === t.mode)), out = [];
+  if (!mine.length) return out;
+  const others = allTrades().filter(t => t.owner !== uid() && !blocked(t.owner));
+  mine.forEach(m => others.forEach(t => { const lv = matchLevel(m, t); if (lv) out.push({ key: m.id + '_' + t.id, m, t, lv }); }));
+  return out.sort((a, b) => b.lv - a.lv).slice(0, 30);
+}
+let seenM = loadLS('fv_seenM', []);
+function sysNotify(title, body, tag) {
+  try {
+    if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted' || !navigator.serviceWorker) return;
+    navigator.serviceWorker.ready.then(r => r.showNotification(title, { body, tag, icon: 'icon-192.png', data: { url: location.href } })).catch(() => { });
+  } catch (e) { }
+}
+function checkMatches() {
+  const ms = myMatches(), fresh = ms.filter(x => !seenM.includes(x.key));
+  if (!fresh.length) return;
+  seenM = seenM.concat(fresh.map(x => x.key)).slice(-300); saveLS('fv_seenM', seenM);
+  S.newMatch = (S.newMatch || 0) + fresh.length;
+  const x = fresh[0], body = (gives(x.m) ? '你的「' + gives(x.m) + '」' : '你想收的「' + takes(x.m) + '」') + '有人對得上，打開周邊交換看看';
+  toast('✨ 有 ' + fresh.length + ' 筆新的周邊配對！到「周邊交換」看看'); sysNotify('✨ 周邊配對成功', body, 'm-' + x.key); renderTabs();
+}
+/* 私訊：一對一，雙方都同意才開；只限有交換關係的人（配對到、或對方接受了你的「我有興趣」） */
+const dmPid = o => [uid(), o].sort().join('_');
+const dmPeer = d => arr(d.users).find(x => x !== uid()) || '';
+const dmOf = o => S.dms.find(d => d.id === dmPid(o)) || null;
+const nickOf = o => { const p = S.pub[o]; return p ? str(p.nickname, 20) : p === null ? '已離開的會員' : '…'; };
+function dmUnread(d) {
+  const t = d.lastAt && typeof d.lastAt.toMillis === 'function' ? d.lastAt.toMillis() : 0;
+  return d.status === 'open' && d.lastBy && d.lastBy !== uid() && t > num(loadLS('fv_dmSeen', {})[d.id]);
+}
+function dmSeen(pid) { const m = loadLS('fv_dmSeen', {}); m[pid] = Date.now(); saveLS('fv_dmSeen', m); }
+const dmInvites = () => S.dms.filter(d => d.status === 'pending' && d.by !== uid() && !blocked(dmPeer(d)));
+const marketDot = () => S.live && (S.newMatch > 0 || dmInvites().length > 0 || S.dms.some(dmUnread));
+function onDms(list) {
+  const old = {}; S.dms.forEach(d => { old[d.id] = d.status + d.by; });
+  S.dms = list; loadPubs(list.map(dmPeer));
+  if (S.dmsReady) list.forEach(d => {
+    if (old[d.id] === d.status + d.by || blocked(dmPeer(d))) return;
+    if (d.status === 'pending' && d.by !== uid()) { toast('📩 ' + nickOf(dmPeer(d)) + ' 想跟你私訊換周邊'); sysNotify('📩 有人想跟你換周邊', '到「周邊交換」接受邀請後就能私訊', 'dm-' + d.id); }
+    else if (d.status === 'open' && d.by === uid() && old[d.id]) toast('💬 ' + nickOf(dmPeer(d)) + ' 接受了私訊邀請');
+  });
+  S.dmsReady = true;
+  if (S.dm) { const d = S.dms.find(x => x.id === S.dm.id); if (!d || d.status !== 'open') { closeSheet(); toast('這個私訊已經結束'); } }
+  renderTabs(); renderData();
+}
+async function dmOpen(to, a, b) {
+  if (!to || to === uid() || S.mode !== 'ready') return;
+  if (blocked(to)) return toast('你已封鎖對方');
+  const ex = dmOf(to);
+  if (ex && ex.status === 'open') return openDm(ex.id);
+  if (ex && ex.status === 'pending') return ex.by === uid() ? toast('已經邀請過了，等對方接受') : dmAccept(ex.id);
+  const t = tradeById(b) || tradeById(a) || {}, cid = concertOk(t.concertId) ? t.concertId : '';
+  return withLock('dmo' + to, async () => {
+    try {
+      const ref = F.doc(db, 'dms', dmPid(to));
+      if (ex) await F.updateDoc(ref, { status: 'pending', by: uid(), a: a || '', b: b || '', cid });
+      else await F.setDoc(ref, { users: [uid(), to].sort(), by: uid(), status: 'pending', a: a || '', b: b || '', cid, createdAt: F.serverTimestamp() });
+      toast('已送出私訊邀請，對方接受後就能聊天');
+    } catch (e) { toast(e && e.code === 'permission-denied' ? '目前無法邀請對方（可能是貼文已刪除，或對方設定了封鎖）' : errMsg(e)); }
+  });
+}
+const concertOk = c => typeof c === 'string' && /^(e\d{2,4}|k[0-9a-f]{12})$/.test(c);
+function dmAccept(pid) { return withLock('dma' + pid, async () => { try { await F.updateDoc(F.doc(db, 'dms', pid), { status: 'open' }); const d = S.dms.find(x => x.id === pid); if (d) d.status = 'open'; openDm(pid); } catch (e) { toast(errMsg(e)); } }); }
+function dmClose(pid, quiet) { return withLock('dmc' + pid, async () => { try { await F.updateDoc(F.doc(db, 'dms', pid), { status: 'closed' }); if (!quiet) toast('已結束私訊'); } catch (e) { if (!quiet) toast(errMsg(e)); } }); }
+function closeDm() { if (S.dm) { try { S.dm.unsub && S.dm.unsub(); } catch (e) { } S.dm = null; } }
+function openDm(pid) {
+  closeGroup(); closeDm(); if (S.manageUnsub) { S.manageUnsub(); S.manageUnsub = null; } S.manage = null;
+  const d = S.dms.find(x => x.id === pid); if (!d || d.status !== 'open') return toast('對方還沒接受私訊邀請');
+  const dm = S.dm = { id: pid, msgs: [], ready: false, unsub: null, last: 0, first: true, err: '' };
+  dm.unsub = F.onSnapshot(F.query(F.collection(db, 'dms', pid, 'm'), F.orderBy('createdAt'), F.limitToLast(CHAT_LIMIT)), snap => {
+    if (S.dm !== dm) return;
+    dm.msgs = snap.docs.map(x => Object.assign({}, x.data({ serverTimestamps: 'estimate' }), { id: x.id })); dm.ready = true; dm.err = '';
+    dmSeen(pid); renderDmMsgs(); renderTabs();
+  }, e => { if (S.dm !== dm) return; dm.ready = true; dm.err = errMsg(e); renderDmMsgs(); });
+  const o = dmPeer(d), ta = tradeById(d.by === uid() ? d.a : d.b), tb = tradeById(d.by === uid() ? d.b : d.a), c = C(d.cid);
+  const line = t => t ? T_LABEL[t.mode] + '：' + (gives(t) ? gives(t) : '') + (gives(t) && takes(t) ? ' → ' : '') + (takes(t) ? (t.mode === '收取' ? '想收 ' : '') + takes(t) : '') : '';
+  openSheet('私訊・' + nickOf(o), personBlock(o) +
+    (c || ta || tb ? '<div class="psub" style="margin:6px 0 8px">' + (c ? '🎤 ' + esc(c.artist) + '・' + esc(c.venue) + '<br>' : '') + (ta ? '我的刊登｜' + esc(line(ta)) + '<br>' : '') + (tb ? '對方刊登｜' + esc(line(tb)) : '') + '</div>' : '') +
+    '<div class="safe">🤝 只有你們兩個看得到。周邊<b>只換不賣</b>，請約在場館內外人多、明顯的地方（例如販賣區旁），<b>不要給電話、LINE、帳號或匯款</b>；遇到騷擾請按「檢舉」或「封鎖」，必要時撥 165。</div>' +
+    '<div id="dMsgs" class="chat"></div>' +
+    '<form id="dmF" class="chatbar"><input class="in" id="dmIn" maxlength="300" placeholder="約時間地點，例如：散場後 B2 出口見" autocomplete="off" aria-label="訊息"><button class="btn pink" type="submit">送出</button></form>' +
+    '<div class="actions" style="margin-top:10px"><button class="btn line" data-act="block" data-v="' + esc(o) + '">封鎖對方</button><button class="btn line" data-act="dmClose" data-id="' + esc(pid) + '">結束私訊</button></div>');
+  renderDmMsgs();
+}
+function renderDmMsgs() {
+  const dm = S.dm, box = $('#dMsgs'); if (!dm || !box) return;
+  let h;
+  if (dm.err) h = '<div class="err">' + esc(dm.err) + '</div>';
+  else if (!dm.ready) h = '<div class="empty">載入中…</div>';
+  else if (!dm.msgs.length) h = '<div class="empty">打聲招呼，約好散場後在哪裡交換吧！</div>';
+  else h = dm.msgs.map(m => {
+    if (blocked(m.uid)) return '';
+    const mine = m.uid === uid();
+    const ops = mine ? '<button class="lnk" data-act="dmDel" data-id="' + esc(m.id) + '">刪除</button>' : '<button class="lnk" data-act="dmRep" data-id="' + esc(m.id) + '">檢舉</button>';
+    const warn = !mine && CHAT_WARN.test(String(m.text || '')) ? '<div class="mwarn">⚠️ 這則訊息提到金錢、連結或個資。周邊只換不賣，不要私下匯款</div>' : '';
+    return '<div class="msg' + (mine ? ' me' : '') + '"><div class="mh"><b>' + esc(mine ? '我' : nickOf(m.uid)) + '</b><span>' + esc(msgTime(m)) + '</span></div><div class="mb">' + esc(str(m.text, 300)) + '</div>' + warn + '<div class="mo">' + ops + '</div></div>';
+  }).join('');
+  const near = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+  box.innerHTML = h;
+  if (dm.first || near) { box.scrollTop = box.scrollHeight; dm.first = false; }
+}
+// 送出前的內容審查：個資、金錢交易、連結、不雅字詞直接擋下
+const DM_BLOCK = [[/(?:\+?886[-\s]?|\b0)9\d{2}[-\s]?\d{3}[-\s]?\d{3}/, '電話號碼'], [/line\s*(?:id)?\s*[:：]|加我?\s*(?:賴|line|ig)|賴我|私我|\big\s*[:：]|@[a-z0-9._]{3,}/i, 'LINE／IG 帳號'], [/\d{10,}/, '帳號或證件號碼'],
+  [/https?:|www\./i, '連結'], [/NT\s*\$|\$\s*\d|\d+\s*(?:元|塊)|匯款|轉帳|付款|收費|賣你|算你|價錢|多少錢/i, '金錢交易（周邊只換不賣）'], [/幹你|操你|靠北|白痴|白癡|智障|去死|賤|fuck|shit|bitch/i, '不雅字詞']];
+function modCheck(text) { const b = DM_BLOCK.find(x => x[0].test(text)); return b ? b[1] : ''; }
+async function sendDm() {
+  const dm = S.dm, inp = $('#dmIn'); if (!dm || !inp) return;
+  const text = cleanText(inp.value, 300); if (!text) return;
+  const bad = modCheck(text); if (bad) return toast('為了安全，私訊不能包含' + bad + '；現場約在明顯的地點就好');
+  if (Date.now() - dm.last < 2500) return toast('傳太快了，稍等一下再送');
+  dm.last = Date.now();
+  const mid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), b = F.writeBatch(db);
+  b.set(F.doc(db, 'dms', dm.id, 'm', mid), { uid: uid(), text, createdAt: F.serverTimestamp() });
+  b.set(F.doc(db, 'dms', dm.id, 'last', uid()), { at: F.serverTimestamp() });
+  b.update(F.doc(db, 'dms', dm.id), { lastAt: F.serverTimestamp(), lastBy: uid() });
+  inp.value = ''; inp.focus(); dm.first = true;
+  const ok = await commit(b); if (!ok && !inp.value) inp.value = text;
+}
+function dmDel(mid) { const dm = S.dm; if (!dm) return; return withLock('dd' + mid, async () => { try { await F.deleteDoc(F.doc(db, 'dms', dm.id, 'm', mid)); } catch (e) { toast(errMsg(e)); } }); }
+function dmRep(mid) {
+  const dm = S.dm, m = dm && dm.msgs.find(x => x.id === mid); if (!m) return;
+  return withLock('dr' + mid, async () => {
+    try { await F.setDoc(F.doc(db, 'reports', uid() + '_' + mid), { by: uid(), rideId: 'dm:' + dm.id, msgId: mid, who: String(m.uid || ''), text: str(m.text, 300), reason: '私訊訊息', createdAt: F.serverTimestamp() }); toast('已檢舉，管理員會處理；也可以直接封鎖對方'); }
+    catch (e) { toast(e && e.code === 'permission-denied' ? '你已經檢舉過這則訊息' : errMsg(e)); }
+  });
+}
+/* 今日場次與散場提醒 */
+function nowH() { const t = new Date(Date.now() + 8 * 3600e3); return t.getUTCHours() + t.getUTCMinutes() / 60; }
+function todaySessions() {
+  const td = todayTW(), n = {}; allTrades().forEach(t => { if (t.concertId) n[t.concertId] = (n[t.concertId] || 0) + 1; });
+  return UPCOMING().filter(c => !c.r && c.d.some(x => x[0] === td))
+    .sort((a, b) => (n[b.id] || 0) - (n[a.id] || 0) || (a.k === 'concert' ? 0 : 1) - (b.k === 'concert' ? 0 : 1)).slice(0, 12);
+}
+function sessionEnd(c, day) { const s = c && !c.r && c.d.find(x => x[0] === day); if (!s) return null; const st = s[1] ? toH(s[1]) : 19; return endOf(c, day, st === null ? 19 : st, false).h; }
+function endingNow() {
+  if (S.mode !== 'ready') return null;
+  const td = todayTW(), h = nowH(), ids = [...new Set(S.reminders.concat(S.ownTrades.map(t => t.concertId)).filter(Boolean))];
+  for (const id of ids) { const c = C(id), e = sessionEnd(c, td); if (e !== null && h >= e - 0.25 && h <= e + 3) return { c, day: td }; }
+  return null;
+}
+function checkEnd() {
+  const x = endingNow(); if (!x) return;
+  const k = x.c.id + '_' + x.day, seen = loadLS('fv_endN', []); if (seen.includes(k)) return;
+  saveLS('fv_endN', seen.concat(k).slice(-50));
+  toast('🎤 ' + x.c.artist + ' 差不多散場了！到「周邊交換」看看這場有誰要換');
+  sysNotify('🎤 ' + x.c.artist + ' 散場了', '看看這場的周邊交換，現場就能換', 'end-' + k);
+  if (S.view === 'market') render();
+}
+setInterval(checkEnd, 60000);
+function sessLabel(c, day) { return c ? c.artist + '・' + dinfo(day || c.date).md + ' ' + c.venue : ''; }
+function matchBtn(x) {
+  const o = x.t.owner, d = dmOf(o);
+  if (d && d.status === 'open') return '<button class="btn line" data-act="dmGo" data-id="' + esc(d.id) + '">打開私訊</button>';
+  if (d && d.status === 'pending') return d.by === uid() ? '<span class="pill">等對方接受</span>' : '<button class="btn pink" data-act="dmAccept" data-id="' + esc(d.id) + '">接受私訊</button>';
+  return '<button class="btn pink" data-act="dmOpen" data-to="' + esc(o) + '" data-a="' + esc(x.m.id) + '" data-b="' + esc(x.t.id) + '">私訊對方</button>';
+}
+function tradeTop() {
+  if (S.mode !== 'ready') return '';
+  let h = '';
+  const end = endingNow();
+  if (end && S.marketC !== end.c.id) h += '<div class="safe" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">🎤 <span style="flex:1"><b>' + esc(end.c.artist) + '</b> 差不多散場了（預估），看看這場有誰要換！</span><button class="btn pink" data-act="mc" data-v="' + esc(end.c.id) + '">看這場</button></div>';
+  dmInvites().forEach(d => {
+    const t = tradeById(d.a);
+    h += '<div class="card"><b>📩 ' + esc(nickOf(d.by)) + ' 想跟你私訊換周邊</b>' + (t ? '<div class="psub">對方刊登：' + esc(T_LABEL[t.mode] + ' ' + (gives(t) || takes(t))) + '</div>' : '') +
+      '<div class="actions"><button class="btn pink" data-act="dmAccept" data-id="' + esc(d.id) + '">接受並開聊天室</button><button class="btn line" data-act="dmClose" data-id="' + esc(d.id) + '">婉拒</button></div></div>';
+  });
+  const open = S.dms.filter(d => d.status === 'open' && !blocked(dmPeer(d)));
+  if (open.length) h += '<div class="card"><div class="sec" style="margin-top:0">💬 我的私訊</div>' + open.map(d => '<div class="rowline"><span>' + esc(nickOf(dmPeer(d))) + (dmUnread(d) ? ' <span class="pill hot">新訊息</span>' : '') + '</span><button class="btn line" data-act="dmGo" data-id="' + esc(d.id) + '">打開</button></div>').join('') + '</div>';
+  const ms = myMatches();
+  if (ms.length) h += '<div class="card"><div class="sec" style="margin-top:0">✨ 幫你配對到 ' + ms.length + ' 筆</div>' + ms.slice(0, 8).map(x => {
+    const c = C(x.t.concertId);
+    return '<div class="rowline" style="gap:8px;align-items:center"><span style="flex:1;min-width:0"><span class="pill hot">' + (x.lv === 2 ? '雙向交換' : '對得上') + '</span> ' +
+      (gives(x.m) ? '你的「' + esc(gives(x.m)) + '」' : '你想收「' + esc(takes(x.m)) + '」') + ' ⇄ ' + esc(nickOf(x.t.owner)) + (gives(x.t) ? ' 的「' + esc(gives(x.t)) + '」' : ' 想收「' + esc(takes(x.t)) + '」') +
+      '<br><span class="small muted">' + esc(sessLabel(c, x.t.day || x.m.day)) + (x.t.spot ? '・' + esc(str(x.t.spot, 30)) : '') + '</span></span>' + matchBtn(x) + '</div>';
+  }).join('') + '</div>';
+  else if (S.ownTrades.some(t => t.concertId && TMODES.some(y => y[0] === t.mode))) h += '<p class="small muted" style="margin:0 0 10px">✨ 還沒有配對；同一場有人刊登對得上的周邊時，會跳通知告訴你。</p>';
+  return h;
+}
+
 function vMarket() {
   const guest = S.mode !== 'ready';
   if (guest && (S.mode === 'off' || S.mode === 'loading')) return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物</p>' + gate('周邊交換');
-  const list = (guest ? demoTrades() : S.trades).filter(t => !blocked(t.owner) && (S.marketMode === '全部' || t.mode === S.marketMode) && (S.marketCat === '全部' || t.category === S.marketCat));
-  return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物，交換紀錄都留在平台</p>' +
-    '<div class="chips">' + ['全部', '交換', '出售', '徵求'].map(k => '<button class="chip' + (S.marketMode === k ? ' on' : '') + '" data-act="mmode" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
+  const mc = C(S.marketC), td = todayTW();
+  if (!guest && mc) watchPool(mc.id);
+  const pool = !guest && mc ? S.pool[mc.id] : null;
+  const base = guest ? demoTrades() : mc ? (pool && pool.ready ? pool.list : S.trades.filter(t => t.concertId === mc.id)) : S.trades;
+  const list = base.filter(t => !blocked(t.owner) && (!mc || t.concertId === mc.id) && (S.marketMode === '全部' || t.mode === S.marketMode) && (S.marketCat === '全部' || t.category === S.marketCat));
+  if (!guest && S.newMatch) S.newMatch = 0;
+  const today = guest ? [] : todaySessions();
+  return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物：只換不賣，散場後現場就能換</p>' + tradeTop() +
+    (today.length ? '<div class="sec" style="margin:4px 0 6px">🔴 今日場次</div><div class="chips">' + today.map(c => '<button class="chip' + (S.marketC === c.id ? ' on' : '') + '" data-act="mc" data-v="' + esc(S.marketC === c.id ? '' : c.id) + '">' + esc(str(c.artist, 16)) + '・' + esc(str(c.venue, 10)) + '</button>').join('') + '</div>' : '') +
+    (mc ? '<div class="safe" style="display:flex;align-items:center;gap:8px">📍 <span style="flex:1">正在看：<b>' + esc(sessLabel(mc, mc.d.some(x => x[0] === td) ? td : '')) + '</b> 的交換</span><button class="btn line" data-act="mc" data-v="">看全部</button></div>' : '') +
+    '<div class="chips">' + [['全部', '全部']].concat(TMODES).map(k => '<button class="chip' + (S.marketMode === k[0] ? ' on' : '') + '" data-act="mmode" data-v="' + k[0] + '">' + k[1] + '</button>').join('') + '</div>' +
     '<div class="chips">' + ['全部', '小卡', '專輯', '應援物', '其他'].map(k => '<button class="chip' + (S.marketCat === k ? ' on' : '') + '" data-act="mcat" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
     (guest ? guestBanner('周邊交換') : '') +
-    '<div class="safe">🎫 票券只開放<b>原價讓票</b>，不得加價轉售。交易請保留紀錄，優先選擇演唱會現場面交。</div>' +
-    (!guest && !S.tradesReady ? '<div class="empty">載入中…</div>' : list.length ? '<div class="cgrid">' + list.map(tradeCard).join('') + '</div>' : '<div class="empty">這個分類還沒有東西，來上架第一個吧！</div>');
+    '<div class="safe">🤝 周邊<b>只換不賣</b>。刊登時選好場次，同一場有人對得上就會自動配對，雙方同意後開私訊約現場交換。</div>' +
+    (!guest && (mc ? pool && !pool.ready && !list.length : !S.tradesReady) ? '<div class="empty">載入中…</div>' : list.length ? '<div class="cgrid">' + list.map(tradeCard).join('') + '</div>' : '<div class="empty">這個分類還沒有東西，來上架第一個吧！</div>');
 }
 function tradeCard(t) {
   const c = C(t.concertId);
-  const img = typeof t.img === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(t.img) ? '<img class="thumb" src="' + t.img + '" alt="' + esc(str(t.have || t.want, 40)) + '">' : '<div class="ph">' + esc(t.category || '周邊') + '</div>';
+  const img = typeof t.img === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(t.img) ? '<img class="thumb" src="' + t.img + '" alt="' + esc(str(tTxt(t, 'have') || tTxt(t, 'want'), 40)) + '">' : '<div class="ph">' + esc(t.category || '周邊') + '</div>';
   const mine = t.owner === uid(), key = 'trade_' + t.id, st = S.myStatus[key];
   let line = '';
-  if (t.mode === '交換') line = '我有 <b>' + esc(str(t.have, 50)) + '</b><br>想換 <b>' + esc(str(t.want, 50)) + '</b>';
-  else if (t.mode === '出售') line = '出售 <b>' + esc(str(t.have, 50)) + '</b><br>NT$' + num(t.price).toLocaleString();
-  else line = '徵求 <b>' + esc(str(t.want, 50)) + '</b>' + (num(t.price) ? '<br>預算 NT$' + num(t.price).toLocaleString() : '');
+  if (t.mode === '交換') line = '我有 <b>' + esc(tTxt(t, 'have')) + '</b><br>想換 <b>' + esc(tTxt(t, 'want')) + '</b>';
+  else if (t.mode === '送出') line = '🎁 送出 <b>' + esc(tTxt(t, 'have')) + '</b>';
+  else if (t.mode === '收取') line = '🙋 想收 <b>' + esc(tTxt(t, 'want')) + '</b>';
+  else if (t.mode === '出售') line = '出售 <b>' + esc(tTxt(t, 'have')) + '</b><br>NT$' + num(t.price).toLocaleString();
+  else line = '徵求 <b>' + esc(tTxt(t, 'want')) + '</b>' + (num(t.price) ? '<br>預算 NT$' + num(t.price).toLocaleString() : '');
   const tags = arr(t.tags).slice(0, 5).map(x => '<span class="pill">#' + esc(str(x, 16)) + '</span>').join('');
   let actions;
   if (t.demo) actions = '<button class="btn" disabled>登入實名會員後才能表達興趣</button>';
@@ -1292,8 +1552,8 @@ function tradeCard(t) {
   else if (st === 'declined') actions = '<span class="pill">對方婉拒了</span><button class="btn line" data-act="cancelReq" data-type="trade" data-id="' + esc(t.id) + '">移除</button>';
   else actions = acceptedBlock('trade', t);
   return '<div class="card"><div class="trade">' + img + '<div style="flex:1;min-width:0">' +
-    '<div class="ptop"><span class="pill hot">' + esc(t.mode) + '・' + esc(t.category) + '</span>' + (t.condition ? '<span class="small muted">' + esc(str(t.condition, 10)) + '</span>' : '') + '</div>' +
-    '<div class="swap">' + line + '</div>' + (c ? '<div class="psub" style="margin-top:4px">📍 可在 ' + esc(c.artist) + ' ' + dinfo(c.date).md + ' ' + esc(c.venue) + ' 面交</div>' : '') +
+    '<div class="ptop"><span class="pill hot">' + esc(T_LABEL[t.mode] || '') + '・' + esc(t.category) + '</span>' + (t.condition ? '<span class="small muted">' + esc(str(t.condition, 10)) + '</span>' : '') + '</div>' +
+    '<div class="swap">' + line + '</div>' + (c ? '<div class="psub" style="margin-top:4px">📍 ' + esc(sessLabel(c, /^20\d\d-\d\d-\d\d$/.test(t.day || '') ? t.day : '')) + ' 現場交換' + (t.spot ? '・' + esc(str(t.spot, 30)) : '') + '</div>' : '') +
     (t.note ? '<div class="psub">' + esc(str(t.note, 100)) + '</div>' : '') + '</div></div>' +
     (tags ? '<div class="pills">' + tags + '</div>' : '') + personBlock(t.owner) + '<div class="actions">' + actions + '</div>' + postOps('trade', t) + '</div>';
 }
@@ -1685,7 +1945,7 @@ async function pushOn() {
     if (!MSG) { const m = await import(FB + 'firebase-messaging.js'); MSG = { m, x: m.getMessaging() }; }
     const reg = await navigator.serviceWorker.ready;
     const token = await MSG.m.getToken(MSG.x, { vapidKey: VAPID, serviceWorkerRegistration: reg });
-    await F.setDoc(F.doc(db, 'push', uid()), { token, artists: S.follows.slice(0, 50).map(x => str(x, 40)), cids: S.reminders.slice(0, 50).map(x => str(x, 20)), updatedAt: F.serverTimestamp() });
+    await F.setDoc(F.doc(db, 'push', uid()), { token, artists: S.follows.slice(0, 50).map(x => str(x, 40)), cids: pushCids(), updatedAt: F.serverTimestamp() });
     saveLS('fv_push', 1); S.push = true; toast('已開啟推播：追蹤的藝人有新場次、收藏的活動開賣前會通知你'); render();
   } catch (e) { toast('開啟失敗：' + (e && e.message ? e.message.slice(0, 60) : '請稍後再試')); }
 }
@@ -1696,9 +1956,10 @@ async function pushOff() {
 }
 // 追蹤或收藏有變時，更新推播要通知的對象
 let pushTimer = 0;
+const pushCids = () => [...new Set(S.reminders.concat(S.ownTrades.map(t => t.concertId)).filter(Boolean))].slice(0, 50).map(x => str(x, 20));
 function pushSync() {
   if (!S.push || S.mode !== 'ready' || !db) return;
-  clearTimeout(pushTimer); pushTimer = setTimeout(() => F.updateDoc(F.doc(db, 'push', uid()), { artists: S.follows.slice(0, 50).map(x => str(x, 40)), cids: S.reminders.slice(0, 50).map(x => str(x, 20)), updatedAt: F.serverTimestamp() }).catch(() => { }), 1500);
+  clearTimeout(pushTimer); pushTimer = setTimeout(() => F.updateDoc(F.doc(db, 'push', uid()), { artists: S.follows.slice(0, 50).map(x => str(x, 40)), cids: pushCids(), updatedAt: F.serverTimestamp() }).catch(() => { }), 1500);
 }
 function pushCard() {
   const on = !!S.push;
@@ -2180,7 +2441,7 @@ function vAccount() {
     const it = S.myItems[k], target = it.type === 'ride' ? rideById(it.targetId) : S.trades.find(x => x.id === it.targetId);
     const st = S.myStatus[k];
     const label = st === 'accepted' ? '已確認' : st === 'pending' ? '等待確認' : st === 'declined' ? '被婉拒' : '已結束';
-    return '<div class="rowline"><span>' + (it.type === 'ride' ? '🚐 ' : '🃏 ') + esc(target ? str(target.title || target.have || target.want, 30) : '（貼文已刪除）') + '</span><span class="pill">' + label + '</span></div>';
+    return '<div class="rowline"><span>' + (it.type === 'ride' ? '🚐 ' : '🃏 ') + esc(target ? str(target.title || tTxt(target, 'have') || tTxt(target, 'want'), 30) : '（貼文已刪除）') + '</span><span class="pill">' + label + '</span></div>';
   }).join('');
   return '<h2 class="vt">我的 FANVERSE</h2><p class="vsub">' + esc(p.nickname) + '，歡迎回來</p>' +
     '<div class="card"><div class="sec" style="margin-top:0">其他會員看到的你</div><div class="pubcard">' + personBlock(uid()) + '</div>' +
@@ -2367,7 +2628,7 @@ function openSheet(title, html) {
 function closeSheet() {
   $('#veil').classList.add('hidden'); document.body.style.overflow = '';
   if (S.manageUnsub) { S.manageUnsub(); S.manageUnsub = null; }
-  S.manage = null; closeGroup(); S.openCid = ''; S.fixOpen = null;
+  S.manage = null; closeGroup(); closeDm(); S.openCid = ''; S.fixOpen = null;
 }
 function setErr(msg) { const b = $('#authErr') || $('#sheetErr'); if (b) b.innerHTML = msg ? '<div class="err">' + esc(msg) + '</div>' : ''; }
 function busyBtn(form, on, label) { const b = form && form.querySelector('button[type=submit]'); if (b) { b.disabled = on; if (label) b.textContent = label; } }
@@ -2444,7 +2705,7 @@ async function doProfile(form) {
 
 /* ---------- session ---------- */
 function stopListeners() {
-  S.unsubs.forEach(f => { try { f(); } catch (e) { } }); S.unsubs = []; S.live = false; S.feedOn = {};
+  S.unsubs.forEach(f => { try { f(); } catch (e) { } }); S.unsubs = []; S.live = false; S.feedOn = {}; S.pool = {}; S.ownTrades = []; S.dms = []; S.dmsReady = false; closeDm();
   Object.values(S.itemUnsubs).forEach(f => { try { f(); } catch (e) { } }); S.itemUnsubs = {};
   Object.values(S.revealUnsubs).forEach(f => { try { f(); } catch (e) { } }); S.revealUnsubs = {};
   if (S.manageUnsub) { S.manageUnsub(); S.manageUnsub = null; }
@@ -2495,13 +2756,19 @@ function ensureFeeds() {
   if (want.trades && !S.feedOn.trades) {
     S.feedOn.trades = true;
     S.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'trades'), F.orderBy('createdAt', 'desc'), F.limit(FEED_LIMIT)), snap => {
-      S.trades = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id })); S.tradesReady = true; loadPubs(S.trades.map(t => t.owner)); renderData();
+      S.trades = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id })); S.tradesReady = true; loadPubs(S.trades.map(t => t.owner)); checkMatches(); renderData();
     }, e => { S.tradesReady = true; S.note = '交換資料讀取失敗：' + errMsg(e); renderData(); }));
   }
 }
 function startListeners() {
   const u = uid();
-  S.live = true; S.feedOn = {}; ensureFeeds();
+  S.live = true; S.feedOn = {}; S.pool = {}; ensureFeeds();
+  S.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'trades'), F.where('owner', '==', u)), snap => {
+    S.ownTrades = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id }));
+    [...new Set(S.ownTrades.map(t => t.concertId).filter(Boolean))].slice(0, 6).forEach(watchPool);
+    checkMatches(); pushSync(); renderData();
+  }, () => { }));
+  S.unsubs.push(F.onSnapshot(F.query(F.collection(db, 'dms'), F.where('users', 'array-contains', u)), snap => onDms(snap.docs.map(d => Object.assign({}, d.data(), { id: d.id }))), () => { }));
   S.unsubs.push(F.onSnapshot(F.collection(db, 'myRequests', u, 'items'), snap => {
     const items = {}; snap.docs.forEach(d => { const x = d.data(); if (x && (x.type === 'ride' || x.type === 'trade')) items[d.id] = { type: x.type, targetId: String(x.targetId) }; });
     syncItems(items); watchGroups(); renderData();
@@ -2541,7 +2808,7 @@ function syncItems(items) {
   });
 }
 async function ownerOf(type, id) {
-  const hit = type === 'ride' ? rideById(id) : S.trades.find(x => x.id === id);
+  const hit = type === 'ride' ? rideById(id) : tradeById(id);
   if (hit) return hit.owner;
   try { const s = await F.getDoc(F.doc(db, type === 'ride' ? 'rides' : 'trades', id)); return s.exists() ? s.data().owner : ''; } catch (e) { return ''; }
 }
@@ -2638,7 +2905,7 @@ function renderManage() {
     return '<div class="card" style="margin-bottom:8px">' + personBlock(x.uid) + (blocked(x.uid) ? '<div class="hint">你已封鎖這個人</div>' : '') + '<div class="actions">' + act + '</div></div>';
   }).join('');
   openSheet(isRide ? '管理申請' : '有興趣的人',
-    (post ? '<div class="psub" style="margin-bottom:10px">' + esc(str(post.title || post.have || post.want, 40)) + (isRide ? '・目前 ' + Math.min(num(post.capacity), 1 + num(post.memberCount)) + ' / ' + num(post.capacity) + ' 人' : '') + '</div>' : '') +
+    (post ? '<div class="psub" style="margin-bottom:10px">' + esc(str(post.title || tTxt(post, 'have') || tTxt(post, 'want'), 40)) + (isRide ? '・目前 ' + Math.min(num(post.capacity), 1 + num(post.memberCount)) + ' / ' + num(post.capacity) + ' 人' : '') + '</div>' : '') +
     '<div class="safe">接受後，你的真實姓名會顯示給這位會員；對方確認後，你也會看到對方的實名。</div>' +
     (m.err ? '<div class="err">' + esc(m.err) + '</div>' : '') +
     (!m.ready ? '<div class="empty">載入中…</div>' : rows || '<div class="empty">目前還沒有人申請</div>'));
@@ -2960,20 +3227,31 @@ function rideDateSel(cid) {
 let tradeImg = '';
 function tradeForm() {
   tradeImg = '';
-  const copts = '<option value="">不指定</option>' + UPCOMING().map(c => '<option value="' + c.id + '">' + esc(c.artist) + '・' + dinfo(c.date).md + ' ' + esc(c.venue) + '</option>').join('');
+  const ts = todaySessions(), def = C(S.marketC) ? S.marketC : ts.length ? ts[0].id : '';
+  S.tsel = { have: [], want: [] }; watchPool(def);
   openSheet('上架周邊',
     '<form id="tradeF" novalidate><label class="f">照片（選填）</label><div class="upl"><div id="tPrev" class="ph">還沒選照片</div><div style="flex:1"><input type="file" id="tFile" accept="image/*" class="small"><div class="hint">照片會在你的裝置上縮小並移除拍攝位置等資訊後才上傳。</div></div></div>' +
-    '<label class="f">方式</label><div class="seg" id="tmSeg">' + ['交換', '出售', '徵求'].map((k, i) => '<button type="button" class="' + (i === 0 ? 'on' : '') + '" data-act="seg" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
+    '<label class="f" for="tCIn">在哪一場交換</label>' + pickerHtml('tC', def, PK_OPT.tC) + '<div id="tDBox">' + tradeDateSel(def) + '</div>' +
+    '<label class="f">方式</label><div class="seg" id="tmSeg">' + TMODES.map((k, i) => '<button type="button" class="' + (i === 0 ? 'on' : '') + '" data-act="seg" data-v="' + k[0] + '">' + (k[0] === '交換' ? 'X 換 Y' : k[1]) + '</button>').join('') + '</div>' +
     '<label class="f" for="tCat">類別</label><select class="in" id="tCat"><option>小卡</option><option>專輯</option><option>應援物</option><option>其他</option></select>' +
-    '<label class="f" for="tHave">我有（物品名稱）</label><input class="in" id="tHave" maxlength="50" placeholder="例：NOVA9《ORBIT》專輯小卡・隊長版">' +
-    '<label class="f" for="tWant">想換／想找</label><input class="in" id="tWant" maxlength="50" placeholder="例：同專輯 忙內版">' +
-    '<div class="grid2"><div><label class="f" for="tPrice">價格／預算（NT$）</label><input class="in" id="tPrice" type="number" min="0" max="100000" value="0"></div>' +
-    '<div><label class="f" for="tCond">品相</label><select class="in" id="tCond"><option>全新</option><option>近全新</option><option>有使用痕跡</option></select></div></div>' +
-    '<label class="f" for="tC">可面交的場次</label><select class="in" id="tC">' + copts + '</select>' +
+    '<div id="tHaveBox"><label class="f" id="tHaveL">我有（X，可複選）</label><div id="tTags_have">' + tagBox('have', def) + '</div>' +
+    '<label class="f" for="tCond">品相</label><select class="in" id="tCond"><option>全新</option><option>近全新</option><option>有使用痕跡</option></select></div>' +
+    '<div id="tWantBox"><label class="f" id="tWantL">想換（Y，可複選）</label><div id="tTags_want">' + tagBox('want', def) + '</div></div>' +
+    '<label class="f" for="tSpot">現場交換地點（自己填）</label><input class="in" id="tSpot" maxlength="30" placeholder="例：場周販賣區旁邊、VIP2 區入場前">' +
     '<label class="f" for="tTags">標籤（用空白分隔，最多 5 個）</label><input class="in" id="tTags" maxlength="80" placeholder="例：NOVA9 ORBIT 專卡">' +
     '<label class="f" for="tNote">備註</label><textarea class="in" id="tNote" maxlength="100"></textarea>' +
-    '<div class="hint">票券不可在這裡加價販售；請勿留下電話、LINE ID、地址等個資。</div>' +
+    '<div class="hint">周邊只換不賣，也不能在這裡賣票；請勿留下電話、LINE ID、地址等個資，配對後用站內私訊約。</div>' +
     '<div id="sheetErr"></div><button class="btn pink full" style="margin-top:14px" type="submit">上架</button></form>');
+}
+function tradeDateSel(cid) {
+  const c = C(cid); if (!c || c.r || c.d.length < 2) return '';
+  const td = todayTW(), ds = c.d.filter(x => x[0] >= td), def = (ds.find(x => x[0] === td) || ds[0] || c.d[0])[0];
+  return '<label class="f" for="tD">哪一天</label><select class="in" id="tD">' + (ds.length ? ds : c.d).map(x => '<option value="' + x[0] + '"' + (x[0] === def ? ' selected' : '') + '>' + dinfo(x[0]).full + (x[0] === td ? '（今天）' : '') + '</option>').join('') + '</select>';
+}
+function tradeModeUi() {
+  const m = segVal('tmSeg'), hb = $('#tHaveBox'), wb = $('#tWantBox'); if (!hb || !wb) return;
+  hb.hidden = m === '收取'; wb.hidden = m === '送出';
+  $('#tHaveL').textContent = m === '送出' ? '要送出的東西（可複選）' : '我有（X，可複選）'; $('#tWantL').textContent = m === '收取' ? '想收的東西（可複選）' : '想換（Y，可複選）';
 }
 function segVal(id) { const b = $('#' + id + ' button.on'); return b ? b.dataset.v : ''; }
 // 用 canvas 重新編碼：縮小尺寸，同時去掉 EXIF（含 GPS 位置）
@@ -3020,19 +3298,22 @@ async function submitRide(form) {
   } catch (e) { sheetErr(e && e.code === 'permission-denied' && SEAT_KIND[kind] ? '你已經在同一場、同一天有另一個' + kind + '團了' : errMsg(e)); busyBtn(form, false, '發布'); }
 }
 async function submitTrade(form) {
-  const mode = segVal('tmSeg') || '交換', have = cleanText($('#tHave').value, 50), want = cleanText($('#tWant').value, 50);
-  if (mode !== '徵求' && !have) return sheetErr('請填「我有」的物品名稱');
-  if (mode !== '出售' && !want) return sheetErr('請填想換或想找的東西');
-  const price = Math.round(num($('#tPrice').value, 0));
-  if (price < 0 || price > 100000) return sheetErr('價格要在 0 到 100,000 之間');
+  const ae = document.activeElement; if (ae && /^tAdd_/.test(ae.id)) return tagAdd(ae.id.slice(5)); // 在新增標籤欄按 Enter
+  const mode = segVal('tmSeg') || '交換', have = S.tsel.have.slice(0, 6), want = S.tsel.want.slice(0, 6);
+  const cid = $('#tC').value, c = C(cid); if (!c) return sheetErr('請選擇要在哪一場交換');
+  if (mode !== '收取' && !have.length) return sheetErr(mode === '送出' ? '請選要送出的東西' : '請選「我有」的東西');
+  if (mode !== '送出' && !want.length) return sheetErr(mode === '收取' ? '請選想收的東西' : '請選想換的東西');
+  const dv = $('#tD') ? $('#tD').value : '', day = !c.r && c.d.some(x => x[0] === dv) ? dv : !c.r && c.d.length === 1 ? c.d[0][0] : '';
+  const spot = cleanText($('#tSpot').value, 30), note = cleanText($('#tNote').value, 100);
+  const bad = modCheck(have.join(' ') + ' ' + want.join(' ') + ' ' + spot + ' ' + note); if (bad) return sheetErr('內容不能包含' + bad + '；配對後可以用站內私訊約');
   const tags = cleanText($('#tTags').value, 80).split(/\s+/).filter(Boolean).slice(0, 5).map(x => x.slice(0, 16));
   busyBtn(form, true, '上架中…');
   try {
     if (await postTooSoon()) { busyBtn(form, false, '上架'); return sheetErr('發文太快了：每 ' + POST_GAP + ' 秒只能發一篇，請稍等一下再按'); }
     const tb = F.writeBatch(db); tb.set(F.doc(db, 'cool', uid()), { at: F.serverTimestamp() });
-    tb.set(F.doc(F.collection(db, 'trades')), { mode, category: $('#tCat').value, have: mode === '徵求' ? '' : have, want: mode === '出售' ? '' : want, price, condition: mode === '徵求' ? '' : $('#tCond').value, concertId: $('#tC').value, tags, note: cleanText($('#tNote').value, 100), img: tradeImg, owner: uid(), createdAt: F.serverTimestamp() });
+    tb.set(F.doc(F.collection(db, 'trades')), { mode, category: $('#tCat').value, have: mode === '收取' ? [] : have, want: mode === '送出' ? [] : want, price: 0, condition: mode === '收取' ? '' : $('#tCond').value, concertId: cid, day, spot, tags, note, img: tradeImg, owner: uid(), createdAt: F.serverTimestamp() });
     await tb.commit();
-    closeSheet(); S.marketMode = '全部'; S.marketCat = '全部'; render(); toast('已上架！');
+    closeSheet(); S.marketMode = '全部'; S.marketCat = '全部'; S.marketC = cid; render(); toast('已上架！同一場有人對得上就會通知你');
   } catch (e) { sheetErr(errMsg(e)); busyBtn(form, false, '上架'); }
 }
 
@@ -3087,6 +3368,13 @@ async function deleteAccount(form) {
     await del(refs);
     const fx = await F.getDocs(F.collection(db, 'myFixes', u, 'k'));
     await del(fx.docs.map(d => { const i = d.id.indexOf('_'); return F.doc(db, 'fixes', d.id.slice(0, i), 'r', u + '_' + d.id.slice(i + 1)); }).concat(fx.docs.map(d => d.ref)));
+    // 私訊：刪掉自己的發言並結束私訊
+    const dms = await F.getDocs(F.query(F.collection(db, 'dms'), F.where('users', 'array-contains', u))).catch(() => ({ docs: [] }));
+    for (const d of dms.docs) {
+      const ms = await F.getDocs(F.query(F.collection(db, 'dms', d.id, 'm'), F.where('uid', '==', u))).catch(() => ({ docs: [] }));
+      await del(ms.docs.map(x => x.ref).concat([F.doc(db, 'dms', d.id, 'last', u)])).catch(() => { });
+      await F.updateDoc(d.ref, { status: 'closed' }).catch(() => { });
+    }
     await del([F.doc(db, 'cool', u), F.doc(db, 'subs', u), F.doc(db, 'prefs', u), F.doc(db, 'push', u)]);
     // 我寫的評價、別人給我的評價、我的封鎖名單
     const mr = await F.getDocs(F.collection(db, 'myRevs', u, 'k'));
@@ -3128,7 +3416,16 @@ document.addEventListener('click', e => {
     case 'mcat': S.marketCat = v; render(); break;
     case 'newRide': rideForm(); break;
     case 'newTrade': tradeForm(); break;
-    case 'seg': el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); break;
+    case 'seg': el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); if (el.parentElement.id === 'tmSeg') tradeModeUi(); break;
+    case 'mc': S.marketC = v; render(); break;
+    case 'tTag': tagToggle(el.dataset.k, v); break;
+    case 'tTagAdd': tagAdd(el.dataset.k); break;
+    case 'dmOpen': dmOpen(el.dataset.to, el.dataset.a, el.dataset.b); break;
+    case 'dmAccept': dmAccept(id); break;
+    case 'dmClose': dmClose(id); break;
+    case 'dmGo': openDm(id); break;
+    case 'dmDel': dmDel(id); break;
+    case 'dmRep': dmRep(id); break;
     case 'apply': apply(el.dataset.type, id); break;
     case 'fixForm': fixForm(id, 'time'); break;
     case 'fixField': fixForm(id, v); break;
@@ -3239,6 +3536,7 @@ document.addEventListener('submit', e => {
   else if (f.id === 'nickF') submitNick(f);
   else if (f.id === 'delF') deleteAccount(f);
   else if (f.id === 'chatF') sendChat();
+  else if (f.id === 'dmF') sendDm();
   else if (f.id === 'fixF') submitFix(f);
   else if (f.id === 'gPlanF') savePlan(f);
   else if (f.id === 'plusF') submitPlus(f);
