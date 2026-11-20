@@ -330,7 +330,7 @@ service cloud.firestore {
         && d.condition in ['全新', '近全新', '有使用痕跡', '']
         && concertOk(d.concertId)
         && d.day is string && (d.day == '' || d.day.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$'))
-        && str(d.spot, 0, 30)
+        && str(d.spot, 1, 30)
         && d.tags is list && d.tags.size() <= 5
         && str(d.note, 0, 100)
         && d.img is string
