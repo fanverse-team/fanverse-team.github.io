@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-/uhXCnUnETB+iX/vvP5bXnyjdo46uItKBvPldZtfkS0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-JoW+uOeif/TEuEuX5TvxgL8xRgcHO17AW3g0XR99Qps='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -379,7 +379,7 @@ function errMsg(e) {
 /* ---------- state ---------- */
 const S = {
   view: 'home', kind: 'concert', city: '全部', genre: '全部', q: '', onlyFollow: false,
-  matchKind: '全部', matchConcert: '', marketMode: '全部', marketCat: '全部', marketC: '', tsel: { have: [], want: [] }, ownTrades: [], pool: {}, dms: [], dmsReady: false, dm: null, newMatch: 0,
+  matchKind: '全部', matchConcert: '', marketMode: '全部', marketCat: '全部', marketC: '', tsel: { have: [], want: [], cat: [] }, ownTrades: [], pool: {}, dms: [], dmsReady: false, dm: null, newMatch: 0,
   mode: 'loading', note: '', authTab: 'login', meKey: '',
   user: null, profile: null, priv: null,
   rides: [], trades: [], ridesReady: false, tradesReady: false,
@@ -1279,6 +1279,19 @@ const giveL = t => t.mode === '交換' || t.mode === '送出' || t.mode === '出
 const takeL = t => t.mode === '交換' || t.mode === '收取' || t.mode === '徵求' ? tItems(t, 'want') : [];
 const gives = t => giveL(t).join('、'), takes = t => takeL(t).join('、');
 const anyLike = (A, B) => A.some(a => B.some(b => itemLike(a, b)));
+// 類別可複選；舊貼文是單一字串
+const CATS = ['小卡', '專輯', '應援物', '其他'];
+const catsOf = t => (Array.isArray(t.category) ? t.category : [t.category]).filter(x => CATS.includes(x));
+// 沒選類別時，依刊登的周邊名稱自動分類
+const CAT_RE = [['小卡', /小卡|卡片|特典卡|拍立得|photo ?card|\bpc\b|簽名卡/i], ['專輯', /專輯|album|\bcd\b|黑膠|寫真|dvd|藍光|blu-?ray/i],
+  ['應援物', /手燈|燈牌|手幅|毛巾|扇|應援|海報|徽章|吊飾|明信片|貼紙|帽|t恤|衣|頭帶|手環|手鍊|娃娃|玩偶|吊牌|旗/i]];
+function autoCats(items) {
+  const out = new Set();
+  items.forEach(x => { const hit = CAT_RE.find(c => c[1].test(x)); out.add(hit ? hit[0] : '其他'); });
+  return CATS.filter(c => out.has(c));
+}
+function catBox() { return CATS.map(c => '<button type="button" class="chip' + (S.tsel.cat.includes(c) ? ' on' : '') + '" data-act="tCat" data-v="' + c + '" aria-pressed="' + S.tsel.cat.includes(c) + '">' + (S.tsel.cat.includes(c) ? '✓ ' : '') + c + '</button>').join(''); }
+function catToggle(v) { const s = S.tsel.cat, i = s.indexOf(v); if (i >= 0) s.splice(i, 1); else if (CATS.includes(v)) s.push(v); const b = $('#tCats'); if (b) b.innerHTML = catBox(); }
 const MERCH = ['官方手燈', '手幅', '應援毛巾', '扇子', '小卡', '專輯', '海報', '徽章', '吊飾', '明信片', '貼紙', '自製應援物'];
 function merchOpts(cid) {
   const n = {}; if (cid) allTrades().filter(t => t.concertId === cid).forEach(t => tItems(t, 'have').concat(tItems(t, 'want')).forEach(x => { n[x] = (n[x] || 0) + 1; }));
@@ -1526,7 +1539,7 @@ function vMarket() {
   if (!guest && mc) watchPool(mc.id);
   const pool = !guest && mc ? S.pool[mc.id] : null;
   const base = guest ? demoTrades() : mc ? (pool && pool.ready ? pool.list : S.trades.filter(t => t.concertId === mc.id)) : S.trades;
-  const list = base.filter(t => !blocked(t.owner) && (!mc || t.concertId === mc.id) && (S.marketMode === '全部' || t.mode === S.marketMode) && (S.marketCat === '全部' || t.category === S.marketCat));
+  const list = base.filter(t => !blocked(t.owner) && (!mc || t.concertId === mc.id) && (S.marketMode === '全部' || t.mode === S.marketMode) && (S.marketCat === '全部' || catsOf(t).includes(S.marketCat)));
   if (!guest && S.newMatch) S.newMatch = 0;
   const today = guest ? [] : todaySessions();
   return '<h2 class="vt">周邊交換</h2><p class="vsub">小卡、專輯、應援物：只換不賣，散場後現場就能換</p>' + tradeTop() +
@@ -1540,7 +1553,7 @@ function vMarket() {
 }
 function tradeCard(t) {
   const c = C(t.concertId);
-  const img = typeof t.img === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(t.img) ? '<img class="thumb" src="' + t.img + '" alt="' + esc(str(tTxt(t, 'have') || tTxt(t, 'want'), 40)) + '">' : '<div class="ph">' + esc(t.category || '周邊') + '</div>';
+  const img = typeof t.img === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(t.img) ? '<img class="thumb" src="' + t.img + '" alt="' + esc(str(tTxt(t, 'have') || tTxt(t, 'want'), 40)) + '">' : '<div class="ph">' + esc(catsOf(t)[0] || '周邊') + '</div>';
   const mine = t.owner === uid(), key = 'trade_' + t.id, st = S.myStatus[key];
   let line = '';
   if (t.mode === '交換') line = '我有 <b>' + esc(tTxt(t, 'have')) + '</b><br>想換 <b>' + esc(tTxt(t, 'want')) + '</b>';
@@ -1557,7 +1570,7 @@ function tradeCard(t) {
   else if (st === 'declined') actions = '<span class="pill">對方婉拒了</span><button class="btn line" data-act="cancelReq" data-type="trade" data-id="' + esc(t.id) + '">移除</button>';
   else actions = acceptedBlock('trade', t);
   return '<div class="card"><div class="trade">' + img + '<div style="flex:1;min-width:0">' +
-    '<div class="ptop"><span class="pill hot">' + esc(T_LABEL[t.mode] || '') + '・' + esc(t.category) + '</span>' + (t.condition ? '<span class="small muted">' + esc(str(t.condition, 10)) + '</span>' : '') + '</div>' +
+    '<div class="ptop"><span class="pill hot">' + esc(T_LABEL[t.mode] || '') + '・' + esc(catsOf(t).join('、')) + '</span>' + (t.condition ? '<span class="small muted">' + esc(str(t.condition, 10)) + '</span>' : '') + '</div>' +
     '<div class="swap">' + line + '</div>' + (c ? '<div class="psub" style="margin-top:4px">📍 ' + esc(sessLabel(c, /^20\d\d-\d\d-\d\d$/.test(t.day || '') ? t.day : '')) + ' 現場交換' + (t.spot ? '・' + esc(str(t.spot, 30)) : '') + '</div>' : '') +
     (t.note ? '<div class="psub">' + esc(str(t.note, 100)) + '</div>' : '') + '</div></div>' +
     (tags ? '<div class="pills">' + tags + '</div>' : '') + personBlock(t.owner) + '<div class="actions">' + actions + '</div>' + postOps('trade', t) + '</div>';
@@ -3233,12 +3246,12 @@ let tradeImg = '';
 function tradeForm() {
   tradeImg = '';
   const ts = todaySessions(), def = C(S.marketC) ? S.marketC : ts.length ? ts[0].id : '';
-  S.tsel = { have: [], want: [] }; watchPool(def);
+  S.tsel = { have: [], want: [], cat: [] }; watchPool(def);
   openSheet('上架周邊',
     '<form id="tradeF" novalidate><label class="f">照片（選填）</label><div class="upl"><div id="tPrev" class="ph">還沒選照片</div><div style="flex:1"><input type="file" id="tFile" accept="image/*" class="small"><div class="hint">照片會在你的裝置上縮小並移除拍攝位置等資訊後才上傳。</div></div></div>' +
     '<label class="f" for="tCIn">在哪一場交換</label>' + pickerHtml('tC', def, PK_OPT.tC) + '<div id="tDBox">' + tradeDateSel(def) + '</div>' +
     '<label class="f">方式</label><div class="seg" id="tmSeg">' + TMODES.map((k, i) => '<button type="button" class="' + (i === 0 ? 'on' : '') + '" data-act="seg" data-v="' + k[0] + '">' + (k[0] === '交換' ? 'X 換 Y' : k[1]) + '</button>').join('') + '</div>' +
-    '<label class="f" for="tCat">類別</label><select class="in" id="tCat"><option>小卡</option><option>專輯</option><option>應援物</option><option>其他</option></select>' +
+    '<label class="f">類別（可複選，不選的話網站會依你的周邊自動分類）</label><div class="chips" id="tCats" style="flex-wrap:wrap;overflow:visible">' + catBox() + '</div>' +
     '<div id="tHaveBox"><label class="f" id="tHaveL">我有（X，可複選）</label><div id="tTags_have">' + tagBox('have', def) + '</div>' +
     '<label class="f" for="tCond">品相</label><select class="in" id="tCond"><option>全新</option><option>近全新</option><option>有使用痕跡</option></select></div>' +
     '<div id="tWantBox"><label class="f" id="tWantL">想換（Y，可複選）</label><div id="tTags_want">' + tagBox('want', def) + '</div></div>' +
@@ -3310,13 +3323,14 @@ async function submitTrade(form) {
   if (mode !== '送出' && !want.length) return sheetErr(mode === '收取' ? '請選想收的東西' : '請選想換的東西');
   const dv = $('#tD') ? $('#tD').value : '', day = !c.r && c.d.some(x => x[0] === dv) ? dv : !c.r && c.d.length === 1 ? c.d[0][0] : '';
   const spot = cleanText($('#tSpot').value, 30), note = cleanText($('#tNote').value, 100);
-  const bad = modCheck(have.join(' ') + ' ' + want.join(' ') + ' ' + spot + ' ' + note); if (bad) return sheetErr('內容不能包含' + bad + '；配對後可以用站內私訊約');
+  const bad = modCheck(have.join(' ') + ' ' + want.join(' ') + ' ' + spot + ' ' + note);
+  const category = S.tsel.cat.length ? CATS.filter(c => S.tsel.cat.includes(c)) : autoCats((mode === '收取' ? [] : have).concat(mode === '送出' ? [] : want)); if (bad) return sheetErr('內容不能包含' + bad + '；配對後可以用站內私訊約');
   const tags = cleanText($('#tTags').value, 80).split(/\s+/).filter(Boolean).slice(0, 5).map(x => x.slice(0, 16));
   busyBtn(form, true, '上架中…');
   try {
     if (await postTooSoon()) { busyBtn(form, false, '上架'); return sheetErr('發文太快了：每 ' + POST_GAP + ' 秒只能發一篇，請稍等一下再按'); }
     const tb = F.writeBatch(db); tb.set(F.doc(db, 'cool', uid()), { at: F.serverTimestamp() });
-    tb.set(F.doc(F.collection(db, 'trades')), { mode, category: $('#tCat').value, have: mode === '收取' ? [] : have, want: mode === '送出' ? [] : want, price: 0, condition: mode === '收取' ? '' : $('#tCond').value, concertId: cid, day, spot, tags, note, img: tradeImg, owner: uid(), createdAt: F.serverTimestamp() });
+    tb.set(F.doc(F.collection(db, 'trades')), { mode, category, have: mode === '收取' ? [] : have, want: mode === '送出' ? [] : want, price: 0, condition: mode === '收取' ? '' : $('#tCond').value, concertId: cid, day, spot, tags, note, img: tradeImg, owner: uid(), createdAt: F.serverTimestamp() });
     await tb.commit();
     closeSheet(); S.marketMode = '全部'; S.marketCat = '全部'; S.marketC = cid; render(); toast('已上架！同一場有人對得上就會通知你');
   } catch (e) { sheetErr(errMsg(e)); busyBtn(form, false, '上架'); }
@@ -3424,6 +3438,7 @@ document.addEventListener('click', e => {
     case 'seg': el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el)); if (el.parentElement.id === 'tmSeg') tradeModeUi(); break;
     case 'mc': S.marketC = v; render(); break;
     case 'tTag': tagToggle(el.dataset.k, v); break;
+    case 'tCat': catToggle(v); break;
     case 'tTagAdd': tagAdd(el.dataset.k); break;
     case 'dmOpen': dmOpen(el.dataset.to, el.dataset.a, el.dataset.b); break;
     case 'dmAccept': dmAccept(id); break;
