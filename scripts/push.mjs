@@ -9,7 +9,7 @@ import { createSign } from 'node:crypto';
 const ROOT = new URL('../', import.meta.url);
 const SITE = 'https://fanverse-team.github.io/';
 const b64 = x => Buffer.from(x).toString('base64url');
-async function googleToken(sa) {
+export async function googleToken(sa) {
   const now = Math.floor(Date.now() / 1000);
   const head = b64(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const body = b64(JSON.stringify({ iss: sa.client_email, scope: 'https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/datastore', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3000 }));
@@ -19,7 +19,7 @@ async function googleToken(sa) {
   return (await r.json()).access_token;
 }
 const vals = f => ((f && f.arrayValue && f.arrayValue.values) || []).map(v => v.stringValue).filter(Boolean);
-async function subscribers(project, tok) {
+export async function subscribers(project, tok) {
   const out = []; let page = '';
   for (let i = 0; i < 20; i++) {
     const r = await fetch('https://firestore.googleapis.com/v1/projects/' + project + '/databases/(default)/documents/push?pageSize=300' + (page ? '&pageToken=' + page : ''), { headers: { Authorization: 'Bearer ' + tok } });
@@ -63,12 +63,16 @@ async function main() {
   const oldEv = [].concat(readOld('concerts.json') || [], readOld('arts.json') || []);
   const newEv = [].concat(await readNow('concerts.json'), await readNow('arts.json'));
   const msgs = plan(subs, oldEv.length ? oldEv : null, newEv);
+  const { ok, gone } = await sendAll(project, tok, msgs);
+  console.log('✔ 推播：' + subs.length + ' 位訂閱、送出 ' + ok + ' 則' + (gone ? '、清掉 ' + gone + ' 個失效裝置' : ''));
+}
+export async function sendAll(project, tok, msgs) {
   let ok = 0, gone = 0;
   for (const m of msgs.slice(0, 500)) {
     const r = await fetch('https://fcm.googleapis.com/v1/projects/' + project + '/messages:send', { method: 'POST', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: { token: m.token, data: { url: m.url, tag: m.tag }, webpush: { notification: { title: m.title, body: m.body, icon: SITE + 'icon-192.png' }, fcm_options: { link: m.url } } } }) });
     if (r.ok) ok++;
     else if (r.status === 404 || r.status === 400) { gone++; await fetch('https://firestore.googleapis.com/v1/' + m.name, { method: 'DELETE', headers: { Authorization: 'Bearer ' + tok } }).catch(() => { }); }
   }
-  console.log('✔ 推播：' + subs.length + ' 位訂閱、送出 ' + ok + ' 則' + (gone ? '、清掉 ' + gone + ' 個失效裝置' : ''));
+  return { ok, gone };
 }
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) await main().catch(e => console.log('✘ 推播失敗：' + e.message));
