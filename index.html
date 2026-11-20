@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-JoW+uOeif/TEuEuX5TvxgL8xRgcHO17AW3g0XR99Qps='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-tWHjwZILFDCMBc/sbgGBnbVcpg1ydgnVUx5iUKnZpSQ='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -368,9 +368,9 @@ function errMsg(e) {
     'auth/weak-password': '密碼強度不足', 'auth/password-does-not-meet-requirements': '密碼不符合規定：至少 10 碼，需含大小寫英文與數字',
     'auth/invalid-email': '信箱格式不正確', 'auth/missing-password': '請輸入密碼',
     'auth/too-many-requests': '嘗試次數太多，請稍後再試', 'auth/network-request-failed': '網路連線失敗，請稍後再試',
-    'auth/requires-recent-login': '為了安全，請重新輸入密碼', 'auth/unauthorized-continue-uri': '網域尚未授權',
-    'permission-denied': '權限不足：資料不符規則，或帳號尚未完成驗證', 'unavailable': '暫時連不上伺服器，請稍後再試',
-    'failed-precondition': '資料狀態已改變，請重新整理',
+    'auth/requires-recent-login': '為了安全，請重新輸入密碼', 'auth/unauthorized-continue-uri': '這個網址目前無法登入，請從 fanverse-team.github.io 開啟',
+    'permission-denied': '無法完成這個動作，請確認帳號已完成驗證，或重新整理後再試一次', 'unavailable': '暫時連不上伺服器，請稍後再試',
+    'failed-precondition': '資料剛剛更新過，請重新整理頁面',
     'auth/admin-restricted-operation': '目前暫停開放註冊，可以先用訪客模式試玩網站功能', 'auth/operation-not-allowed': '目前暫停開放註冊，可以先用訪客模式試玩網站功能'
   };
   return M[c] || '發生錯誤，請稍後再試';
@@ -1048,7 +1048,7 @@ function vPlus() {
     '<dt>怎麼取消？</dt><dd>在這一頁按「取消自動續訂」，到期前都還能用，不會再扣下一期。</dd>' +
     '<dt>未成年可以訂嗎？</dt><dd>可以，但要先取得法定代理人（父母或監護人）同意。</dd>' +
     '<dt>付費會影響媒合嗎？</dt><dd>不會。同行媒合、周邊交換的排序和 Plus 無關，安全功能也都免費。</dd>' +
-    '<dt>真的上線要怎麼收費？</dt><dd>要串接綠界、藍新等金流，完成營業登記並開立電子發票；自動續訂要在付款前清楚告知金額與取消方式。</dd></dl></div>';
+    '<dt>正式上線後怎麼收費？</dt><dd>會串接綠界、藍新等金流並開立電子發票；自動續訂會在付款前清楚告知金額與取消方式。</dd></dl></div>';
 }
 function plusCheckout(plan) {
   if (S.mode !== 'ready') return go('me');
@@ -1255,7 +1255,7 @@ function rideCard(r) {
   let actions;
   if (r.demo) actions = '<button class="btn" disabled>登入實名會員後才能申請</button>';
   else if (mine) actions = '<button class="btn" data-act="manage" data-type="ride" data-id="' + esc(r.id) + '">管理申請</button><button class="btn line" data-act="delPost" data-type="ride" data-id="' + esc(r.id) + '">刪除</button>';
-  else if (!st || st === 'gone') actions = minorBlocked ? '<button class="btn" disabled>此用戶無法參與行程</button>' : full ? '<button class="btn" disabled>已額滿</button>' : '<button class="btn pink" data-act="apply" data-type="ride" data-id="' + esc(r.id) + '">申請加入</button>';
+  else if (!st || st === 'gone') actions = minorBlocked ? '<button class="btn" disabled>未成年會員無法參加</button>' : full ? '<button class="btn" disabled>已額滿</button>' : '<button class="btn pink" data-act="apply" data-type="ride" data-id="' + esc(r.id) + '">申請加入</button>';
   else if (st === 'pending') actions = '<span class="pill">等待發起人確認</span><button class="btn line" data-act="cancelReq" data-type="ride" data-id="' + esc(r.id) + '">取消申請</button>';
   else if (st === 'declined') actions = '<span class="pill">發起人婉拒了</span><button class="btn line" data-act="cancelReq" data-type="ride" data-id="' + esc(r.id) + '">移除</button>';
   else actions = acceptedBlock('ride', r);
@@ -1305,14 +1305,14 @@ function tagBox(k, cid) {
 function tagRender() { const cid = ($('#tC') || {}).value || ''; ['have', 'want'].forEach(k => { const b = $('#tTags_' + k); if (b) b.innerHTML = tagBox(k, cid); }); }
 function tagToggle(k, v) {
   const sel = S.tsel[k]; if (!sel) return;
-  const i = sel.indexOf(v); if (i >= 0) sel.splice(i, 1); else if (sel.length >= 6) return toast('每一邊最多選 6 個'); else sel.push(v);
+  const i = sel.indexOf(v); if (i >= 0) sel.splice(i, 1); else if (sel.length >= 6) return toast('每一欄最多選 6 個'); else sel.push(v);
   tagRender();
 }
 function tagAdd(k) {
   const inp = $('#tAdd_' + k); if (!inp) return;
   const v = cleanText(inp.value, 30).replace(/[、,，]/g, ' ').trim(); if (!v) return;
-  const bad = modCheck(v); if (bad) return toast('標籤不能包含' + bad);
-  if (!S.tsel[k].includes(v)) { if (S.tsel[k].length >= 6) return toast('每一邊最多選 6 個'); S.tsel[k].push(v); }
+  const bad = modCheck(v); if (bad) return toast('標籤裡不能出現' + bad);
+  if (!S.tsel[k].includes(v)) { if (S.tsel[k].length >= 6) return toast('每一欄最多選 6 個'); S.tsel[k].push(v); }
   tagRender(); const n = $('#tAdd_' + k); if (n) n.focus();
 }
 function normItem(s) { return String(s || '').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, ''); }
@@ -1398,7 +1398,7 @@ async function dmOpen(to, a, b) {
   if (blocked(to)) return toast('你已封鎖對方');
   const ex = dmOf(to);
   if (ex && ex.status === 'open') return openDm(ex.id);
-  if (ex && ex.status === 'pending') return ex.by === uid() ? toast('已經邀請過了，等對方接受') : dmAccept(ex.id);
+  if (ex && ex.status === 'pending') return ex.by === uid() ? toast('已經送出邀請，請等對方接受') : dmAccept(ex.id);
   const t = tradeById(b) || tradeById(a) || {}, cid = concertOk(t.concertId) ? t.concertId : '';
   return withLock('dmo' + to, async () => {
     try {
@@ -1406,7 +1406,7 @@ async function dmOpen(to, a, b) {
       if (ex) await F.updateDoc(ref, { status: 'pending', by: uid(), a: a || '', b: b || '', cid });
       else await F.setDoc(ref, { users: [uid(), to].sort(), by: uid(), status: 'pending', a: a || '', b: b || '', cid, createdAt: F.serverTimestamp() });
       toast('已送出私訊邀請，對方接受後就能聊天');
-    } catch (e) { toast(e && e.code === 'permission-denied' ? '目前無法邀請對方（可能是貼文已刪除，或對方設定了封鎖）' : errMsg(e)); }
+    } catch (e) { toast(e && e.code === 'permission-denied' ? '目前無法邀請對方，對方的貼文可能已經刪除' : errMsg(e)); }
   });
 }
 const concertOk = c => typeof c === 'string' && /^(e\d{2,4}|k[0-9a-f]{12})$/.test(c);
@@ -1456,8 +1456,8 @@ function modCheck(text) { const b = DM_BLOCK.find(x => x[0].test(text)); return 
 async function sendDm() {
   const dm = S.dm, inp = $('#dmIn'); if (!dm || !inp) return;
   const text = cleanText(inp.value, 300); if (!text) return;
-  const bad = modCheck(text); if (bad) return toast('為了安全，私訊不能包含' + bad + '；現場約在明顯的地點就好');
-  if (Date.now() - dm.last < 2500) return toast('傳太快了，稍等一下再送');
+  const bad = modCheck(text); if (bad) return toast('為了大家的安全，私訊裡不能出現' + bad + '，請修改後再送出');
+  if (Date.now() - dm.last < 2500) return toast('訊息送得有點快，請稍等幾秒再傳');
   dm.last = Date.now();
   const mid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), b = F.writeBatch(db);
   b.set(F.doc(db, 'dms', dm.id, 'm', mid), { uid: uid(), text, createdAt: F.serverTimestamp() });
@@ -1576,7 +1576,7 @@ function tradeCard(t) {
     (tags ? '<div class="pills">' + tags + '</div>' : '') + personBlock(t.owner) + '<div class="actions">' + actions + '</div>' + postOps('trade', t) + '</div>';
 }
 
-/* ---------- 小幫手：行程規劃（規則式估算）與防詐檢查 ---------- */
+/* ---------- 小幫手：行程規劃（系統估算）與防詐檢查 ---------- */
 // 出發地區；rail 表示沒有高鐵、以台鐵為主。車程與票價由 tripBase() 估算
 const REGIONS = { '北北基': {}, '桃園': {}, '新竹苗栗': {}, '台中彰化': {}, '雲林嘉義': {}, '台南': {}, '高雄屏東': {}, '宜蘭花東': { rail: true } };
 // 各地區到台北的高鐵車程（分鐘）與標準車廂票價；兩地之間取差值估算
@@ -1959,7 +1959,7 @@ async function pushOn() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return toast(/iPhone|iPad/.test(navigator.userAgent) ? 'iPhone 請先用 Safari 把網站「加入主畫面」，再從主畫面打開來開啟通知' : '這個瀏覽器不支援推播通知');
   if (!isPlus()) return plusSheet('新場次和開賣提醒直接推播到手機');
   try {
-    const perm = await Notification.requestPermission(); if (perm !== 'granted') return toast('你沒有允許通知，可以到瀏覽器設定裡打開');
+    const perm = await Notification.requestPermission(); if (perm !== 'granted') return toast('通知權限還沒開啟，可以到瀏覽器設定裡打開');
     if (!MSG) { const m = await import(FB + 'firebase-messaging.js'); MSG = { m, x: m.getMessaging() }; }
     const reg = await navigator.serviceWorker.ready;
     const token = await MSG.m.getToken(MSG.x, { vapidKey: VAPID, serviceWorkerRegistration: reg });
@@ -2311,7 +2311,7 @@ function drawPlan(ctx, o) {
   y += 30;
   // 9. 頁尾
   rect(P, y, W - 2 * P, 2, IMG.line); y += 24;
-  y += para('規則式估算：' + (o.visit ? '參觀以 2.5 小時計，' : '演出長度以 ' + (o.c.k === 'show' ? 2 : 3) + ' 小時計，') + '車程與費用為概略值。班次、票價與末班車請以官方公告為準。場次資料日期 ' + DATA_ASOF + '。', P, y, W - 2 * P, IMG.muted, 400, 22, 32) + 10;
+  y += para('系統估算：' + (o.visit ? '參觀以 2.5 小時計，' : '演出長度以 ' + (o.c.k === 'show' ? 2 : 3) + ' 小時計，') + '車程與費用為概略值。班次、票價與末班車請以官方公告為準。場次資料日期 ' + DATA_ASOF + '。', P, y, W - 2 * P, IMG.muted, 400, 22, 32) + 10;
   text('fanverse-team.github.io', P, y, IMG.pinkd, 700, 24); y += 64;
   return y;
 }
@@ -2368,14 +2368,14 @@ function renderPlan(o, act) {
     '<button class="btn pink full" style="margin-top:14px" data-act="' + (act || 'planImg') + '">下載行程規劃圖（PNG）</button>' +
     '<div class="actions"><button class="btn line" style="flex:1" data-act="planIcs" data-v="' + k + '">📅 整份行程加入行事曆</button><button class="btn line" style="flex:1" data-act="planSplit" data-v="' + k + '">💰 預算帶入分帳' + (isPlus() ? '' : '（Plus）') + '</button></div>' +
     '<button class="btn line full" style="margin-top:8px" data-act="planGuide" data-v="' + k + '">🧭 每日交通導覽圖' + (isPlus() ? '' : '（Plus）') + '</button>' +
-    '<div class="src">' + (o.railUsed ? '班次依交通部 TDX 時刻表' + (RAIL && RAIL.asof ? '（' + RAIL.asof + ' 更新）' : '') + '，臨時異動以官方公告為準。' : '') + '以上為規則式估算：' + (o.visit ? '參觀以 2.5 小時計，' : '演出長度以 ' + (o.c.k === 'show' ? 2 : 3) + ' 小時計，') + '車程與票價為概略值。實際班次、票價與末班車請查台灣高鐵、台鐵、客運與捷運官方資訊。</div></div>';
+    '<div class="src">' + (o.railUsed ? '班次依交通部 TDX 時刻表' + (RAIL && RAIL.asof ? '（' + RAIL.asof + ' 更新）' : '') + '，臨時異動以官方公告為準。' : '') + '以上為系統估算：' + (o.visit ? '參觀以 2.5 小時計，' : '演出長度以 ' + (o.c.k === 'show' ? 2 : 3) + ' 小時計，') + '車程與票價為概略值。實際班次、票價與末班車請查台灣高鐵、台鐵、客運與捷運官方資訊。</div></div>';
 }
 function renderRisk(o) {
   const lv = o.level === '高' ? 'high' : o.level === '中' ? 'mid' : 'low';
   return '<div class="result"><div class="risk"><span class="lvl ' + lv + '">' + o.level + '風險</span><div class="meter"><i style="left:calc(' + o.score + '% - 2px)"></i></div></div>' +
     '<div class="sec">看到的疑點</div><ul class="list">' + (o.reasons.map(r => '<li>' + esc(r) + '</li>').join('') || '<li>沒有發現明顯疑點，但仍請只用有保障的方式交易</li>') + '</ul>' +
     '<div class="sec">建議怎麼做</div><ul class="list">' + o.advice.map(r => '<li>' + esc(r) + '</li>').join('') + '</ul>' +
-    '<div class="src">規則式檢查・疑似詐騙可撥 165 反詐騙專線</div></div>';
+    '<div class="src">自動檢查・疑似詐騙可撥 165 反詐騙專線</div></div>';
 }
 const FRAUD_RULES = [
   [/匯款|轉帳|先付|訂金|ATM|無卡/, '要求先匯款、轉帳或付訂金', 25],
@@ -2856,7 +2856,7 @@ function apply(type, id, force) {
   return withLock(type + id, async () => {
     if (type === 'ride') {
       const r = rideById(id); if (!r) return toast('找不到這個媒合');
-      if ((r.kind === '住宿' || r.kind === '包車') && S.profile.minor) return toast('此用戶無法參與行程');
+      if ((r.kind === '住宿' || r.kind === '包車') && S.profile.minor) return toast('未成年會員無法參加包車和住宿分攤');
       const pend = Object.keys(S.myStatus).filter(k => k.startsWith('ride_') && S.myStatus[k] === 'pending').length;
       if (pend >= MAX_PENDING) return openSheet('先等一下', '<p style="font-size:14px;line-height:1.8">你已經有 ' + pend + ' 筆同行申請在等發起人確認，最多同時 ' + MAX_PENDING + ' 筆。可以先取消不需要的申請，或等對方回覆。</p><button class="btn line full" data-act="close">知道了</button>');
       const chk = await checkConflicts(r);
@@ -3141,7 +3141,7 @@ function renderMsgs() {
 async function sendChat() {
   const g = S.group, inp = $('#chatIn'); if (!g || !inp) return;
   const text = inp.value.trim().slice(0, 300); if (!text) return;
-  if (Date.now() - g.lastSend < 2500) return toast('傳太快了，稍等一下再送');
+  if (Date.now() - g.lastSend < 2500) return toast('訊息送得有點快，請稍等幾秒再傳');
   g.lastSend = Date.now();
   const u = uid(), mid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8), b = F.writeBatch(db);
   b.set(F.doc(db, 'rides', g.id, 'chat', mid), { uid: u, text, createdAt: F.serverTimestamp() });
@@ -3222,7 +3222,7 @@ function rideForm() {
   const minor = S.profile.minor;
   openSheet('發起同行媒合',
     '<form id="rideF" novalidate><label class="f">類型</label><div class="seg" id="rkSeg">' + ['包車', '住宿', '旅伴'].filter(k => !(minor && k !== '旅伴')).map((k, i) => '<button type="button" class="' + (i === 0 ? 'on' : '') + '" data-act="seg" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
-    (minor ? '<div class="hint">此用戶無法參與行程（包車、住宿），可以發起或參加「旅伴」。</div>' : '') +
+    (minor ? '<div class="hint">未成年會員無法參加包車和住宿分攤，可以發起或參加「旅伴」。</div>' : '') +
     '<label class="f" for="rCIn">場次</label>' + pickerHtml('rC', S.matchConcert || firstId(), PK_OPT.rC) +
     '<div id="rDBox">' + rideDateSel(S.matchConcert || firstId()) + '</div>' +
     '<label class="f" for="rT">標題</label><input class="in" id="rT" maxlength="40" required placeholder="例：台中出發・高雄巨蛋包車">' +
@@ -3255,7 +3255,7 @@ function tradeForm() {
     '<div id="tHaveBox"><label class="f" id="tHaveL">我有（X，可複選）</label><div id="tTags_have">' + tagBox('have', def) + '</div>' +
     '<label class="f" for="tCond">品相</label><select class="in" id="tCond"><option>全新</option><option>近全新</option><option>有使用痕跡</option></select></div>' +
     '<div id="tWantBox"><label class="f" id="tWantL">想換（Y，可複選）</label><div id="tTags_want">' + tagBox('want', def) + '</div></div>' +
-    '<label class="f" for="tSpot">現場交換地點（自己填）</label><input class="in" id="tSpot" maxlength="30" placeholder="例：場周販賣區旁邊、VIP2 區入場前">' +
+    '<label class="f" for="tSpot">現場交換地點<span style="color:var(--pinkd)">（必填）</span></label><input class="in" id="tSpot" maxlength="30" placeholder="例：場周販賣區旁邊、VIP2 區入場前">' +
     '<label class="f" for="tTags">標籤（用空白分隔，最多 5 個）</label><input class="in" id="tTags" maxlength="80" placeholder="例：NOVA9 ORBIT 專卡">' +
     '<label class="f" for="tNote">備註</label><textarea class="in" id="tNote" maxlength="100"></textarea>' +
     '<div class="hint">周邊只換不賣，也不能在這裡賣票；請勿留下電話、LINE ID、地址等個資，配對後用站內私訊約。</div>' +
@@ -3295,7 +3295,7 @@ async function submitRide(form) {
   if (!title || !from) return sheetErr('請填標題和出發地');
   if (capacity < 2 || capacity > 50) return sheetErr('人數上限要在 2 到 50 之間');
   if (cost < 0 || cost > 20000) return sheetErr('費用要在 0 到 20,000 之間');
-  if ((kind === '住宿' || kind === '包車') && S.profile.minor) return sheetErr('此用戶無法參與行程');
+  if ((kind === '住宿' || kind === '包車') && S.profile.minor) return sheetErr('未成年會員無法發起包車或住宿分攤，可以改發起「旅伴」');
   const concertId = $('#rC').value, c = C(concertId); if (!c) return sheetErr('請選擇場次');
   const data = { kind, concertId, title, from, capacity, cost, note, owner: uid(), createdAt: F.serverTimestamp(), memberCount: 0 };
   const dv = $('#rD') ? $('#rD').value : ''; data.day = c.d.some(x => x[0] === dv) ? dv : c.d[0][0]; // 一律記日期：之後就算加開場次也不會對錯天
@@ -3305,7 +3305,7 @@ async function submitRide(form) {
     if (chk.block) return sheetErr(chk.block.replace('不能同時報名', '不能再發起').replace('要換團請先退出那一團', '不能再發起同類型的團'));
     if (chk.warn) { form.dataset.force = '1'; return sheetErr(chk.warn.join(' ') + ' 確定的話請再按一次「發布」。'); }
   }
-  if (await postTooSoon()) return sheetErr('發文太快了：每 ' + POST_GAP + ' 秒只能發一篇，請稍等一下再按');
+  if (await postTooSoon()) return sheetErr('每 ' + POST_GAP + ' 秒只能發一篇貼文，請稍候再試');
   busyBtn(form, true, '發布中…');
   try {
     const b = F.writeBatch(db);
@@ -3323,12 +3323,13 @@ async function submitTrade(form) {
   if (mode !== '送出' && !want.length) return sheetErr(mode === '收取' ? '請選想收的東西' : '請選想換的東西');
   const dv = $('#tD') ? $('#tD').value : '', day = !c.r && c.d.some(x => x[0] === dv) ? dv : !c.r && c.d.length === 1 ? c.d[0][0] : '';
   const spot = cleanText($('#tSpot').value, 30), note = cleanText($('#tNote').value, 100);
+  if (!spot) { const sp = $('#tSpot'); if (sp) sp.focus(); return sheetErr('請填現場交換地點，例如：場周販賣區旁邊'); }
   const bad = modCheck(have.join(' ') + ' ' + want.join(' ') + ' ' + spot + ' ' + note);
-  const category = S.tsel.cat.length ? CATS.filter(c => S.tsel.cat.includes(c)) : autoCats((mode === '收取' ? [] : have).concat(mode === '送出' ? [] : want)); if (bad) return sheetErr('內容不能包含' + bad + '；配對後可以用站內私訊約');
+  const category = S.tsel.cat.length ? CATS.filter(c => S.tsel.cat.includes(c)) : autoCats((mode === '收取' ? [] : have).concat(mode === '送出' ? [] : want)); if (bad) return sheetErr('內容裡不能出現' + bad + '，配對成功後可以用站內私訊聯絡');
   const tags = cleanText($('#tTags').value, 80).split(/\s+/).filter(Boolean).slice(0, 5).map(x => x.slice(0, 16));
   busyBtn(form, true, '上架中…');
   try {
-    if (await postTooSoon()) { busyBtn(form, false, '上架'); return sheetErr('發文太快了：每 ' + POST_GAP + ' 秒只能發一篇，請稍等一下再按'); }
+    if (await postTooSoon()) { busyBtn(form, false, '上架'); return sheetErr('每 ' + POST_GAP + ' 秒只能發一篇貼文，請稍候再試'); }
     const tb = F.writeBatch(db); tb.set(F.doc(db, 'cool', uid()), { at: F.serverTimestamp() });
     tb.set(F.doc(F.collection(db, 'trades')), { mode, category, have: mode === '收取' ? [] : have, want: mode === '送出' ? [] : want, price: 0, condition: mode === '收取' ? '' : $('#tCond').value, concertId: cid, day, spot, tags, note, img: tradeImg, owner: uid(), createdAt: F.serverTimestamp() });
     await tb.commit();
@@ -3583,7 +3584,7 @@ async function boot() {
   document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[data-out]'); if (a) bump('out', a.dataset.out); }, true);
   route();
   loadConcerts(); loadHotels(); loadArts(); loadExtras();
-  if (!firebaseConfig || !firebaseConfig.apiKey || /^YOUR_/.test(firebaseConfig.apiKey)) { S.mode = 'off'; S.note = '尚未設定 Firebase，帳號功能暫停'; render(); return; }
+  if (!firebaseConfig || !firebaseConfig.apiKey || /^YOUR_/.test(firebaseConfig.apiKey)) { S.mode = 'off'; S.note = '帳號功能暫時無法使用'; render(); return; }
   try {
     const [appM, authM, fsM, acM] = await Promise.all([import(FB + 'firebase-app.js'), import(FB + 'firebase-auth.js'), import(FB + 'firebase-firestore.js'), import(FB + 'firebase-app-check.js').catch(() => null)]);
     A = authM; F = fsM;
