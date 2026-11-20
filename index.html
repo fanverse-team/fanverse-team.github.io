@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-ETN/OFaujuYcWijcPJTqa4ZmPLgraNzO6O9Yco0cNho='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-i7Oy+KT7MGA7mIvmROVpJHbahPxcREiytXH+aARp/20='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -1164,7 +1164,7 @@ function plusSheet(why) {
 }
 function plusTable(short) {
   const rows = [['收藏活動', '5 個', '無上限'], ['追蹤藝人', '5 位', '無上限'], ['行程規劃', '每天 3 次', '無上限'], ['行事曆提醒', '演出前一天', '前一天＋3 小時前＋開賣提醒'],
-    ['追蹤藝人公布新場次', '—', '開網站就通知'], ['多人分帳計算機', '—', '✓'], ['收藏一次匯出行事曆、追星月曆圖', '—', '✓'], ['應援色主題、名牌與徽章', '—', '8 種顏色'], ['推廣訊息', '有', '無']];
+    ['追蹤藝人公布新場次', '—', '開網站就通知'], ['多人分帳計算機', '—', '✓'], ['收藏一次匯出行事曆、追星月曆圖', '—', '✓'], ['應援色主題、名牌與徽章', '—', '8 種顏色'], ['廣告', '有', '無']];
   if (short) rows.splice(6);
   return '<table class="ptab"><thead><tr><th></th><th>免費</th><th>Plus</th></tr></thead><tbody>' + rows.map(r => '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td><b>' + r[2] + '</b></td></tr>').join('') + '</tbody></table>' +
     '<p class="small muted" style="margin:6px 0 0">檢舉、封鎖、防詐檢查、實名驗證與同行媒合永遠免費，付費不會讓你的貼文排比較前面。</p>';
@@ -1229,8 +1229,8 @@ async function plusAutoRenew() {
 // 推廣訊息：免費版每 12 張卡片插一張；Plus 會員不顯示
 function withPromo(cards) {
   if (isPlus() || cards.length < 4) return cards;
-  const ads = ['<div class="card promo"><span class="pill">推廣</span><div><b>FANVERSE Plus</b>：收藏、追蹤不限量，追蹤的藝人一公布新場次就通知你。<button class="lnk" data-act="goPlus">看看 NT$49 方案</button></div></div>',
-    '<div class="card promo"><span class="pill">推廣</span><div><b>合作推廣位</b>：歡迎主辦單位、場館與周邊店家洽詢合作（課堂專題示意）。</div></div>'];
+  const ads = ['<div class="card promo"><span class="pill">廣告</span><div><b>FANVERSE Plus</b>：收藏、追蹤不限量，追蹤的藝人一公布新場次就通知你。<button class="lnk" data-act="goPlus">看看 NT$49 方案</button></div></div>',
+    '<div class="card promo"><span class="pill">廣告</span><div><b>合作推廣位</b>：歡迎主辦單位、場館與周邊店家洽詢合作（課堂專題示意）。</div></div>'];
   const out = []; cards.forEach((c, i) => { out.push(c); if (i % 12 === 3) out.push(ads[Math.floor(i / 12) % 2]); });
   return out;
 }
@@ -2579,7 +2579,7 @@ function vProfileForm() {
     '<label class="f" for="pfName">真實姓名（與證件相同）</label><input class="in" id="pfName" maxlength="30" required>' +
     '<label class="f" for="pfBirth">出生日期</label><input class="in" id="pfBirth" type="date" required max="' + new Date().toISOString().slice(0, 10) + '">' +
     '<label class="f" for="pfId">身分證字號／居留證號</label><input class="in" id="pfId" maxlength="10" required autocomplete="off" autocapitalize="characters" spellcheck="false">' +
-    '<div class="lock">🔒 <span>身分證字號只在你的裝置上檢查格式與性別碼，<b>不會上傳，也不會儲存</b>。性別會依字號自動判定。</span></div>' +
+    '<div class="lock">🔒 <span>身分證字號僅用於註冊時核對，<b>不會儲存</b>。性別會依字號自動判定。</span></div>' +
     '<label class="f" for="pfNick">暱稱（其他人會看到）</label><input class="in" id="pfNick" maxlength="20" required placeholder="例：小安">' +
     '<div class="hint">其他會員看得到：暱稱、性別、年齡區間、實名徽章。真實姓名只在雙方都確認同行或交易後，才會各自顯示給對方。</div>' +
     '<div id="guardianBox" hidden><label class="check"><input type="checkbox" id="pfGuardian"><span>我未滿 18 歲，我的法定代理人（父母或監護人）已閱讀隱私權政策並同意我註冊。未成年帳號的姓名與年齡不會公開，也不能參加住宿分攤。</span></label></div>' +
@@ -2610,7 +2610,6 @@ function vAccount() {
     '<div class="card"><div class="sec" style="margin-top:0">只有你看得到</div>' +
     '<div class="rowline"><span class="muted">真實姓名</span><span>' + esc(q ? q.realName : '') + '</span></div>' +
     '<div class="rowline"><span class="muted">出生日期</span><span>' + (bd ? bd.getFullYear() + '/' + (bd.getMonth() + 1) + '/' + bd.getDate() : '') + '</span></div>' +
-    '<div class="rowline"><span class="muted">身分證字號</span><span>未儲存（只在註冊時檢查格式）</span></div>' +
     '<div class="rowline"><span class="muted">登入信箱</span><span>' + esc(S.user.email) + '</span></div>' +
     (p.minor ? '<div class="hint">你的帳號目前不公開姓名與年齡，也無法參與包車與住宿行程。滿 18 歲後重新登入會自動更新。</div>' : '') + '</div>' +
     (isPlus() ? '<div class="card plushero"><div class="rowline"><span><b>✦ FANVERSE Plus</b><br><span class="small muted">' + (S.plus.autoRenew ? fmtDay(S.plus.until) + ' 自動續訂' : fmtDay(S.plus.until) + ' 到期') + '</span></span><button class="btn line" data-act="tab" data-v="plus">管理</button></div></div>'
@@ -2622,7 +2621,7 @@ function vAccount() {
     '<div class="card"><div class="sec" style="margin-top:0">帳號與隱私</div>' +
     '<div class="rowline"><a href="privacy.html" target="_blank" rel="noopener">個人資料蒐集告知暨隱私權政策</a></div>' +
     '<div class="actions"><button class="btn line" data-act="sendReset">寄送重設密碼信</button><button class="btn line" data-act="signOut">登出</button><button class="btn danger" data-act="deleteAcct">刪除帳號與所有資料</button></div></div>' +
-    '<p class="src">課程專題原型：身分證字號僅做格式檢查，無法確認是否為本人。第 11 組</p>';
+    '<p class="src">課程專題原型・第 11 組</p>';
 }
 
 /* ---------- concert detail ---------- */
