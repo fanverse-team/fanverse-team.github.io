@@ -306,8 +306,29 @@ service cloud.firestore {
         && request.resource.data.by == me()
         && str(request.resource.data.rideId, 1, 64) && str(request.resource.data.msgId, 1, 64)
         && str(request.resource.data.who, 0, 128) && str(request.resource.data.text, 0, 300)
-        && request.resource.data.reason in ['聊天室訊息', '媒合貼文', '交換貼文', '私訊訊息']
+        && request.resource.data.reason in ['聊天室訊息', '媒合貼文', '交換貼文', '私訊訊息', '讓票貼文']
         && request.resource.data.createdAt == request.time;
+    }
+
+    // ---------- 原價讓票：讓票價不得超過票面；未成年不能刊登 ----------
+    match /tickets/{tid} {
+      allow read: if verified() && hasProfile();
+      allow create: if verified() && hasProfile() && notBanned() && !isMinor()
+        && tid.matches('TK-[A-Za-z0-9]{12}')
+        && request.resource.data.keys().hasOnly(['owner', 'concertId', 'day', 'area', 'qty', 'face', 'price', 'named', 'via', 'note', 'createdAt'])
+        && request.resource.data.keys().hasAll(['owner', 'concertId', 'day', 'area', 'qty', 'face', 'price', 'named', 'via', 'note', 'createdAt'])
+        && request.resource.data.owner == me()
+        && concertOk(request.resource.data.concertId)
+        && request.resource.data.day is string && request.resource.data.day.matches('20[0-9]{2}-[0-9]{2}-[0-9]{2}')
+        && str(request.resource.data.area, 1, 20)
+        && request.resource.data.qty is int && request.resource.data.qty >= 1 && request.resource.data.qty <= 4
+        && request.resource.data.face is int && request.resource.data.face >= 100 && request.resource.data.face <= 50000
+        && request.resource.data.price is int && request.resource.data.price >= 0 && request.resource.data.price <= request.resource.data.face
+        && request.resource.data.named is bool
+        && request.resource.data.via in ['面交', '官方轉讓']
+        && str(request.resource.data.note, 0, 60)
+        && request.resource.data.createdAt == request.time;
+      allow delete: if verified() && (resource.data.owner == me() || isAdmin());
     }
 
     // ---------- 意見回饋：只能新增，只有管理員能讀、刪 ----------
@@ -381,8 +402,10 @@ service cloud.firestore {
       function peer(d) { return d.users[0] == me() ? d.users[1] : d.users[0]; }
       function tr(id) { return get(/databases/$(database)/documents/trades/$(id)).data; }
       function interestOk(tid, who) { return get(/databases/$(database)/documents/trades/$(tid)/interests/$(who)).data.status == 'accepted'; }
+      function tk(id) { return get(/databases/$(database)/documents/tickets/$(id)).data; }
       function tradeOk(d) {
         return str(d.a, 0, 40) && str(d.b, 0, 40) && (
+          (d.a == '' && d.b.matches('TK-[A-Za-z0-9]{12}') && tk(d.b).owner == peer(d) && !isMinor()) ||
           (d.a != '' && d.b != '' && tr(d.a).owner == me() && tr(d.b).owner == peer(d))
           || (d.b != '' && tr(d.b).owner == peer(d) && interestOk(d.b, me()))
           || (d.a != '' && tr(d.a).owner == me() && interestOk(d.a, peer(d))));
