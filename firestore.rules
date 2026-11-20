@@ -310,6 +310,19 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
     }
 
+    // ---------- 意見回饋：只能新增，只有管理員能讀、刪 ----------
+    match /feedback/{fbId} {
+      allow read, delete: if isAdmin();
+      allow create: if verified() && hasProfile() && notBanned()
+        && request.resource.data.keys().hasOnly(['by', 'type', 'text', 'where', 'lang', 'createdAt'])
+        && request.resource.data.keys().hasAll(['by', 'type', 'text', 'where', 'lang', 'createdAt'])
+        && request.resource.data.by == me()
+        && request.resource.data.type in ['改善建議', '問題回報', '翻譯問題', '其他']
+        && str(request.resource.data.text, 5, 1000) && str(request.resource.data.where, 0, 40)
+        && request.resource.data.lang in ['zh', 'en', 'ja']
+        && request.resource.data.createdAt == request.time;
+    }
+
     // ---------- 周邊交換 ----------
     // 我有／想要：最多 6 個標籤，每個 1–30 字
     function itemsOk(l) {
