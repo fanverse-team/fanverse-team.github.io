@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-VLzRL8sACWsf+PGevk+2k6uiOxHCwozEXCpwMw3pSG0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-/uhXCnUnETB+iX/vvP5bXnyjdo46uItKBvPldZtfkS0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE 追星人的第二個家</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -1469,7 +1469,7 @@ function zoneDays() { const t = Date.parse(todayTW() + 'T00:00:00Z'), out = []; 
 const zoneDay = c => { const z = zoneDays(); const x = c && !c.r && c.d.find(d => z.includes(d[0])); return x ? x[0] : ''; };
 function todaySessions() {
   const n = {}; allTrades().forEach(t => { if (t.concertId) n[t.concertId] = (n[t.concertId] || 0) + 1; });
-  return UPCOMING().filter(c => zoneDay(c))
+  return UPCOMING().filter(c => (!c.k || c.k === 'concert') && zoneDay(c)) // 只列演唱會，展覽、戲劇先不列
     .sort((a, b) => (zoneDay(a) < zoneDay(b) ? -1 : zoneDay(a) > zoneDay(b) ? 1 : 0) || (n[b.id] || 0) - (n[a.id] || 0) || (a.k === 'concert' ? 0 : 1) - (b.k === 'concert' ? 0 : 1)).slice(0, 16);
 }
 function zoneTag(day) { const i = zoneDays().indexOf(day); return i === 0 ? '今天' : i === 1 ? '明天' : i === 2 ? '後天' : dinfo(day).md; }
