@@ -310,7 +310,9 @@
     --ok:#62D3A2; --okbg:#12302A; --warn:#F5B83D; --warnbg:#3A2B0E; --bad:#FF7393; --badbg:#3E1325;}}
 :root[data-theme="light"]{color-scheme:light}
 
-.bl{display:flex;align-items:center;gap:10px}
+.bl{min-width:0}
+.br{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;margin-left:10px}
+.prefs{display:flex;gap:6px}
 .prefb{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#E4DEF4;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap}
 :root[data-theme="dark"] .btn:not(.pink):not(.line):not(.danger){background:#3A3366}
 :root[data-theme="dark"] .chip.on{background:var(--pink);border-color:var(--pink);color:#fff}
