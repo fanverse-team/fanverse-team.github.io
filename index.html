@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-Xvx+0tXtMRhBs8tOfNQgAw7C9W3qESx09C4Rxo7q00w='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com 'sha256-O+cSLNrf6c2KMjRXeeAmLYBfRI14VLak/cSld+HusHA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -19,10 +19,9 @@
 <div class="app">
   <header class="top"><div class="topin">
     <div class="brand">
-      <div class="bl"><button class="prefb" id="prefB" data-act="prefs" aria-label="語言與外觀">🌐 中文</button><div class="logo">FAN<span>VERSE</span></div></div>
-      <span class="acct" id="acct"></span>
+      <div class="bl"><div class="logo">FAN<span>VERSE</span></div><div class="slogan">同一份喜歡，在這裡相遇</div></div>
+      <div class="br"><span class="acct" id="acct"></span><div class="prefs"><button class="prefb" id="langB" data-act="langs" aria-label="語言 / Language / 言語" translate="no">🌐 中文</button><button class="prefb" id="themeB" data-act="themes" aria-label="外觀" translate="no">🌓 自動</button></div></div>
     </div>
-    <div class="slogan">同一份喜歡，在這裡相遇</div>
   </div></header>
   <div class="shell">
   <div id="noteBar"></div>
@@ -144,16 +143,22 @@ function paintTheme() {
   if (THEME === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', THEME);
   const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', '#16132B');
 }
-function setTheme(t) { THEME = THEMES.some(x => x[0] === t) ? t : 'auto'; saveLS('fv_theme', THEME); paintTheme(); if (typeof applyTheme === 'function') applyTheme(); prefSheet(); }
+function setTheme(t) { THEME = THEMES.some(x => x[0] === t) ? t : 'auto'; saveLS('fv_theme', THEME); paintTheme(); if (typeof applyTheme === 'function') applyTheme(); prefLabel(); closeSheet(); }
 paintTheme();
 if (darkMQ && darkMQ.addEventListener) darkMQ.addEventListener('change', () => { if (typeof applyTheme === 'function') applyTheme(); });
-function prefSheet() {
-  const seg = (list, cur, act) => '<div class="seg">' + list.map(x => '<button type="button" class="' + (x[0] === cur ? 'on' : '') + '" data-act="' + act + '" data-v="' + x[0] + '"' + (act === 'setLang' ? ' translate="no"' : '') + '>' + x[1] + '</button>').join('') + '</div>';
-  openSheet('語言與外觀', '<label class="f">語言 / Language / 言語</label>' + seg(LANGS, LANG, 'setLang') +
-    '<p class="small muted" style="margin:6px 2px 0">場次、藝人與場館名稱維持原文，只有官方提供的譯名會顯示翻譯。</p>' +
-    '<label class="f" style="margin-top:16px">外觀</label>' + seg(THEMES, THEME, 'setTheme'));
+// 頁首右上：語言、外觀分開兩顆按鈕；按鈕文字本身不走翻譯，直接依語言給
+const THEME_BTN = { auto: ['🌓', '自動', 'Auto', '自動'], light: ['☀️', '明亮', 'Light', 'ライト'], dark: ['🌙', '深色', 'Dark', 'ダーク'] };
+const segBtns = (list, cur, act) => '<div class="seg">' + list.map(x => '<button type="button" class="' + (x[0] === cur ? 'on' : '') + '" data-act="' + act + '" data-v="' + x[0] + '"' + (act === 'setLang' ? ' translate="no"' : '') + '>' + x[1] + '</button>').join('') + '</div>';
+function langSheet() {
+  openSheet('語言 / Language / 言語', segBtns(LANGS, LANG, 'setLang') +
+    '<p class="small muted" style="margin:8px 2px 0">場次、藝人與場館名稱維持原文，只有官方提供的譯名會顯示翻譯。</p>');
 }
-function prefLabel() { const b = $('#prefB'); if (b) b.innerHTML = '🌐 <span translate="no">' + (LANGS.find(x => x[0] === LANG) || LANGS[0])[1] + '</span>'; }
+function themeSheet() { openSheet('外觀', segBtns(THEMES, THEME, 'setTheme')); }
+function prefLabel() {
+  const b = $('#langB'); if (b) b.textContent = '🌐 ' + (LANGS.find(x => x[0] === LANG) || LANGS[0])[1];
+  const t = $('#themeB'), m = THEME_BTN[THEME] || THEME_BTN.auto;
+  if (t) t.textContent = m[0] + ' ' + m[{ zh: 1, en: 2, ja: 3 }[LANG] || 1];
+}
 function daysLeft(d) { return Math.ceil((new Date(d + 'T00:00:00+08:00') - Date.now()) / 86400000); }
 function loadLS(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
 function saveLS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
@@ -846,6 +851,7 @@ document.addEventListener('focusout', e => {
   const id = e.target.closest('.picker').dataset.pk;
   setTimeout(() => { if (document.activeElement === e.target) return; if (S.pk && S.pk.id === id) S.pk = null; e.target.value = e.target.dataset.label; pkRender(id); }, 150);
 });
+document.addEventListener('input', e => { if (e.target.id === 'fbText') S.fbDraft = e.target.value; else if (e.target.id === 'fbWhere') S.fbWhere = e.target.value; });
 document.addEventListener('input', e => { if (e.target.classList && e.target.classList.contains('pk-in')) { const id = e.target.closest('.picker').dataset.pk; S.pk = { id, idx: -1, items: [] }; pkRender(id); } });
 document.addEventListener('keydown', e => {
   if (!e.target.classList || !e.target.classList.contains('pk-in') || !S.pk) return;
@@ -984,9 +990,37 @@ async function delRev(who) {
   try { const b = F.writeBatch(db); b.delete(F.doc(db, 'reviews', who, 'r', r.id + '_' + uid())); b.delete(F.doc(db, 'myRevs', uid(), 'k', who + '_' + r.id)); await b.commit(); delete g.mine[who]; delete S.rep[who]; loadRep(who); toast('已撤回'); renderGroup(); } catch (e) { toast(errMsg(e)); }
 }
 
+/* ---------- 意見回饋：改善建議、bug 回報、翻譯問題；只能新增，只有管理員讀得到 ---------- */
+const FB_TYPES = ['改善建議', '問題回報', '翻譯問題', '其他'];
+const FB_HINT = { '改善建議': '希望新增或改進什麼功能？', '問題回報': '發生了什麼事？在哪一頁、做了什麼操作？', '翻譯問題': '哪一段文字翻得不對？建議怎麼翻？', '其他': '想跟我們說什麼都可以' };
+function fbCard() {
+  const t = FB_TYPES.includes(S.fbType) ? S.fbType : FB_TYPES[0];
+  return '<div class="card" id="fbCard"><div class="sec" style="margin-top:0">意見回饋</div>' +
+    '<p class="small muted" style="margin:0 0 10px">發現 bug、翻譯怪怪的，或有想要的功能，都歡迎告訴我們。</p>' +
+    '<div class="chips" style="margin-bottom:10px">' + FB_TYPES.map(x => '<button type="button" class="chip' + (x === t ? ' on' : '') + '" data-act="fbType" data-v="' + x + '">' + x + '</button>').join('') + '</div>' +
+    '<textarea class="in" id="fbText" rows="4" maxlength="1000" placeholder="' + esc(FB_HINT[t]) + '">' + esc(S.fbDraft || '') + '</textarea>' +
+    '<input class="in" id="fbWhere" maxlength="40" placeholder="在哪一頁或哪個功能（選填）" value="' + esc(S.fbWhere || '') + '" style="margin-top:8px">' +
+    '<div class="small muted" style="margin-top:6px">會一併送出你的暱稱和目前使用的語言，方便我們回頭確認；請不要填電話、帳號等個資。</div>' +
+    '<div class="actions"><button class="btn pink" data-act="sendFb">送出回饋</button></div></div>';
+}
+function fbKeep() { const a = $('#fbText'), b = $('#fbWhere'); if (a) S.fbDraft = a.value; if (b) S.fbWhere = b.value; }
+async function sendFb() {
+  fbKeep();
+  if (S.banned) return toast('帳號停權中，暫時不能送出');
+  const text = String(S.fbDraft || '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim(), where = cleanText(S.fbWhere || '', 40);
+  if (text.length < 5) return toast('請多寫一點內容（至少 5 個字）');
+  if (Date.now() - (S.fbAt || 0) < 60e3) return toast('傳太快了，稍等一下再送');
+  const type = FB_TYPES.includes(S.fbType) ? S.fbType : FB_TYPES[0];
+  try {
+    await F.setDoc(F.doc(F.collection(db, 'feedback')), { by: uid(), type, text: text.slice(0, 1000), where, lang: LANG, createdAt: F.serverTimestamp() });
+    S.fbAt = Date.now(); S.fbDraft = ''; S.fbWhere = ''; toast('已收到你的回饋，謝謝！'); render();
+  } catch (e) { toast(errMsg(e)); }
+}
+
 /* ---------- 管理員後台（只有 ADMINS 名單裡的帳號看得到，資料庫規則也會再檢查一次） ---------- */
 async function loadAdmin() {
-  const a = S.admin = { ready: false, reports: [], bans: [], stats: [], subs: null };
+  const a = S.admin = { ready: false, reports: [], bans: [], stats: [], subs: null, fb: [] };
+  F.getDocs(F.query(F.collection(db, 'feedback'), F.orderBy('createdAt', 'desc'), F.limit(60))).then(q => { a.fb = q.docs.map(d => Object.assign({}, d.data(), { id: d.id })); loadPubs(a.fb.map(x => x.by)); if (S.view === 'admin') render(); }).catch(() => { });
   F.getDocs(F.collection(db, 'subs')).then(q => { const now = Date.now(), xs = q.docs.map(d => cleanSub(d.data())).filter(x => x && x.until > now); a.subs = { n: xs.length, month: xs.filter(x => x.plan === 'month').length, year: xs.filter(x => x.plan === 'year').length, renew: xs.filter(x => x.autoRenew).length }; if (S.view === 'admin') render(); }).catch(() => { });
   try {
     const [rp, bn, st] = await Promise.all([
@@ -1024,6 +1058,9 @@ function vAdmin() {
     (a.subs ? '<div class="card"><div class="sec" style="margin-top:0">Plus 訂閱（模擬）</div><div class="rowline"><span>有效訂閱</span><b>' + a.subs.n + ' 人</b></div><div class="rowline"><span>月繳／年繳</span><span>' + a.subs.month + '／' + a.subs.year + '</span></div><div class="rowline"><span>開著自動續訂</span><span>' + a.subs.renew + '</span></div><div class="rowline"><span>換算每月收入（模擬）</span><b>NT$' + Math.round(a.subs.month * 49 + a.subs.year * 490 / 12).toLocaleString() + '</b></div></div>' : '') +
     adminExtra() +
     '<div class="sec">檢舉（' + a.reports.length + '）</div>' + reps +
+    '<div class="sec">意見回饋（' + a.fb.length + '）</div>' + (a.fb.length ? a.fb.map(f => '<div class="card" style="margin-bottom:8px"><div class="ptop"><span class="pill">' + esc(str(f.type, 10)) + '</span><span class="small muted">' + esc(f.createdAt && f.createdAt.toDate ? msgTime({ createdAt: f.createdAt }) : '') + '</span></div>' +
+      '<div class="psub">' + esc(nick(f.by)) + '・<span translate="no">' + esc(str(f.lang, 4)) + '</span>' + (f.where ? '・' + '<span translate="no">' + esc(str(f.where, 40)) + '</span>' : '') + '</div>' +
+      '<div class="quote" translate="no">' + esc(str(f.text, 1000)) + '</div><div class="actions"><button class="btn" data-act="admFbDone" data-id="' + esc(f.id) + '">處理完畢</button></div></div>').join('') : '<div class="empty">目前沒有回饋</div>') +
     '<div class="card"><div class="sec" style="margin-top:0">停權中的帳號</div>' + bans + '<div class="small muted" style="margin-top:6px">被停權的人可以登入、瀏覽，但不能發文、申請、聊天或回報。</div></div>' +
     '<button class="btn line full" data-act="admReload">重新整理</button>';
 }
@@ -1031,6 +1068,7 @@ async function admAct(kind, x) {
   const a = S.admin; if (!a || !isAdmin()) return;
   try {
     if (kind === 'dismiss') await F.deleteDoc(F.doc(db, 'reports', x));
+    else if (kind === 'fbDone') { await F.deleteDoc(F.doc(db, 'feedback', x)); a.fb = a.fb.filter(f => f.id !== x); return render(); }
     else if (kind === 'ban') { const why = (prompt('停權原因（會留在後台紀錄）', '違反社群規範') || '').trim().slice(0, 60); if (!why) return; await F.setDoc(F.doc(db, 'bans', x), { reason: why, at: F.serverTimestamp() }); }
     else if (kind === 'unban') await F.deleteDoc(F.doc(db, 'bans', x));
     else if (kind === 'delTarget') {
@@ -2565,6 +2603,7 @@ function vAccount() {
     mobCard() + pushCard() + favCard() + myGroupsCard() + (isAdmin() ? '<button class="btn pink full" style="margin-bottom:12px" data-act="tab" data-v="admin">🛠️ 管理員後台</button>' : '') +
     (Object.keys(S.blocks).length ? '<div class="card"><div class="sec" style="margin-top:0">已封鎖的人</div>' + Object.keys(S.blocks).map(b => (loadPubs([b]), '<div class="rowline"><span>' + esc(S.pub[b] ? str(S.pub[b].nickname, 20) : '會員') + '</span><button class="btn line" data-act="unblock" data-v="' + esc(b) + '">解除封鎖</button></div>')).join('') + '</div>' : '') +
     '<div class="card"><div class="sec" style="margin-top:0">我的申請</div>' + (items || '<div class="small muted">還沒有申請任何媒合或交易</div>') + '</div>' +
+    fbCard() +
     '<div class="card"><div class="sec" style="margin-top:0">帳號與隱私</div>' +
     '<div class="rowline"><a href="privacy.html" target="_blank" rel="noopener">個人資料蒐集告知暨隱私權政策</a></div>' +
     '<div class="actions"><button class="btn line" data-act="sendReset">寄送重設密碼信</button><button class="btn line" data-act="signOut">登出</button><button class="btn danger" data-act="deleteAcct">刪除帳號與所有資料</button></div></div>' +
@@ -3508,7 +3547,8 @@ document.addEventListener('click', e => {
   if (act === 'follow') { e.stopPropagation(); const a = el.dataset.artist; if (!S.follows.includes(a) && overLimit('follow')) return; S.follows = S.follows.includes(a) ? S.follows.filter(x => x !== a) : S.follows.concat(a); saveLS('fv_follows2', S.follows); if (S.follows.includes(a)) bump('follow', a); pushSync(); toast(S.follows.includes(a) ? '已追蹤 ' + a : '已取消追蹤'); render(); return; }
   switch (act) {
     case 'tab': closeSheet(); go(v); break;
-    case 'prefs': prefSheet(); break;
+    case 'langs': langSheet(); break;
+    case 'themes': themeSheet(); break;
     case 'setLang': setLang(v); break;
     case 'setTheme': setTheme(v); break;
     case 'city': S.city = S.city === v && !AREAS[v] ? (Object.keys(AREAS).find(a => AREAS[a].includes(v)) || '全部') : v; S.homeLimit = 0; render(); break;
@@ -3584,6 +3624,9 @@ document.addEventListener('click', e => {
     case 'repPost': repPost(el.dataset.type, id); break;
     case 'adminDel': adminDelPost(el.dataset.type, id); break;
     case 'admDismiss': admAct('dismiss', id); break;
+    case 'admFbDone': admAct('fbDone', id); break;
+    case 'fbType': fbKeep(); S.fbType = el.dataset.v; render(); break;
+    case 'sendFb': sendFb(); break;
     case 'admBan': admAct('ban', v); break;
     case 'admUnban': admAct('unban', v); break;
     case 'admDelTarget': admAct('delTarget', id); break;
