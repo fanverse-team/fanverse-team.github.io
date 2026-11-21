@@ -71,9 +71,10 @@
   .btn.line{background:transparent;border:1px solid var(--line);color:var(--body)}
   .btn.full{width:100%}
   .btn:disabled{opacity:.5;cursor:not-allowed}
+  .fab.plus{width:56px;height:56px;padding:0;font-size:30px;line-height:1;display:flex;align-items:center;justify-content:center}
   .totop{position:fixed;right:max(16px, calc(50% - 204px));bottom:88px;z-index:24;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:20px;font-weight:900;box-shadow:0 6px 18px rgba(14,12,29,.25);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s,transform .2s}
   .totop.show{opacity:1;pointer-events:auto;transform:none}
-  .totop.up,body:has(.fab) .totop{bottom:146px}
+  .totop.up,body:has(.fab) .totop{bottom:150px;margin-right:6px}
   .fab{position:fixed;right:max(16px, calc(50% - 204px));bottom:88px;z-index:25;border:0;border-radius:999px;background:var(--pink);color:var(--text);font-weight:900;font-size:15px;padding:13px 20px;box-shadow:0 8px 24px rgba(255,79,154,.45)}
   .safe{font-size:12px;color:var(--muted);background:var(--paper2);border-radius:12px;padding:10px 12px;margin-bottom:12px;line-height:1.6}
   .thumb{width:76px;height:76px;border-radius:12px;object-fit:cover;flex:none;background:var(--paper2)}
