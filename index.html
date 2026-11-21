@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-7eFAOQI9lXC1I1rQQFHPkGub99qt+ZkNimoDUicOQm8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-Soj1CnrYUPPcY1HjORa5B4WOOOCz10z7nmIMwI5nGAc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -582,7 +582,7 @@ function render() {
     else if (S.view === 'plus') v.innerHTML = vPlus();
     else v.innerHTML = vMe();
   }
-  const fab = S.mode === 'ready' && S.view === 'match' ? '<button class="fab" data-act="newRide">＋ 發起媒合</button>' : S.mode === 'ready' && S.view === 'market' ? (S.mkKind === 'ticket' ? '<button class="fab" data-act="newTicket">＋ 刊登讓票</button>' : '<button class="fab" data-act="newTrade">＋ 上架周邊</button>') : '';
+  const fab = S.mode === 'ready' && S.view === 'match' ? '<button class="fab plus" data-act="newRide" aria-label="發起媒合" title="發起媒合">＋</button>' : S.mode === 'ready' && S.view === 'market' ? (S.mkKind === 'ticket' ? '<button class="fab plus" data-act="newTicket" aria-label="刊登讓票" title="刊登讓票">＋</button>' : '<button class="fab plus" data-act="newTrade" aria-label="上架周邊" title="上架周邊">＋</button>') : '';
   $('#fabWrap').innerHTML = fab;
 }
 
