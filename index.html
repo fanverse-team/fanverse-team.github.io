@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-RQdp2anNczWtsds5sZqh+S28DQx2rWIzFnps3TkfLi0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-OOyoQTTMEyxZFYN6BndcJlHzP8kIuulrfkW5hCkgNVA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -1197,7 +1197,7 @@ function vPlus() {
       '<p class="small muted" style="margin:8px 0 0">取消自動續訂後，到期前都還能使用 Plus。</p></div>';
   }
   const plan = (k, label, sub) => '<div class="plan' + (k === 'year' ? ' best' : '') + '">' + (k === 'year' ? '<span class="tag">省 NT$98</span>' : '') + '<div class="pn">' + label + '</div><div class="pp">NT$' + PLUS_PRICE[k] + '<span>' + (k === 'year' ? '／年' : '／月') + '</span></div><div class="small muted">' + sub + '</div>' +
-    (me ? '<button class="btn ' + (k === 'year' ? 'pink' : 'line') + ' full" data-act="plusBuy" data-v="' + k + '"' + (on ? ' disabled' : '') + '>' + (on ? '使用中' : '選這個') + '</button>' : '') + '</div>';
+    (me ? (on ? (p.plan === k ? '<button class="btn line full" disabled>使用中</button>' : '') : '<button class="btn ' + (k === 'year' ? 'pink' : 'line') + ' full" data-act="plusBuy" data-v="' + k + '">選這個</button>') : '') + '</div>';
   return '<h2 class="vt">FANVERSE Plus</h2>' +
     '<div class="mock">🧪 這是課堂專題的<b>模擬訂閱</b>：不會真的扣款，也不需要輸入任何卡號。</div>' + status +
     '<div class="plans">' + plan('month', '月繳', '每月自動續訂，可隨時取消') + plan('year', '年繳', '一次付一年，等於送兩個月') + '</div>' +
@@ -1330,7 +1330,7 @@ function icsEvents(c, plus) {
   const f = x => x.getUTCFullYear() + pad(x.getUTCMonth() + 1) + pad(x.getUTCDate()) + 'T' + pad(x.getUTCHours()) + pad(x.getUTCMinutes()) + '00Z';
   const alarm = (trig, msg) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(msg), 'TRIGGER:' + trig, 'END:VALARM'];
   const name = c.noArtist ? c.title : c.artist;
-  const days = c.r ? [[c.r[0], '', c.r[1]]] : c.d;
+  const today = todayTW(), days = (c.r ? [[c.r[0], '', c.r[1]]] : c.d).filter(x => (x[2] || x[0]) >= today);
   const out = days.map(([day, t, endDay], i) => {
     let when;
     if (/^\d\d:\d\d$/.test(t || '')) { const st = new Date(Date.parse(day + 'T' + t + ':00+08:00')), en = new Date(st.getTime() + 3 * 3600e3); when = 'DTSTART:' + f(st) + '\r\nDTEND:' + f(en); }
@@ -2070,8 +2070,9 @@ function planIcs(o) {
 function planToSplit(o, key, me) {
   if (!isPlus()) return plusSheet('把行程預算一鍵帶進分帳計算機');
   const d = splitData(key); if (!d.people.includes(me)) d.people.unshift(me);
-  o.b.forEach(x => d.items.push({ who: me, amt: Math.round(x[1]), what: str(x[0], 20) }));
-  splitSave(key, d); toast('已把 ' + o.b.length + ' 筆預算帶進分帳，記得再加上同行的人');
+  d.items = d.items.filter(x => !x.plan); // 重新帶入時換掉上次的預算，不重複
+  o.b.forEach(x => d.items.push({ who: me, amt: Math.round(x[1]), what: str(x[0], 20), plan: 1 }));
+  splitSave(key, d); render(); toast('已把 ' + o.b.length + ' 筆預算帶進分帳，記得再加上同行的人');
 }
 // 同團成員從不同地方出發：建議在哪裡會合
 function meetTxt(groupFrom, myFrom, dest) {
@@ -2176,7 +2177,6 @@ function guideDays(o) {
   // 抵達後補上最後一哩，散場前補上捷運末班
   const lm = lastMile(o.c.venue, o.mob || [], o.acc), m = TRANSIT[o.c.venue] && TRANSIT[o.c.venue].mrt[0], ml = mrtLast(m);
   for (const d of days) {
-    const i = d.steps.findIndex(s => /^抵達/.test(s.h)); if (i >= 0 && lm) d.steps.splice(i + 1, 0, { t: '', h: '轉市區交通', d: lm, kind: 'metro' });
     const j = d.steps.findIndex(s => /散場/.test(s.h)); if (j >= 0 && ml) d.steps.splice(j + 1, 0, { t: '', h: m.n + '末班車', d: m.last.map(l => l[0] + ' ' + l[2]).join('、'), kind: 'metro' });
   }
   return days;
@@ -2185,8 +2185,7 @@ function guideSheet(o, k) {
   if (!isPlus()) return plusSheet('每天一張交通導覽圖，當天沒網路也看得到');
   S.guide = { o, k };
   const days = guideDays(o);
-  openSheet('交通導覽・' + (o.c.noArtist ? str(o.c.title, 12) : o.c.artist), '<p class="small muted" style="margin:0 0 10px">把每一天的交通整理成一條路線，存成圖片放在相簿，當天沒網路也看得到。</p>' +
-    days.map((d, i) => '<div class="card guide"><div class="sec" style="margin-top:0">' + esc(d.label) + '</div><ol class="route">' + d.steps.map(s => '<li class="' + s.kind + '"><span class="t">' + esc(s.t) + '</span><b>' + esc(s.h) + '</b>' + (s.d ? '<br><span class="small">' + esc(s.d) + '</span>' : '') + '</li>').join('') + '</ol>' +
+  openSheet('交通導覽・' + (o.c.noArtist ? str(o.c.title, 12) : o.c.artist), days.map((d, i) => '<div class="card guide"><div class="sec" style="margin-top:0">' + esc(d.label) + '</div><ol class="route">' + d.steps.map(s => '<li class="' + s.kind + '"><span class="t">' + esc(s.t) + '</span><b>' + esc(s.h) + '</b>' + (s.d ? '<br><span class="small">' + esc(s.d) + '</span>' : '') + '</li>').join('') + '</ol>' +
       '<button class="btn line full" data-act="guideImg" data-v="' + i + '">🖼️ 下載這天的導覽圖</button></div>').join('') +
     '<button class="btn full" data-act="' + (k === 'g' ? 'group' : 'tab') + '"' + (k === 'g' ? ' data-id="' + esc(S.group ? S.group.id : '') + '"' : ' data-v="ai"') + '>返回行程</button>');
 }
