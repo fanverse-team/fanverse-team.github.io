@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-hOLj1OmPWI1E7O0IE/5OuAGZjyjpWw2IQfen4bSq1p4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-RQdp2anNczWtsds5sZqh+S28DQx2rWIzFnps3TkfLi0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -2530,7 +2530,7 @@ function makePlan(a) {
     if (rt2) railUsed = true;
     if (by !== null && depart < 7) warn.push('你設定 ' + T.backBy + ' 前到家，要在 ' + hm(depart) + ' 就出發，很早；可以把到家時間往後調。');
     push(d, Math.min(11, Math.max(7, depart - 1)), '退房', '');
-    push(d, depart, '回程', (rt2 ? legTxt(railMode, rt2) + ' ' : '') + how + '，返回' + (local ? '家' : a.from) + '，車程約' + dur(local ? localMin : opt.min) + '。');
+    push(d, depart, '回程', rt2 ? legTxt(railMode, rt2) : how + '，返回' + (local ? '家' : a.from) + '，車程約' + dur(local ? localMin : opt.min) + '。');
     push(d, home, '到家', '');
   }
 
