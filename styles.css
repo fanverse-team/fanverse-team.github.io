@@ -259,6 +259,7 @@
   .kindseg .cnt{display:inline-block;margin-left:4px;font-size:11px;font-weight:500;color:var(--muted)}
   .chips.sub{margin-top:-6px}
   .chips.sub .chip{font-size:12px;padding:4px 12px}
+  @media (max-width:480px){.chip{padding:6px 11px}}
   .date.open{background:var(--pinkd)}
   .date.open .md{font-size:15px;font-family:var(--sans)}
   .date.open .wd{color:#FFE3EF}
