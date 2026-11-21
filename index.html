@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-OOyoQTTMEyxZFYN6BndcJlHzP8kIuulrfkW5hCkgNVA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-X6bBIHwDSgQQYmgKp9oF1DIpJH6XAKrq4WfLMAwHsiw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -297,6 +297,8 @@ let CONCERTS = [
 ];
 let BASE = CONCERTS, ARTS = [], ARTS_ASOF = '', VDB = {};
 function todayTW() { return new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10); }
+// 篩選標籤用短名稱（中文版）；英日文照字典翻完整名稱
+const areaLbl = x => LANG === 'zh' ? ({ 北部: '北', 中部: '中', 南部: '南', '東部・離島': '東・離島' }[x] || x) : x;
 const GENRES = ['韓流', '日本', '華語', '歐美', '綜合', '其他'];
 /* ---------- 全台場館：五大場館用上面人工整理的資料，其他場館用 venues.json 自動產生（最近車站、Google 地圖路線） ---------- */
 const CITIES = ['台北', '新北', '基隆', '桃園', '新竹', '苗栗', '台中', '彰化', '南投', '雲林', '嘉義', '台南', '高雄', '屏東', '宜蘭', '花蓮', '台東', '澎湖', '金門', '連江'];
@@ -762,10 +764,10 @@ function vHome() {
     newShowsBar() + recBox() + '<div class="seg kindseg" role="tablist">' + KINDS.map(([k, l]) => '<button role="tab" aria-selected="' + (S.kind === k) + '" class="' + (S.kind === k ? 'on' : '') + '" data-act="kind" data-v="' + k + '">' + l + (count(k) ? '<span class="cnt">' + count(k) + '</span>' : '') + '</button>').join('') + '</div>' +
     '<div class="sbox"><input class="search" id="q" type="search" enterkeyhint="search" placeholder="' + (S.kind === 'expo' ? '搜尋展覽、博物館、縣市（例：法老、奇美、台中）' : S.kind === 'show' ? '搜尋節目、團體、場館（例：交響、衛武營、親子）' : '搜尋藝人、場館、月份（例：防彈、大巨蛋、12月）') + '" value="' + esc(S.q) + '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="sugBox" aria-expanded="false">' +
     (S.q ? '<button class="sclear" data-act="clearQ" aria-label="清除搜尋">✕</button>' : '') + '<div id="sugBox" class="sug" role="listbox" hidden></div></div>' +
-    '<div class="chips">' + ['全部'].concat(Object.keys(AREAS)).map(x => '<button class="chip' + (S.city === x || (x === area && S.city !== '全部') ? ' on' : '') + '" data-act="city" data-v="' + x + '">' + x + '</button>').join('') +
-    (S.kind === 'concert' ? '<button class="chip' + (S.onlyFollow ? ' on' : '') + '" data-act="onlyFollow">★ 只看追蹤</button>' : '') + '</div>' +
-    (area ? '<div class="chips sub">' + AREAS[area].filter(c => up.some(x => V(x.venue).city === c)).map(x => '<button class="chip' + (S.city === x ? ' on' : '') + '" data-act="city" data-v="' + x + '">' + x + '</button>').join('') + '</div>' : '') +
-    '<div class="chips">' + genres.map(x => '<button class="chip' + (S.genre === x ? ' on' : '') + '" data-act="genre" data-v="' + x + '">' + x + '</button>').join('') + '</div>' +
+    '<div class="chips" style="flex-wrap:wrap;overflow:visible">' + ['全部'].concat(Object.keys(AREAS)).map(x => '<button class="chip' + (S.city === x || (x === area && S.city !== '全部') ? ' on' : '') + '" data-act="city" data-v="' + x + '">' + areaLbl(x) + '</button>').join('') +
+    (S.kind === 'concert' ? '<button class="chip' + (S.onlyFollow ? ' on' : '') + '" data-act="onlyFollow">★ 追蹤</button>' : '') + '</div>' +
+    (area ? '<div class="chips sub" style="flex-wrap:wrap;overflow:visible">' + AREAS[area].filter(c => up.some(x => V(x.venue).city === c)).map(x => '<button class="chip' + (S.city === x ? ' on' : '') + '" data-act="city" data-v="' + x + '">' + x + '</button>').join('') + '</div>' : '') +
+    '<div class="chips" style="flex-wrap:wrap;overflow:visible">' + genres.map(x => '<button class="chip' + (S.genre === x ? ' on' : '') + '" data-act="genre" data-v="' + x + '">' + x + '</button>').join('') + '</div>' +
     '<div id="homeList">' + homeList() + '</div>' +
     srcNote();
 }
