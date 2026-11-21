@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-X6bBIHwDSgQQYmgKp9oF1DIpJH6XAKrq4WfLMAwHsiw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-7eFAOQI9lXC1I1rQQFHPkGub99qt+ZkNimoDUicOQm8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -531,13 +531,31 @@ function route() {
   const cm = h.match(/^c\/(e\d{2,4}|k[0-9a-f]{12})$/); // 分享連結：#c/e01 直接打開那一場
   const tm = h.match(/^t\/(e\d{2,4}|k[0-9a-f]{12})$/); // 散場通知：#t/e01 直接看那一場的周邊交換
   if (tm) { S.marketC = tm[1]; S.view = 'market'; render(); ensureFeeds(); return; }
-  S.view = TABS.some(t => t[0] === h) || h === 'admin' || h === 'plus' ? h : 'home';
+  const prev = S.view, next = TABS.some(t => t[0] === h) || h === 'admin' || h === 'plus' ? h : 'home';
+  if (prev && prev !== next) SCROLL_Y[prev] = window.scrollY; // 離開時記住捲到哪裡
+  S.view = next;
   if (cm) setTimeout(() => { if (C(cm[1])) openConcert(cm[1]); else S.pendingCid = cm[1]; }, 0);
   S.meKey = '';
   render();
   ensureFeeds();
-  window.scrollTo(0, 0);
+  // 切回來時回到剛才的位置；同一頁再點一次分頁則回到最上面
+  window.scrollTo(0, prev !== next ? SCROLL_Y[next] || 0 : 0);
+  toTopUpdate();
 }
+const SCROLL_Y = {};
+// 右下角「回到最上面」：頁面不在頂端時才出現
+function toTopUpdate() {
+  let b = document.getElementById('toTop');
+  if (!b) {
+    b = document.createElement('button'); b.id = 'toTop'; b.className = 'totop'; b.type = 'button';
+    b.setAttribute('aria-label', '回到最上面'); b.textContent = '↑';
+    b.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    document.body.appendChild(b);
+  }
+  b.classList.toggle('show', window.scrollY > 300);
+  b.classList.toggle('up', !!document.querySelector('.fab'));
+}
+window.addEventListener('scroll', toTopUpdate, { passive: true });
 function go(v) { if (location.hash === '#' + v) route(); else location.hash = v; }
 window.addEventListener('hashchange', route);
 
