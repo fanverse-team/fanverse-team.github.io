@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-A7d1/MHpBWyHHXEYcuy6Gg2RnRkQgVX5n9WsNSfuKjk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-hOLj1OmPWI1E7O0IE/5OuAGZjyjpWw2IQfen4bSq1p4='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -2438,6 +2438,8 @@ function makePlan(a) {
 
   // ---- 出發 ----
   // 去場館的路線：要先放行李（前一天到、或住一晚）就寫在「到場館」那一步，否則寫在「抵達」
+  // 交通說明只留「最快／最便宜」
+  const optTag = local ? '' : [opt.min === Math.min(...opts.map(x => x.min)) ? '最快' : '', opt.cost === Math.min(...opts.map(x => x.cost)) ? '最便宜' : ''].filter(Boolean).join('、').replace(/.$/, '$&。');
   const venueWay = (lastMile(c.venue, mob, a.acc) || v.transit[0] || '').replace(/([^。])$/, '$1。');
   const stayFirst = T.go === '前一天' || (back !== '當天' && !visit && !local);
   if (T.go === '前一天') {
@@ -2445,7 +2447,7 @@ function makePlan(a) {
     const gt = railMode ? goTrain(d0, null, dep + 0.33) : null, arr = gt ? gt.arr + lm : dep + travel;
     if (gt) railUsed = true; else if (railMode && goList(d0).length) warn.push('前一天 ' + hm(dep) + ' 之後已經沒有從' + stA + '出發的' + railMode + '班次可以到，請提早出發或改搭其他交通方式。');
     days.push([d0, '前一天']);
-    push(d0, gt && toH(T.goTime) === null ? gt.dep - 0.33 : dep, '出發：' + (local ? '家裡' : a.from), gt ? legTxt(railMode, gt) : how + '，車程約' + dur(local ? localMin : opt.min) + '。' + (local ? '' : opt.note), true);
+    push(d0, gt && toH(T.goTime) === null ? gt.dep - 0.33 : dep, '出發：' + (local ? '家裡' : a.from), (gt ? legTxt(railMode, gt) : how + '，車程約' + dur(local ? localMin : opt.min) + '。') + optTag, true);
     if (!local && opt.mode === '客運' && arr >= 24 + 3) {
       nightBus = true;
       push(d0, '夜間', '搭夜車', '夜車在車上過夜，省一晚住宿；帶頸枕、眼罩和外套，車上冷氣很強。');
@@ -2465,7 +2467,7 @@ function makePlan(a) {
     let dep = setT !== null ? setT : auto, arr = dep + travel;
     const gt = railMode ? (setT !== null ? goTrain(day, null, setT + 0.33) : goTrain(day, needAt - extra, null) || goList(day)[0] || null) : null;
     if (gt) { railUsed = true; if (setT === null) dep = gt.dep - 0.33; arr = gt.arr + lm; }
-    push(day, dep, local ? '出門' : '出發：' + a.from, gt ? legTxt(railMode, gt) : how + '，車程約' + dur(local ? localMin : opt.min) + '。' + (local ? (lastMile(c.venue, mob, a.acc) || v.transit[0]) : opt.note), true);
+    push(day, dep, local ? '出門' : '出發：' + a.from, (gt ? legTxt(railMode, gt) + optTag : how + '，車程約' + dur(local ? localMin : opt.min) + '。' + (local ? (lastMile(c.venue, mob, a.acc) || v.transit[0]) : optTag)), true);
     if (!local) push(day, arr, '抵達：' + (v.city || '當地'), stayFirst ? '' : venueWay, true);
     arrivedAt = arr;
     if (arr > (visit ? start + 0.5 : start - 0.25)) warn.push('依你設定的 ' + hm(dep) + ' 出發，大約 ' + hm(arr) + ' 才到，會趕不上' + (visit ? '預計的參觀時間' : '開演') + '。建議提早出發，或改成前一天出發。');
@@ -2513,7 +2515,7 @@ function makePlan(a) {
       if (opt.mode === '自行開車') warn.push('回到家會是深夜，疲勞駕駛很危險，至少兩個人輪流開。');
     }
   } else {
-    if (!visit) push(day, end + 0.75, '回住宿', /店家少|建議/.test(v.food) ? '' : '想吃宵夜可以去' + v.food.replace(/（[^）]*）/g, '').split('、')[0] + '。');
+    if (!visit) push(day, end + 0.75, '回住宿', '');
     nights += back === '後天' ? 2 : 1;
     let d = nextDay(day);
     if (back === '後天') {
