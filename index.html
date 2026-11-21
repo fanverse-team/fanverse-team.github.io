@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-mDERF2nqQTn/BkzYMtHH/u8/9G4VShwVfO/1oH7SAT8='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'sha256-A7d1/MHpBWyHHXEYcuy6Gg2RnRkQgVX5n9WsNSfuKjk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src https://*.firebaseapp.com https://www.google.com https://recaptcha.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>FANVERSE｜同一份喜歡，在這裡相遇</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
@@ -260,7 +260,7 @@ const VENUES = {
     price: { hotel: [1800, 3800], hostel: [500, 900] }, food: '瑞豐夜市（巨蛋站 1 號出口，週一、三公休）、漢神巨蛋美食街、裕誠路餐廳' },
   '高雄國家體育場': { city: '高雄', addr: '高雄市左營區世運大道 100 號',
     transit: ['高雄捷運紅線「世運站（R17）」，步行約 10 分鐘', '從高鐵左營站：搭紅線往岡山方向 1 站', '大型演唱會通常有接駁車與加開班次，請看主辦與高雄捷運公告'],
-    exit: ['數萬人同時散場，進世運站可能要排隊 30–60 分鐘', '可步行約 20–25 分鐘到高鐵／台鐵左營站，常常比排捷運快', '預約包車或和同場粉絲共乘，避開捷運人潮'],
+    exit: ['進世運站可能要排隊 30–60 分鐘', '可步行約 20–25 分鐘到高鐵／台鐵左營站，常常比排捷運快', '預約包車或和同場粉絲共乘，避開捷運人潮'],
     stay: [['高鐵左營站周邊', '紅線 1 站或步行可回，隔天搭車最方便'], ['巨蛋站周邊', '紅線 3 站，商圈和夜市都在旁邊'], ['美麗島、中央公園站周邊', '紅線約 15 分鐘，選擇多、價位較平'], ['楠梓、後勁周邊', '紅線往北幾站，演唱會日較容易有空房']],
     price: { hotel: [1800, 3800], hostel: [500, 900] }, food: '場館周邊店家少，建議先在左營站、巨蛋站周邊吃飽再進場' }
 };
@@ -1292,7 +1292,7 @@ function settle(d) {
   return { total: Math.round(total), each: Math.round(each), moves, paid };
 }
 function splitHtml(key, defaults) {
-  if (!isPlus()) return '<div class="empty">💰 多人分帳計算機是 Plus 功能：記下誰先付了車資、房費、餐費，自動算出誰該轉給誰多少。<br><button class="btn pink" data-act="goPlus" style="margin-top:8px">看 Plus 方案</button></div>';
+  if (!isPlus()) return '<div class="empty"><button class="btn pink" data-act="goPlus">看 Plus 方案</button></div>';
   const d = splitData(key);
   if (!d.people.length && defaults && defaults.length) { d.people = defaults.slice(0, 20); splitSave(key, d); }
   const r = settle(d), money = n => 'NT$' + Math.round(n).toLocaleString();
@@ -1402,7 +1402,6 @@ function vMatch() {
     '<div class="chips">' + ['全部', '包車', '住宿', '旅伴'].map(k => '<button class="chip' + (S.matchKind === k ? ' on' : '') + '" data-act="mkind" data-v="' + k + '">' + k + '</button>').join('') + '</div>' +
     pickerHtml('mConcert', mc, PK_OPT.mConcert) + head +
     (guest ? guestBanner('同行媒合') : '') +
-    '<div class="safe">🛡️ 對方的真實姓名只會在雙方都確認後才顯示。見面前請在平台確認，<b>不要私下先匯款或付訂金</b>；誰申請了哪一團，只有發起人看得到。</div>' +
     (!ready ? '<div class="empty">載入中…</div>' : list.length ? '<div class="cgrid">' + list.map(rideCard).join('') + '</div>' : empty);
 }
 function rideCard(r) {
@@ -2114,9 +2113,8 @@ function transitHtml(name, acc) {
 function lastMile(name, mob, acc) {
   const t = TRANSIT[name]; if (!t) return '';
   const m = t.mrt[0], out = [];
-  if (m) out.push('搭' + m.sys + '到「' + m.n + '」' + (acc && m.lift ? '，走有電梯的 ' + m.lift[0] + ' 號出口' : m.ex ? '，' + m.ex[0] + ' 號出口' : '') + '，步行約 ' + walkMin(((acc && m.lift) || m.ex || [0, m.d])[1] || m.d) * (acc ? 1.5 : 1) + ' 分鐘。');
-  else if (t.bus[0]) out.push('搭公車到「' + t.bus[0][0] + '」站（' + t.bus[0][2].slice(0, 4).join('、') + '）。');
-  if (t.bike[0] && (mob.includes('腳踏車') || !mob.length) && !acc) out.push('也可以騎 YouBike，場館旁有「' + t.bike[0][0] + '」站。');
+  if (m) out.push(m.sys + '「' + m.n + '」' + (acc && m.lift ? '，走有電梯的 ' + exLbl(m.lift[0]) : m.ex ? '，' + exLbl(m.ex[0]) : '') + '，步行約 ' + walkMin(((acc && m.lift) || m.ex || [0, m.d])[1] || m.d) * (acc ? 1.5 : 1) + ' 分鐘。');
+  else if (t.bus[0]) out.push('公車「' + t.bus[0][0] + '」站（' + t.bus[0][2].slice(0, 4).join('、') + '）。');
   return out.join('');
 }
 // 國道客運：地區 → 代表縣市
@@ -2439,6 +2437,9 @@ function makePlan(a) {
   let nights = 0, nightBus = false;
 
   // ---- 出發 ----
+  // 去場館的路線：要先放行李（前一天到、或住一晚）就寫在「到場館」那一步，否則寫在「抵達」
+  const venueWay = (lastMile(c.venue, mob, a.acc) || v.transit[0] || '').replace(/([^。])$/, '$1。');
+  const stayFirst = T.go === '前一天' || (back !== '當天' && !visit && !local);
   if (T.go === '前一天') {
     const d0 = prevDay(day), dep = toH(T.goTime) !== null ? toH(T.goTime) : 18.5;
     const gt = railMode ? goTrain(d0, null, dep + 0.33) : null, arr = gt ? gt.arr + lm : dep + travel;
@@ -2451,7 +2452,7 @@ function makePlan(a) {
       push(day, arr - 24, '清晨抵達：' + v.city, '可以先找早餐店或24小時咖啡廳休息，再寄放行李。' + (ARRIVE[dest] ? '到站：' + ARRIVE[dest] + '。' : ''), true);
     } else {
       if (arr >= 24) warn.push('前一天 ' + hm(dep) + ' 出發，抵達時已經過了午夜，記得先跟住宿確認可以晚到入住。');
-      push(arr >= 24 ? day : d0, arr >= 24 ? arr - 24 : arr, '抵達：' + (v.city || '當地') + '・入住', (ARRIVE[dest] && !local ? '抵達車站：' + (xf ? xf[2] + '車站' : ARRIVE[dest]) + '，再轉市區交通。' : '') + '先到住宿辦入住，早點休息。', true);
+      push(arr >= 24 ? day : d0, arr >= 24 ? arr - 24 : arr, '抵達：' + (v.city || '當地') + '・入住', '先到住宿辦入住，早點休息。', true);
       nights++;
     }
     days.push([day, '演出當天']);
@@ -2460,12 +2461,12 @@ function makePlan(a) {
     if (!visit) push(day, mealAt - 0.6, nightBus ? '寄放行李' : '回住宿整理、出發', nightBus ? '大型行李寄放在車站置物櫃或寄物店，輕裝進場（場館多半禁止攜帶大型行李）。' : '輕裝進場，大型行李留在住宿（場館多半禁止攜帶大型行李）。');
   } else {
     days.push([day, '演出當天']);
-    const extra = back !== '當天' && !visit && !local ? 0.75 : 0, auto = needAt - extra - travel, setT = toH(T.goTime);
+    const extra = stayFirst ? 0.75 : 0, auto = needAt - extra - travel, setT = toH(T.goTime);
     let dep = setT !== null ? setT : auto, arr = dep + travel;
     const gt = railMode ? (setT !== null ? goTrain(day, null, setT + 0.33) : goTrain(day, needAt - extra, null) || goList(day)[0] || null) : null;
     if (gt) { railUsed = true; if (setT === null) dep = gt.dep - 0.33; arr = gt.arr + lm; }
     push(day, dep, local ? '出門' : '出發：' + a.from, gt ? legTxt(railMode, gt) : how + '，車程約' + dur(local ? localMin : opt.min) + '。' + (local ? (lastMile(c.venue, mob, a.acc) || v.transit[0]) : opt.note), true);
-    if (!local) push(day, arr, '抵達：' + (v.city || '當地'), (ARRIVE[dest] ? '抵達車站：' + (xf ? xf[2] + '車站' : ARRIVE[dest]) + '，再轉市區交通。' : '') + (lastMile(c.venue, mob, a.acc) || v.transit[0]), true);
+    if (!local) push(day, arr, '抵達：' + (v.city || '當地'), stayFirst ? '' : venueWay, true);
     arrivedAt = arr;
     if (arr > (visit ? start + 0.5 : start - 0.25)) warn.push('依你設定的 ' + hm(dep) + ' 出發，大約 ' + hm(arr) + ' 才到，會趕不上' + (visit ? '預計的參觀時間' : '開演') + '。建議提早出發，或改成前一天出發。');
     else if (!visit && arr > mealAt) warn.push('依你設定的出發時間，到了就要直接進場，沒時間好好吃飯，記得先帶點吃的。');
@@ -2478,10 +2479,10 @@ function makePlan(a) {
     push(day, Math.max(start, arrivedAt !== null ? arrivedAt + 0.25 : start), '入場參觀', c.title + (c.hall ? '（' + c.hall + '）' : '') + (c.free ? '・免費參觀' : c.price ? '・' + c.price : ''), true);
     push(day, end, '吃飯、逛周邊', v.food + '。');
   } else {
-    push(day, mealAt, '吃飯', v.food + '。開演前 1 小時場館周邊最擠，提早吃。');
-    if (c.k === 'show') push(day, start - early, '到場館、取票', '多數劇場開演前 30 分鐘開放入場，遲到要等中場或適當段落才能進場。');
+    push(day, mealAt, '吃飯', v.food + '。');
+    if (c.k === 'show') push(day, start - early, '到場館、取票', (stayFirst ? venueWay : '') + '多數劇場開演前 30 分鐘開放入場，遲到要等中場或適當段落才能進場。');
     else {
-      push(day, start - early, '到場館', (big ? '大型場館驗票和安檢要排比較久。' : '') + '想買官方周邊的話要再提早，熱門場次常在中午前就開始排隊。');
+      push(day, start - early, '到場館', (stayFirst ? venueWay : '') + (big ? '大型場館驗票和安檢要排比較久。' : '') + '想買官方周邊的話要再提早，熱門場次常在中午前就開始排隊。');
       push(day, start - 1, '排隊入場', '準備好票券和證件' + (/實名/.test(c.note || '') ? '（這場是實名制，一定要帶身分證件正本）' : '') + '，先上廁所、裝水。');
     }
     push(day, start, '演出開始', c.title, true);
@@ -2512,7 +2513,7 @@ function makePlan(a) {
       if (opt.mode === '自行開車') warn.push('回到家會是深夜，疲勞駕駛很危險，至少兩個人輪流開。');
     }
   } else {
-    if (!visit) push(day, end + 0.75, '回住宿', '住得近可以直接走回去' + (/店家少|建議/.test(v.food) ? '' : '；想吃宵夜可以去' + v.food.replace(/（[^）]*）/g, '').split('、')[0]) + '。');
+    if (!visit) push(day, end + 0.75, '回住宿', /店家少|建議/.test(v.food) ? '' : '想吃宵夜可以去' + v.food.replace(/（[^）]*）/g, '').split('、')[0] + '。');
     nights += back === '後天' ? 2 : 1;
     let d = nextDay(day);
     if (back === '後天') {
@@ -2526,9 +2527,8 @@ function makePlan(a) {
     const depart = rt2 ? rt2.dep - 0.5 : by !== null ? by - travel : auto, home = rt2 ? rt2.arr + lm : depart + travel;
     if (rt2) railUsed = true;
     if (by !== null && depart < 7) warn.push('你設定 ' + T.backBy + ' 前到家，要在 ' + hm(depart) + ' 就出發，很早；可以把到家時間往後調。');
-    push(d, Math.min(11, Math.max(7, depart - 1)), '退房', '多數住宿 11:00 前退房，可以先寄放行李再去走走。');
-    if (depart - 11 >= 1.5) push(d, 11.5, '逛逛、吃午餐', '回程前還有時間，可以去附近景點或買伴手禮。');
-    push(d, depart, '回程', (rt2 ? legTxt(railMode, rt2) + ' ' : '') + how + '，返回' + (local ? '家' : a.from) + '，車程約' + dur(local ? localMin : opt.min) + '。熱門場次隔天的班次也很搶手，回程票一起先訂。');
+    push(d, Math.min(11, Math.max(7, depart - 1)), '退房', '');
+    push(d, depart, '回程', (rt2 ? legTxt(railMode, rt2) + ' ' : '') + how + '，返回' + (local ? '家' : a.from) + '，車程約' + dur(local ? localMin : opt.min) + '。');
     push(d, home, '到家', '');
   }
 
@@ -2578,8 +2578,7 @@ function tripFields(p, a) {
   return '<div class="grid2"><div><label class="f" for="' + p + 'Go">哪天出發</label>' + sel('Go', GO_DAYS, T.go) + '</div>' +
     '<div><label class="f" for="' + p + 'GoT">出發時間</label><input class="in" type="time" id="' + p + 'GoT" value="' + esc(T.goTime) + '"></div></div>' +
     '<div class="grid2"><div><label class="f" for="' + p + 'Back">哪天回來</label>' + sel('Back', BACK_DAYS, T.back) + '</div>' +
-    '<div><label class="f" for="' + p + 'BackBy">最晚幾點到家</label><input class="in" type="time" id="' + p + 'BackBy" value="' + esc(T.backBy) + '"></div></div>' +
-    '<p class="small muted" style="margin:4px 0 0">時間不填就自動排。例如下班後搭夜車：選「前一天」、出發 22:30、交通選客運；想在當地多玩一天就選「後天」。</p>';
+    '<div><label class="f" for="' + p + 'BackBy">最晚幾點到家</label><input class="in" type="time" id="' + p + 'BackBy" value="' + esc(T.backBy) + '"></div></div>';
 }
 function vAI() {
   const a = S.ai, f = S.fraud, list = UPCOMING(); if (!C(a.concert) || C(a.concert).last < todayTW()) a.concert = firstId();
@@ -2600,11 +2599,10 @@ function vAI() {
     (local ? '<p class="d small" style="margin-top:8px">' + (dest === '離島' ? '離島活動請先訂機票或船票，以下只排當地行程。' : '你和場館在同一個生活圈，搭捷運或公車就能到。') + '</p>' :
       '<label class="f" for="aiMode">交通方式</label><select class="in" id="aiMode">' + modes.map(x => '<option' + (a.mode === x ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>' +
       tripFields('ai', a)) +
-    (myMob().length ? '<p class="small muted" style="margin:6px 0 0">依你在「我的」設定的交通方式推薦：' + esc(myMob().join('、')) + '</p>' : '<p class="small muted" style="margin:6px 0 0">到「我的」填交通方式（選填），會依你有沒有車、機車或需要無障礙來推薦。</p>') +
-    '<label class="check"><input type="checkbox" id="aiAcc"' + (a.acc ? ' checked' : '') + '><span>♿ 無障礙需求（輪椅、長輩同行）：放慢步行時間，加上身障席、復康巴士等提醒</span></label>' +
-    '<button class="btn pink full" style="margin-top:14px" data-act="plan">產生追星行程</button>' + (isPlus() ? '' : '<p class="small muted" style="margin:6px 0 0;text-align:center">免費版每天 ' + FREE_LIMIT.plan + ' 次，今天還剩 ' + Math.max(0, FREE_LIMIT.plan - planQuota()) + ' 次・<button class="lnk" data-act="goPlus">Plus 不限次數</button></p>') + (a.out ? renderPlan(a.out) : '') + '</div>' +
-    '<div class="aicard"><h3><span class="ai-tag">PLUS</span> 多人分帳計算機</h3><p class="d">一起包車、住宿時，記下誰先付了什麼，自動算出誰該轉給誰多少。</p>' + splitHtml('solo', S.profile ? [S.profile.nickname] : ['我']) + '</div>' +
-    '<div class="aicard"><h3><span class="ai-tag">SAFE</span> 讓票防詐檢查</h3><p class="d">把在社群看到的讓票、周邊交易訊息貼上來，檢查常見詐騙跡象。</p>' +
+    '<label class="check"><input type="checkbox" id="aiAcc"' + (a.acc ? ' checked' : '') + '><span>♿ 無障礙需求（輪椅、長輩同行）</span></label>' +
+    '<button class="btn pink full" style="margin-top:14px" data-act="plan">產生追星行程</button>' + (isPlus() ? '' : '<p class="small muted" style="margin:6px 0 0;text-align:center">今天剩餘次數：' + Math.max(0, FREE_LIMIT.plan - planQuota()) + '</p>') + (a.out ? renderPlan(a.out) : '') + '</div>' +
+    '<div class="aicard"><h3><span class="ai-tag">PLUS</span> 多人分帳計算機</h3>' + splitHtml('solo', S.profile ? [S.profile.nickname] : ['我']) + '</div>' +
+    '<div class="aicard"><h3><span class="ai-tag">SAFE</span> 讓票防詐檢查</h3>' +
     '<textarea class="in" id="frText" maxlength="1200" placeholder="例：大巨蛋 2 張連號，急售！先付訂金 1000 保留，加 LINE 私聊">' + esc(f.text) + '</textarea>' +
     '<div class="actions"><button class="btn line" data-act="frSample">放一則範例</button><button class="btn pink" style="flex:1" data-act="fraud">檢查風險</button></div>' +
     (f.out ? renderRisk(f.out) : '') + '</div>';
@@ -2684,7 +2682,6 @@ function drawPlan(ctx, o) {
   y = section(y, '預估花費（不含門票）');
   o.b.forEach(b => { text(b[0], P, y, IMG.body, 500, 28); text(money(b[1]), W - P, y, IMG.ink, 700, 28, 'right'); y += 46; rect(P, y - 8, W - 2 * P, 2, IMG.line); });
   y += 6; text('合計', P, y, IMG.ink, 900, 32); text(money(o.total), W - P, y, IMG.pinkd, 900, 32, 'right'); y += 52;
-  if (o.c.price) { y += para('門票另計：' + o.c.price, P, y, W - 2 * P, IMG.muted, 400, 24, 34); }
   y += 34;
   // 7. 住宿
   if (o.nights) {
@@ -2727,37 +2724,28 @@ async function downloadPlan(o) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   toast('已下載行程圖');
 }
-function tripSummary(o) {
-  if (CITY_REGION[o.v.city] === '離島') return '離島活動，請先訂好機票或船票';
-  const parts = [o.trip.go === '前一天' ? '前一天出發' : '當天出發'];
-  parts.push(o.nights ? '住 ' + o.nights + ' 晚' + (o.nightBus ? '（去程搭夜車）' : '') : o.nightBus ? '去程搭夜車' : '當天來回');
-  if (o.back !== '當天') parts.push(o.back === '後天' ? '多玩一天，後天回' : '隔天回');
-  if (o.trip.back === '自動判斷' && o.back !== '當天') parts.push('（自動判斷：散場後回不了家）');
-  return parts.join('・');
-}
 function renderPlan(o, act) {
   const money = n => 'NT$' + Math.round(n).toLocaleString();
-  const optRows = o.opts.map(x => '<div class="rowline" style="align-items:flex-start"><span><b style="color:var(--text)">' + esc(x.mode) + (o.opt && x.mode === o.opt.mode ? '（你選的）' : '') + '</b>' + (x.fit ? ' <span class="pill">適合你</span>' : '') + '<br><span class="small muted">' + esc(x.note) + '</span></span><span style="text-align:right;white-space:nowrap">約' + esc(dur(x.min)) + '<br>' + money(x.cost) + '</span></div>').join('');
+  const fast = Math.min(...o.opts.map(x => x.min)), cheap = Math.min(...o.opts.map(x => x.cost));
+  const optRows = o.opts.map(x => '<div class="rowline" style="align-items:flex-start"><span><b style="color:var(--text)">' + esc(x.mode) + (o.opt && x.mode === o.opt.mode ? '（你選的）' : '') + '</b>' + (x.min === fast ? ' <span class="pill">最快</span>' : '') + (x.cost === cheap ? ' <span class="pill">最便宜</span>' : '') + '</span><span style="text-align:right;white-space:nowrap">約' + esc(dur(x.min)) + '<br>' + money(x.cost) + '</span></div>').join('');
   let lastDay = '';
   const tl = o.tl.map(x => { const head = o.multi && x.day !== lastDay ? '<li class="tlday">' + esc(o.dayLabels[x.day] || x.day) + '</li>' : ''; lastDay = x.day; return head + '<li><span class="t">' + esc(x.t) + '</span><b>' + esc(x.h) + '</b>' + (x.d ? '<br>' + esc(x.d) : '') +
     (x.arts ? '<br><span class="small">🎨 順便看：' + x.arts.map(e => '<button class="lnk" data-act="concert" data-id="' + esc(e.id) + '">' + esc(e.title) + '</button>（' + esc(e.tag) + '）').join('、') + '</span>' : '') + '</li>'; }).join('');
   const k = act === 'groupPlanImg' ? 'g' : 'ai';
   const v = o.v;
   return '<div class="result"><div style="font-weight:700;color:var(--text)">' + esc(o.c.noArtist ? str(o.c.title, 30) : o.c.artist) + '・' + dinfo(o.pick[0]).full + ' ' + esc(o.visit ? (o.c.hours ? '開放 ' + o.c.hours : '') : tm(o.pick[1])) + '・' + esc(o.c.venue) + '</div>' +
-    '<div class="small muted">' + tripSummary(o) + '</div>' +
     (o.weather ? '<div class="small" style="margin-top:6px">🌦️ ' + dinfo(o.weather.day).md + ' ' + esc(o.v.city) + '：' + esc(o.weather.txt) + '<span class="muted">（中央氣象署預報' + (WEATHER_ASOF ? '・' + WEATHER_ASOF + ' 更新' : '') + '）</span></div>' : '') +
     o.warn.map(w => '<div class="err" style="margin-top:8px">⚠️ ' + esc(w) + '</div>').join('') +
     (o.opts.length ? '<div class="sec">交通方案比較（單程，估算）</div>' + optRows : '') +
     '<div class="sec">' + (o.multi ? '行程時間軸' : '當天時間軸') + '</div><ul class="tl">' + tl + '</ul>' +
-    (o.nights ? '<div class="sec">住宿建議（' + o.nights + ' 晚）</div>' + (hotelList(o.c.venue, o.checkin, 5, o.nights) ? '<p class="small" style="margin:0 0 6px">離場館最近的 5 間（點連結看 ' + dinfo(o.checkin).md + ' 入住、住 ' + o.nights + ' 晚的房價）：</p>' + hotelList(o.c.venue, o.checkin, 5, o.nights) : '') + '<ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul><p class="small muted" style="margin:6px 0 0">住宿花費以「' + esc(o.stayTxt) + '」的區域行情估算，並已算進演出期間約 1.5 倍的漲幅，實際以訂房網為準。可以到「同行媒合」找同場粉絲分攤房費。</p>' : '') +
+    (o.nights ? '<div class="sec">住宿建議（' + o.nights + ' 晚）</div>' + (hotelList(o.c.venue, o.checkin, 5, o.nights) ? '<p class="small" style="margin:0 0 6px">離場館最近的 5 間（點連結看 ' + dinfo(o.checkin).md + ' 入住、住 ' + o.nights + ' 晚的房價）：</p>' + hotelList(o.c.venue, o.checkin, 5, o.nights) : '') + '<ul class="list">' + v.stay.map(s => '<li><b>' + esc(s[0]) + '</b>：' + esc(s[1]) + '</li>').join('') + '</ul><p class="small muted" style="margin:6px 0 0">費用為估算，實際請以訂房網站為準。</p>' : '') +
     '<div class="sec">預估花費（不含門票）：' + money(o.total) + '</div>' + o.b.map(x => '<div class="rowline"><span>' + esc(x[0]) + '</span><span>' + money(x[1]) + '</span></div>').join('') +
-    (o.c.price ? '<div class="small muted" style="margin-top:6px">門票另計：' + esc(o.c.price) + '</div>' : '') +
     (o.accTips ? '<div class="sec">♿ 無障礙提醒</div><ul class="list">' + o.accTips.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' : '') +
     '<div class="sec">行前清單建議</div><ul class="list">' + o.check.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
     '<button class="btn pink full" style="margin-top:14px" data-act="' + (act || 'planImg') + '">下載行程規劃圖（PNG）</button>' +
     '<div class="actions"><button class="btn line" style="flex:1" data-act="planIcs" data-v="' + k + '">📅 整份行程加入行事曆</button><button class="btn line" style="flex:1" data-act="planSplit" data-v="' + k + '">💰 預算帶入分帳' + (isPlus() ? '' : '（Plus）') + '</button></div>' +
     '<button class="btn line full" style="margin-top:8px" data-act="planGuide" data-v="' + k + '">🧭 每日交通導覽圖' + (isPlus() ? '' : '（Plus）') + '</button>' +
-    '<div class="src">' + (o.railUsed ? '班次依交通部 TDX 時刻表' + (RAIL && RAIL.asof ? '（' + RAIL.asof + ' 更新）' : '') + '，臨時異動以官方公告為準。' : '') + '以上為系統估算：' + (o.visit ? '參觀以 2.5 小時計，' : '演出長度以 ' + (o.c.k === 'show' ? 2 : 3) + ' 小時計，') + '車程與票價為概略值。實際班次、票價與末班車請查台灣高鐵、台鐵、客運與捷運官方資訊。</div></div>';
+    '<div class="src">' + (o.railUsed ? '班次依交通部 TDX 時刻表' + (RAIL && RAIL.asof ? '（' + RAIL.asof + ' 更新）' : '') + '，臨時異動以官方公告為準。<br>' : '') + '以上為系統估算：' + (o.visit ? '參觀以 2.5 小時計，' : '演出長度以 ' + (o.c.k === 'show' ? 2 : 3) + ' 小時計，') + '車程與票價為概略值。<br>實際班次、票價與末班車請查台灣高鐵、台鐵、客運與捷運官方資訊。</div></div>';
 }
 function renderRisk(o) {
   const lv = o.level === '高' ? 'high' : o.level === '中' ? 'mid' : 'low';
