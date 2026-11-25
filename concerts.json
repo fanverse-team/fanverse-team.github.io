@@ -1,11 +1,11 @@
 {
  "updated": "2026-11-25",
- "seq": 42,
+ "seq": 43,
  "status": {
   "arena": {
    "ok": true,
    "at": "2026-11-25",
-   "count": 5
+   "count": 6
   },
   "tmc": {
    "ok": true,
@@ -41,6 +41,7 @@
   {"id":"e05","artist":"劉若英","genre":"華語","title":"劉若英《飛行日》2026 巡迴演唱會","venue":"台北小巨蛋","d":[["2026-12-05","18:30"]],"src":["yolo","ett","arena"],"priceCheckedAt":"2026-11-18","price":"NT$800–4,500","prices":[["非輪椅身障席／輪椅身障席","400"]],"autoPrice":true,"priceSrc":["劉若英12/5台北小巨蛋演唱會完售！時間地點、售票時間、票價座位一次看","https://tw.news.yahoo.com/%E5%8A%89%E8%8B%A5%E8%8B%B1912%E9%AB%98%E9%9B%84%E5%B7%A8%E8%9B%8B%E9%96%8B%E5%94%B1%EF%BC%81%E6%99%82%E9%96%93%E5%9C%B0%E9%BB%9E%E3%80%81%E5%94%AE%E7%A5%A8%E6%99%82%E9%96%93%E3%80%81%E7%A5%A8%E5%83%B9%E5%BA%A7%E4%BD%8D%E4%B8%80%E6%AC%A1%E7%9C%8B-072705939.html"],"platform":"拓元售票","ticketUrl":"https://tixcraft.com/activity/detail/26_renetp"},
   {"id":"e06","artist":"Asia Artist Awards","genre":"綜合","title":"2026 Asia Artist Awards IN KAOHSIUNG（AAA 亞洲明星盛典）","venue":"高雄國家體育場","d":[["2026-12-05","17:00"],["2026-12-06","17:00"]],"platform":"拓元售票","src":["udn","ett","mcAAA","wikiStadium"],"price":"NT$1,980–6,980","prices":[["身心障礙席","NT$3,490"]],"note":"每張另收 NT$200 系統服務費","priceCheckedAt":"2026-11-19"},
   {"id":"e32","artist":"JANNABI","genre":"韓流","title":"JANNABI 2026 ASIA TOUR FINAL ＜SWEAT & STARDUST ＞ IN TAIPEI","venue":"台北流行音樂中心","d":[["2026-12-05",""]],"src":["tmc"],"auto":true,"priceCheckedAt":"2026-11-25"},
+  {"id":"e43","artist":"ASHIN A:LIVE","genre":"其他","title":"ASHIN A:LIVE 阿信．創作現場｜不見不散","venue":"台北小巨蛋","d":[["2026-12-06",""]],"src":["arena"],"auto":true,"priceCheckedAt":"2026-11-25"},
   {"id":"e07","artist":"Stray Kids","genre":"韓流","title":"Stray Kids World Tour〈RUN IT〉in TAIPEI","venue":"台北大巨蛋","d":[["2026-12-12","18:00"]],"platform":"拓元售票","src":["udn","yahooK","mcSkz","wikiDome"],"price":"NT$2,880–6,880","prices":[["VIP 限量套票","NT$7,880"]],"priceCheckedAt":"2026-11-19"},
   {"id":"e08","artist":"滅火器 Fire EX.","genre":"華語","title":"ON FIRE DAY 2026 滅火器高雄巨蛋演唱會","venue":"高雄巨蛋","d":[["2026-12-12","19:30"],["2026-12-13",""]],"platform":"KKTIX","src":["udn","bw26","yolo","wikiKH"],"priceCheckedAt":"2026-11-25"},
   {"id":"e09","artist":"田馥甄","genre":"華語","title":"田馥甄《要去什麼地方》2026 台北小巨蛋演唱會","venue":"台北小巨蛋","d":[["2026-12-12",""],["2026-12-13",""],["2026-12-15",""],["2026-12-18",""],["2026-12-19",""],["2026-12-20",""]],"note":"實名登記抽選制","src":["yolo","line","aaHebe","arena"],"price":"NT$800–5,200","platform":"遠大售票 Ticket Plus","priceCheckedAt":"2026-11-19"},
