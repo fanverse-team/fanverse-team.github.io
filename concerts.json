@@ -1,30 +1,30 @@
 {
- "updated": "2026-11-26",
- "seq": 43,
+ "updated": "2026-11-27",
+ "seq": 44,
  "status": {
   "arena": {
    "ok": true,
-   "at": "2026-11-26",
+   "at": "2026-11-27",
    "count": 6
   },
   "tmc": {
    "ok": true,
-   "at": "2026-11-26",
-   "count": 6
+   "at": "2026-11-27",
+   "count": 7
   },
   "wikiDome": {
    "ok": true,
-   "at": "2026-11-26",
+   "at": "2026-11-27",
    "count": 8
   },
   "wikiKH": {
    "ok": true,
-   "at": "2026-11-26",
+   "at": "2026-11-27",
    "count": 8
   },
   "wikiStadium": {
    "ok": true,
-   "at": "2026-11-26",
+   "at": "2026-11-27",
    "count": 5
   }
  },
@@ -35,8 +35,8 @@
   {"id":"e30","artist":"5 Seconds of Summer","genre":"歐美","title":"5 SECONDS OF SUMMER: EVERYONES A STAR！ WORLD TOUR","venue":"台北流行音樂中心","d":[["2026-11-25",""]],"src":["tmc"],"auto":true,"priceCheckedAt":"2026-11-24"},
   {"id":"e03","artist":"JOJI","genre":"歐美","title":"JOJI 高雄演唱會","venue":"高雄巨蛋","d":[["2026-11-27",""]],"src":["yolo","mcJoji","wikiKH"],"price":"NT$2,900–7,400","prices":[["非輪椅區身障優惠票（陪同票）","NT$1,450"],["輪椅區身障優惠票（陪同票）","NT$1,950"]],"priceCheckedAt":"2026-11-25"},
   {"id":"e04","artist":"MAMAMOO","genre":"韓流","title":"MAMAMOO《4WARD》","venue":"台北小巨蛋","d":[["2026-11-28",""],["2026-11-29",""]],"src":["yolo","hk01Mmm"],"price":"NT$800–6,980","platform":"ibon 售票","note":"各票價含 NT$5–80 粉絲福利券","priceCheckedAt":"2026-11-25"},
-  {"id":"e31","artist":"Diana Krall","genre":"歐美","title":"爵士天后 戴安娜・克瑞兒 Diana Krall","venue":"台北流行音樂中心","d":[["2026-11-28",""],["2026-11-29",""]],"src":["tmc"],"auto":true,"priceCheckedAt":"2026-11-24"},
-  {"id":"e34","artist":"F✦FOREVER","genre":"華語","title":"F✦FOREVER恆星之城巡迴演唱會","venue":"台北大巨蛋","d":[["2026-11-28",""],["2026-11-29",""]],"src":["wikiDome"],"auto":true,"priceCheckedAt":"2026-11-24"},
+  {"id":"e31","artist":"Diana Krall","genre":"歐美","title":"爵士天后 戴安娜・克瑞兒 Diana Krall","venue":"台北流行音樂中心","d":[["2026-11-28",""],["2026-11-29",""]],"src":["tmc"],"auto":true,"priceCheckedAt":"2026-11-27"},
+  {"id":"e34","artist":"F✦FOREVER","genre":"華語","title":"F✦FOREVER恆星之城巡迴演唱會","venue":"台北大巨蛋","d":[["2026-11-28",""],["2026-11-29",""]],"src":["wikiDome"],"auto":true,"priceCheckedAt":"2026-11-27"},
   {"id":"e36","artist":"2026 K-WONDER IN KAOHSIUNG","genre":"綜合","title":"MISAMO、少女時代-孝利秀、Eunha、SinB、Umji《2026 K-WONDER IN KAOHSIUNG》","venue":"高雄巨蛋","d":[["2026-11-29",""]],"src":["wikiKH"],"auto":true,"priceCheckedAt":"2026-11-21","price":"NT$2,026–7,280","prices":[["非輪椅身心席","3,340"],["輪椅席","1,940"]],"autoPrice":true,"priceSrc":["K-WONDER演唱會2026》11/11加場開賣！票價、遠大售票搶票攻略、座位卡司全攻略","https://news.tvbs.com.tw/entertainment/jk-pop/4038639"],"platform":"遠大售票 Ticket Plus"},
   {"id":"e05","artist":"劉若英","genre":"華語","title":"劉若英《飛行日》2026 巡迴演唱會","venue":"台北小巨蛋","d":[["2026-12-05","18:30"]],"src":["yolo","ett","arena"],"priceCheckedAt":"2026-11-18","price":"NT$800–4,500","prices":[["非輪椅身障席／輪椅身障席","400"]],"autoPrice":true,"priceSrc":["劉若英12/5台北小巨蛋演唱會完售！時間地點、售票時間、票價座位一次看","https://tw.news.yahoo.com/%E5%8A%89%E8%8B%A5%E8%8B%B1912%E9%AB%98%E9%9B%84%E5%B7%A8%E8%9B%8B%E9%96%8B%E5%94%B1%EF%BC%81%E6%99%82%E9%96%93%E5%9C%B0%E9%BB%9E%E3%80%81%E5%94%AE%E7%A5%A8%E6%99%82%E9%96%93%E3%80%81%E7%A5%A8%E5%83%B9%E5%BA%A7%E4%BD%8D%E4%B8%80%E6%AC%A1%E7%9C%8B-072705939.html"],"platform":"拓元售票","ticketUrl":"https://tixcraft.com/activity/detail/26_renetp"},
   {"id":"e06","artist":"Asia Artist Awards","genre":"綜合","title":"2026 Asia Artist Awards IN KAOHSIUNG（AAA 亞洲明星盛典）","venue":"高雄國家體育場","d":[["2026-12-05","17:00"],["2026-12-06","17:00"]],"platform":"拓元售票","src":["udn","ett","mcAAA","wikiStadium"],"price":"NT$1,980–6,980","prices":[["身心障礙席","NT$3,490"]],"note":"每張另收 NT$200 系統服務費","priceCheckedAt":"2026-11-26","ticketUrl":"https://ticket.ibon.com.tw/ActivityInfo/Details/39584"},
@@ -56,6 +56,7 @@
   {"id":"e17","artist":"JEONGHAN X JOSHUA（SEVENTEEN）","genre":"韓流","title":"JEONGHAN X JOSHUA JOURNEY INTO DREAMING IN TAIPEI","venue":"台北小巨蛋","d":[["2027-01-09",""],["2027-01-10",""]],"price":"NT$800–6,880","platform":"遠大售票 Ticket Plus","sale":"11/17 18:00 官方會員預購；11/20（五）18:00 全面開賣","src":["bw27","tvbs"],"priceCheckedAt":"2026-11-19","ticketUrl":"https://ticketplus.com.tw/activity/c28f10dad8b2acf1de5e6aff4051a269"},
   {"id":"e18","artist":"告五人","genre":"華語","title":"告五人 2027 高雄巨蛋演唱會","venue":"高雄巨蛋","d":[["2027-01-09","18:30"],["2027-01-10","18:30"]],"price":"NT$800–3,850","platform":"拓元售票","sale":"11/14 12:00 全面開賣","src":["bh","ttw","wikiKH"],"priceCheckedAt":"2026-11-26"},
   {"id":"e19","artist":"草蜢","genre":"華語","title":"草蜢 THREE IN LOVE 演唱會 2027 台北站","venue":"台北小巨蛋","d":[["2027-01-16",""],["2027-01-17",""]],"price":"NT$800–4,880","platform":"KKTIX","src":["bw27","arena"],"priceCheckedAt":"2026-11-19","ticketUrl":"https://kwan.kktix.cc/events/2b4874b0"},
+  {"id":"e44","artist":"AKMU","genre":"其他","title":"AKMU ASIA TOUR 2027［AKDONGDEUL］IN TAIPEI","venue":"台北流行音樂中心","d":[["2027-01-16",""]],"src":["tmc"],"auto":true,"priceCheckedAt":"2026-11-27"},
   {"id":"e40","artist":"蔡依林","genre":"華語","title":"蔡依林《Pleasure》","venue":"台北大巨蛋","d":[["2027-01-22",""],["2027-01-23",""],["2027-01-24",""],["2027-01-29",""],["2027-01-30",""],["2027-01-31",""]],"src":["wikiDome"],"auto":true,"priceCheckedAt":"2026-11-22","price":"NT$990–6,990","autoPrice":true,"priceSrc":["蔡依林宣布明年1月台北大巨蛋嗨唱6場 售票時程、票價出爐","https://news.cts.com.tw/cts/entertain/202611/202611203103297.html"],"platform":"遠大售票 Ticket Plus"},
   {"id":"e20","artist":"NCT WISH","genre":"韓流","title":"NCT WISH 高雄演唱會","venue":"高雄巨蛋","d":[["2027-01-23",""]],"price":"NT$4,980–6,980","platform":"ibon 售票","src":["bw27","wikiKH"],"priceCheckedAt":"2026-11-26"},
   {"id":"e23","artist":"Tizzy Bac","genre":"華語","title":"Tizzy Bac 台北流行音樂中心演唱會","venue":"台北流行音樂中心","d":[["2027-01-23",""]],"price":"NT$1,600–3,800","platform":"拓元售票","src":["bw27","tmc"],"priceCheckedAt":"2026-11-26"},
